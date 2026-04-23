@@ -1,0 +1,18 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "yalesites-claude-plugins",
+  "description": "Claude Code plugin marketplace for the Yale ITS Digital Experiences team",
+  "owner": {
+    "name": "Yale ITS Digital Experiences",
+    "email": "yalesites@yale.edu"
+  },
+  "plugins": [
+    {
+      "name": "yalesites-overview",
+      "description": "Deep expertise on the YaleSites Drupal 10 platform — Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources.",
+      "category": "development",
+      "source": "./plugins/yalesites-overview",
+      "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites-overview"
+    }
+  ]
+}
