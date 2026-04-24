@@ -1,7 +1,7 @@
 {
   "name": "yalesites-overview",
-  "version": "0.1.0",
-  "description": "Deep expertise on the YaleSites Drupal 10 platform — Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources.",
+  "version": "0.2.0",
+  "description": "Deep expertise on the YaleSites Drupal platform — Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources.",
   "author": {
     "name": "Yale ITS Digital Experiences",
     "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
