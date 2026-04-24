@@ -4,7 +4,7 @@ All blocks available in the YaleSites Layout Builder, with their **verified Drup
 
 **All blocks verified:** All field labels and select options in this reference are sourced directly from Drupal config YAML files (`config/sync/`) and `ys_themes.component_overrides.yml`.
 
-**Color picker ("Theme" field):** Most blocks include a "Theme" field — a color swatch picker displaying named colors with hex codes (e.g., "Blue Yale #00366b", "Gray 100 #f7f7f7"). The available colors depend on the site's Global Theme setting. Always refer to colors by their displayed name (e.g., "Blue Yale"), never as "theme one."
+**Color picker ("Theme" field):** Most blocks include a "Theme" field — a color swatch picker displaying named colors with hex codes (e.g., "Blue Yale #00366b", "Gray 100 #f7f7f7"). The available colors depend on the site's Global Theme setting. The Theme field includes options labeled One through Five internally, which map to actual named colors. Some blocks also include a "Default - No Color" option. Always refer to colors by their displayed name (e.g., "Blue Yale"), never as "theme one."
 
 **Padding Options field:** Most blocks include a "Padding Options" field with these choices:
 - Padding on both top and bottom *(default)*
@@ -95,7 +95,7 @@ A full-width banner driven by an embedded or background video.
 
 ### ✅ Text
 
-A basic rich-text content block. The body text field is labeled **"Content"** in this block (not "Text").
+A basic rich-text content block. The Drupal field for the body text is labeled **"Content"** in this block (not "Text" — this differs from other blocks like Grand Hero).
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -168,7 +168,7 @@ A tabbed interface where each tab contains independently authored content.
 
 ### ✅ Callout
 
-A visually distinct callout block — good for highlighting a key message or CTA. Drupal machine name: `callout`.
+A visually distinct callout block — good for highlighting a key message or CTA. Uses paragraph sub-items for the callout content. Drupal machine name: `callout`.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -214,11 +214,15 @@ A styled callout box that floats alongside body text. Drupal machine name: `wrap
 
 ## Main Content Area Blocks — Spotlights
 
+Spotlight blocks feature a single piece of content prominently — often a person, story, or featured item — with an image and text side by side.
+
+**Reference Card vs. Spotlight:** For featuring an existing node (a Profile, a Post, an Event), a **Reference Card** is usually better — it pulls the node's title, image, and metadata automatically. Use Spotlights when you want full editorial control over custom copy and layout for a bespoke feature.
+
 ---
 
 ### ✅ Content Spotlight Portrait
 
-Image and text side by side with a portrait (square or tall) image. Drupal machine name: `content_spotlight_portrait`.
+Image and text side by side with a portrait (square or tall) image. Drupal machine name: `content_spotlight_portrait`, display label: "Spotlight - Portrait".
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -241,7 +245,7 @@ Image and text side by side with a portrait (square or tall) image. Drupal machi
 
 ### ✅ Content Spotlight Landscape
 
-Like Portrait but with a wide landscape image. Drupal machine name: `content_spotlight`.
+Like Portrait but with a wide landscape image. Drupal machine name: `content_spotlight`, display label: "Spotlight - Landscape".
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -262,11 +266,13 @@ Like Portrait but with a wide landscape image. Drupal machine name: `content_spo
 | **Vertical Alignment** | Select: Top / Middle / Bottom |
 | **Padding Options** | See above |
 
+**Difference from Portrait:** Landscape has Image Size and Focus options; Portrait does not. Portrait is better for headshots; Landscape for editorial/story content.
+
 ---
 
 ### ✅ Reference Card
 
-Dynamically pulls content from an existing node and displays it as a styled card.
+Dynamically pulls content from an existing node and displays it as a styled card. Best for featuring an existing Profile, Post, Event, Page, or Resource without re-entering content.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -284,6 +290,8 @@ Dynamically pulls content from an existing node and displays it as a styled card
 
 ### ✅ Video
 
+An embedded video block (YouTube, Vimeo, or other oEmbed-supported platforms).
+
 | Drupal Field Label | Notes |
 |---|---|
 | **Administrative label** | Internal block title |
@@ -297,9 +305,15 @@ Dynamically pulls content from an existing node and displays it as a styled card
 
 ### ⚠️ Embed
 
-An iframe embed block for third-party tools — forms, maps, calendars, audio players. Editors add embed content through the **Media Library** first (paste in embed code or URL), then the Embed block references that media entity.
+An iframe embed block for third-party tools — forms, maps, calendars, audio players. *Field labels unverified, but the workflow is confirmed.*
 
-**Important:** Yale no longer supports Qualtrics embeds. Do not recommend it.
+**How it works:** Editors add embed content through the **Media Library** — they paste in an embed code or URL, which is saved as a media entity. The Embed block then references that media entity from the Library. Editors do not directly configure width, loading behavior, or type in the block form — those are applied automatically based on the embed type.
+
+**What editors do:** (1) Add an embed code via the Media Library. (2) Place the Embed block in the Layout Builder and select the media entity.
+
+**For guidance on supported embed types:** https://yalesites.yale.edu/community/requests/supporting-embedded-content-on-the-yalesites-platform
+
+**Important:** Yale no longer supports Qualtrics embeds. Do not recommend it. For surveys, direct editors to Yale-approved alternatives.
 
 ---
 
@@ -322,6 +336,8 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 
 ### ✅ Link Grid
 
+A grid of links — useful for "quick access" navigation sections or topic indexes.
+
 | Drupal Field Label | Notes |
 |---|---|
 | **Administrative label** | Internal block title |
@@ -335,6 +351,8 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 
 ### ✅ Quick Links
 
+A compact, scannable list of links — often used as a "related links" or sidebar section.
+
 | Drupal Field Label | Notes |
 |---|---|
 | **Administrative label** | Internal block title |
@@ -347,6 +365,8 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 ---
 
 ### ✅ Button Link
+
+A standalone button or pair of buttons. Useful for adding a prominent CTA without a full content block.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -364,6 +384,8 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 
 ### ✅ Facts & Figures
 
+A structured block for statistics, metrics, or key data points. Each item is a number + descriptor.
+
 | Drupal Field Label | Notes |
 |---|---|
 | **Administrative label** | Internal block title |
@@ -380,7 +402,7 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 
 ### ✅ Custom Cards
 
-The platform's custom card collection block. Drupal machine name: `custom_cards`. **Note:** There is no separate "Card Collection" block type — this is the only card block.
+The platform's custom card collection block. Displays a set of manually authored cards. Drupal machine name: `custom_cards`, display label: "Custom Cards". **Note:** There is no separate "Card Collection" block type — this is the only card block.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -389,9 +411,13 @@ The platform's custom card collection block. Drupal machine name: `custom_cards`
 | **Cards** | Paragraph sub-items — each card is a `custom_card` paragraph |
 | **Padding Options** | See above |
 
+*No Theme/color field on this block — card styling is determined by the individual card paragraph items.*
+
 ---
 
 ### ✅ Tiles
+
+A grid of icon/image + label tiles — useful for navigation or feature categories. Drupal machine name: `tiles`.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -407,11 +433,13 @@ The platform's custom card collection block. Drupal machine name: `custom_cards`
 
 ## Dynamic Views Blocks
 
-Views blocks are configured entirely in the Layout Builder. See `references/views-reference.md` for the full configuration guide.
+Views blocks are configured entirely in the Layout Builder — site administrators do not have access to the standard Drupal "Structure → Views" admin. See `references/views-reference.md` for the full configuration guide.
 
 ---
 
 ### ✅ Event Calendar
+
+A calendar-style event display block (distinct from the Views-based event listing).
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -424,9 +452,13 @@ Views blocks are configured entirely in the Layout Builder. See `references/view
 
 ### ✅ Resource View
 
+A Views-powered resource listing block. This is a wrapper around the `ys_views_content_resources` Views configuration.
+
 | Drupal Field Label | Notes |
 |---|---|
 | **Administrative label** | Internal block title |
 | **View Heading** | Heading above the resource listing |
 | **View Resource Params** | Custom field — stores JSON-encoded filter configuration for the View |
 | **Padding Options** | See above |
+
+*For available display formats, sort options, and filter options, see `references/views-reference.md` → `ys_views_content_resources` section.*
