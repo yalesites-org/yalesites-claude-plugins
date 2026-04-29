@@ -8,11 +8,18 @@
   },
   "plugins": [
     {
-      "name": "yalesites-overview",
+      "name": "yalesites",
       "description": "Deep expertise on the YaleSites Drupal 10 platform — Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources.",
       "category": "development",
-      "source": "./plugins/yalesites-overview",
-      "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites-overview"
+      "source": "./plugins/yalesites",
+      "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites"
+    },
+    {
+      "name": "yalesites-product",
+      "description": "Product team workflows for YaleSites — release prep, ticket grooming, and UX research context for product decisions.",
+      "category": "development",
+      "source": "./plugins/yalesites-product",
+      "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites-product"
     }
   ]
 }

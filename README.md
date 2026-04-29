@@ -10,7 +10,8 @@ A Claude Code plugin marketplace for the Yale ITS Digital Experiences team.
 
 | Plugin | Description | Install command |
 |---|---|---|
-| [yalesites-overview](plugins/yalesites-overview/) | Deep expertise on the YaleSites Drupal 10 platform | `/plugin install yalesites-overview@yalesites-claude-plugins` |
+| [yalesites](plugins/yalesites/) | Deep expertise on the YaleSites Drupal 10 platform | `/plugin install yalesites@yalesites-claude-plugins` |
+| [yalesites-product](plugins/yalesites-product/) | Release prep, ticket grooming, and UX research workflows for the product team | `/plugin install yalesites-product@yalesites-claude-plugins` |
 
 ## Installation
 
@@ -31,7 +32,7 @@ Open Claude Code and run:
 ### 3. Install a plugin
 
 ```
-/plugin install yalesites-overview@yalesites-claude-plugins
+/plugin install yalesites@yalesites-claude-plugins
 ```
 
 ## Structure
