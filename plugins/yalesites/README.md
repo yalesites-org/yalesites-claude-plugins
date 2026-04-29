@@ -1,4 +1,4 @@
-# yalesites-overview
+# yalesites
 
 Deep expertise on the YaleSites Drupal 10 platform for Claude Code.
 
@@ -10,7 +10,7 @@ site builders, and the platform team with:
 - Layout Builder blocks and configuration
 - Manage Settings vs. Layout Builder (the most common editor confusion)
 - Views — display modes, filters, the ys_views_basic architecture
-- Content types (Page, Post, Event, Resource, Person)
+- Content types (Page, Post, Event, Resource, Profile)
 - Menus and navigation (Basic Nav, Mega Nav, Focus Nav)
 - Content Collections (secondary navigation)
 - Sitewide Settings — global themes, fonts, GTM, footer
@@ -25,7 +25,7 @@ site builders, and the platform team with:
 ## Installation
 
 ```
-/plugin install yalesites-overview@yalesites-claude-plugins
+/plugin install yalesites@yalesites-claude-plugins
 ```
 
 ## Skill reference files
@@ -40,6 +40,10 @@ The skill loads deeper reference material on demand:
 | Views filters, sorts, display modes | `references/views-reference.md` |
 | Sitewide settings (Manage Settings page) | `references/settings-reference.md` |
 | User roles and editorial workflow | `references/user-roles-reference.md` |
+
+## Related plugins
+
+- `yalesites-product` — release prep, ticket grooming, and UX research workflows for the product team
 
 ## Maintainer
 

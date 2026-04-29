@@ -1,0 +1,10 @@
+{
+  "name": "yalesites-product",
+  "version": "0.1.0",
+  "description": "Product team workflows for YaleSites — release prep, ticket grooming, and UX research context for product decisions.",
+  "author": {
+    "name": "Yale ITS Digital Experiences",
+    "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
+  },
+  "keywords": ["yalesites", "drupal", "yale", "cms", "product", "release"]
+}
