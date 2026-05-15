@@ -107,12 +107,19 @@ This module is dedicated to **Resources** content type listings. It has its own 
 - Category filter
 - Custom Vocabulary filter
 - Audience filter
-- Search (full-text)
+- Journal Publication Name filter
+- Search (full-text) — when enabled, configurable **Search Fields** checkboxes appear: Title, Teaser Text, Journal Publication Name. At least one must be selected.
 - Year filter
 
-**Field display options:**
+**Field display options** (available on Card Grid, Portrait Grid, and List):
 - Show Thumbnail (on by default)
+- Show Teaser Text (on by default)
 - Show Category
+- Show Tags
+- Show Discipline
+- Show Publication Information — broken into individual per-field checkboxes: **Journal Name**, **Journal Issue**, **Authors**, **Publish Date**
+
+**Default state when adding a new Resource View block:** Only Teaser Image and Teaser Text are checked. All other display options are off by default.
 
 ---
 

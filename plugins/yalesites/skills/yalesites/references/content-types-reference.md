@@ -156,26 +156,58 @@ These fields are **populated automatically** by the Localist integration and are
 
 ## Resource
 
-Documents, reports, publications, and reference materials. Requires a file or video attachment.
+Documents, reports, publications, and reference materials. Requires a file, video, or image attachment. As of v2.22, the Resource content type includes full publication support for journal articles, working papers, and scholarly content.
+
+The Resource form is organized into tabs:
+
+### Basic Info tab
 
 | Field Label | Required | Notes |
 |---|---|---|
 | **Title** | Yes | |
-| **Description** | No | Rich text body |
-| **Resource Category** | No | Taxonomy (resource_category vocabulary) |
+| **Description** | No | Rich text body (restricted_html format) |
+| **Abstract** | No | Rich text summary of the publication (restricted_html format) |
+| **Citation** | No | Formatted citation text (restricted_html; supports `<sub>` and `<sup>` tags for academic formatting) |
+| **Journal Publication Name** | No | Name of the journal or publication venue |
+| **Journal Publication Issue** | No | Issue, volume, or edition identifier |
+| **Affiliated Authors** | No | Entity reference to Profile nodes — links the resource to Yale-affiliated authors. Displays as linked names. (Previously labeled "Authors") |
+| **Non-affiliated Authors** | No | Unlimited double field (First Name + Last Name columns) for authors without a Profile node. Displays as plain text. Both author lists are merged and sorted alphabetically on display. |
+| **DCN** | No | Custom compound field for structured identifier data: ISBN, ISPS ID, and Ref values |
+| **Related Resources** | No | Entity reference to other Resource nodes; renders in a minimal title + date view mode |
+| **Resource Media** | **Yes** | Document, video, or image media entity — the primary file or media item |
+| **Resource Publication Date** | No | Date/time. Full date required even if only the year will display. |
+| **Date Format** | No | Select: **Year** / **Month/Year** / **Month/Day/Year** (default: Month/Day/Year) — controls how the date displays publicly |
+
+### Taxonomies tab
+
+| Field Label | Required | Notes |
+|---|---|---|
+| **Resource Category** | No | Taxonomy (resource_category vocabulary). Moved from Basic Info tab in v2.22. Accessible to site admins via Manage Taxonomies. |
 | **Audience** | No | *(shared)* |
 | **Custom Vocab** | No | *(shared)* |
 | **Affiliation** | No | Taxonomy (affiliation vocabulary) |
-| **Resource Media** | **Yes** | Document or video media entity — the file itself |
-| **Resource Publication Date** | No | Date/time. Full date required even if only the year will display. |
-| **Date Format** | No | Select: **Year** / **Month/Year** / **Month/Day/Year** (default: Month/Day/Year) — controls how the date displays publicly |
+| **Discipline** | No | Taxonomy (new Discipline vocabulary, added v2.22) |
+| **Academic Years** | No | Taxonomy (new Academic Years vocabulary, added v2.22; pre-populated with year terms) |
+| **Areas of Study** | No | Taxonomy (new Areas of Study vocabulary, added v2.22) |
+| **Geographic Areas** | No | Taxonomy (new Geographic Areas vocabulary, added v2.22) |
 | **Tags** | No | *(shared)* |
+
+### Teaser / Sidebar fields
+
+| Field Label | Required | Notes |
+|---|---|---|
 | **Teaser** fieldset | — | Teaser Title, Teaser Text, Teaser Media |
 | *(Sidebar)* **CAS Login Required** | No | *(shared)* |
 | *(Sidebar)* **Pin to the beginning of list** | No | *(shared)* |
 | *(Sidebar)* **External Source** | No | *(shared)* |
 | **URL alias** | No | *(shared)* |
 | **Metadata** | No | *(shared)* |
+
+**Note on authors:** Affiliated Authors (Profile node references) and Non-affiliated Authors (plain-text first/last name) are grouped under an "Authors" section on the form. On the published page, both lists are merged and sorted last-name-first alphabetically. Affiliated authors render as links to their Profile pages; non-affiliated render as plain text.
+
+**Note on Revision Date:** A Revision Date field exists in the database but is intentionally hidden from the editor-facing form.
+
+**New taxonomy vocabularies (v2.22):** Academic Years, Areas of Study, Discipline, Geographic Areas. Editors and site admins can manage terms in these vocabularies via Manage Taxonomies in the top toolbar.
 
 ---
 

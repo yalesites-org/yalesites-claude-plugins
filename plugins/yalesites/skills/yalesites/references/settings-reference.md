@@ -40,11 +40,11 @@ Editors cannot create custom themes. Theme variants are maintained by the YaleSi
 
 In Site Settings, editors can choose the site's font pairing from three Yale-approved combinations:
 
-| Option | Heading Font | Body Font |
-|---|---|---|
-| **YaleNew / Mallory** (default) | YaleNew | Mallory |
-| **Mallory / Mallory** | Mallory | Mallory |
-| **YaleNew (old numbers) / Mallory** | YaleNew (oldstyle numerals variant) | Mallory *(coming in next release)* |
+| Option | Description |
+|---|---|
+| **YaleNew (old-style numerals) / Mallory** (default) | YaleNew with old-style numerals in the site name and headings; Mallory for body text. The old-style numeral behavior is now explicitly labeled (previously just called "YaleNew / Mallory"). |
+| **Mallory / Mallory** | Mallory for both headings and body text |
+| **YaleNew (standard numerals) / Mallory** | YaleNew with standard lining numerals throughout — for sites that want a clean, modern number style. Added in v2.22. |
 
 Font size is not configurable — it is controlled by design tokens and cannot be overridden by editors.
 
