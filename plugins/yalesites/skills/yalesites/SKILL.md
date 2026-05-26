@@ -1,12 +1,12 @@
 ---
 name: yalesites
 description: >
-  Deep expertise on YaleSites — Yale University's custom Drupal 10 CMS platform. Use this skill for any question about building or managing a YaleSites website, including: adding or configuring blocks in the Layout Builder, choosing between page components, understanding Manage Settings vs Layout Builder, configuring sitewide settings (theme, menus, footer, analytics), working with Views, content types, taxonomy, user roles, accessibility requirements, integrations (Localist, ServiceNow, CAS), and platform eligibility. Also use when helping the Product Manager make platform decisions, evaluate feature requests, advise editors or site builders, or think through Drupal architecture choices for the platform.
+  Deep expertise on YaleSites — Yale University's custom Drupal CMS platform. Use this skill for any question about building or managing a YaleSites website, including: adding or configuring blocks in the Layout Builder, choosing between page components, understanding Manage Settings vs Layout Builder, configuring sitewide settings (theme, menus, footer, analytics), working with Views, content types, taxonomy, user roles, accessibility requirements, integrations (Localist, ServiceNow, CAS), and platform eligibility. Also use when helping the Product Manager make platform decisions, evaluate feature requests, advise editors or site builders, or think through Drupal architecture choices for the platform. Use this skill whenever someone asks about trainings, office hours, the training catalog, user guide topics, or YaleSites learning resources.
 ---
 
 # YaleSites Platform Skill
 
-YaleSites is Yale University's managed Drupal 10 CMS, hosted on Pantheon as a custom upstream. It powers 300+ Yale department and unit websites for 1,200+ editors. The platform deliberately constrains design choices to enforce brand consistency — this is intentional, not a limitation to work around.
+YaleSites is Yale University's managed Drupal CMS, hosted on Pantheon as a custom upstream. It powers 300+ Yale department and unit websites for 1,200+ editors. The platform deliberately constrains design choices to enforce brand consistency — this is intentional, not a limitation to work around.
 
 ## How to use this skill
 
@@ -16,7 +16,7 @@ This skill gives you deep platform context. For most questions, the information 
 |---|---|
 | All blocks + design options | `references/blocks-reference.md` |
 | Block sub-items (accordion items, cards, tiles, etc.) | `references/paragraphs-reference.md` |
-| Content type field labels (Page, Post, Event, Resource, Profile) | `references/content-types-reference.md` |
+| Content type field labels (Page, Post, Event, Resource, Person) | `references/content-types-reference.md` |
 | Views (filters, displays, modules) | `references/views-reference.md` |
 | Sitewide settings (Manage Settings page) | `references/settings-reference.md` |
 | User roles and editorial workflow | `references/user-roles-reference.md` |
@@ -26,7 +26,7 @@ This skill gives you deep platform context. For most questions, the information 
 ## Platform Architecture
 
 **Multi-repo structure:**
-- `yalesites-project` — Drupal 10 project (custom modules, config, Pantheon upstream)
+- `yalesites-project` — Drupal project (custom modules, config, Pantheon upstream)
 - `atomic` — Drupal theme (connects Drupal to the component library)
 - `component-library-twig` — Storybook component library (source of truth for design options)
 - `tokens` — Figma design tokens (feeds the component library)
@@ -57,8 +57,17 @@ The **visual composition** surface. Accessed via second toolbar → "Edit Layout
 **Key rule:** If it's about *what's on the page visually and how it looks*, it's in the Layout Builder.
 
 ### Two Toolbars
-1. **Top toolbar** (always visible): A **custom YaleSites toolbar** (provided by the `ys_toolbar` module) with site-wide tools for managing content, settings, users, and reports. **Important:** Standard Drupal admin items like "Structure," "Appearance," and "Modules" are **NOT visible** to regular YaleSites users — those items only appear for user0 (Drupal platform super-admins). A useful shortcut available to editors: Content → Manage Main Menu lets you manage navigation directly.
+1. **Top toolbar** (always visible): Content, Structure, Appearance, People, Reports, Admin — site-wide admin. Note: Content → Manage Main Menu is a shortcut to manage navigation directly.
 2. **Second toolbar** (content-specific, appears when viewing a node): Manage Settings | Edit Layout and Content | View | Revisions | Translate
+
+### Top Toolbar — Sitewide Settings Categories
+
+The top toolbar contains all site-wide administrative settings, organized into four categories:
+
+- **Content** — Manage all site content: pages, posts, events, resources, people. Also includes "Manage Main Menu" shortcut and access to the Media Library.
+- **Settings** — Site configuration: global theme, font family, site name, footer content, social links, Google Tag Manager ID, and other sitewide preferences. This is where the Global Theme "lever" is set.
+- **People** — User management: view all users, assign roles (Site Administrator, Editor, Contributor), and manage access. Only Site Administrators can access this section.
+- **Reports** — Site health and status: access Editoria11y accessibility reports, recent log messages, and other diagnostic information.
 
 ---
 
@@ -72,7 +81,7 @@ YaleSites has five content types:
 | **Post** | News/blog articles; appears in Views-powered listings |
 | **Event** | Calendar events; feeds into Views; integrates with Localist |
 | **Resource** | Documents, reports, publications, and reference materials |
-| **Profile** | Faculty, staff, and people profiles |
+| **Person** | Faculty, staff, and people profiles |
 
 There is no "Basic Page" or "Landing Page" content type. All pages use the **Page** content type.
 
@@ -110,13 +119,12 @@ Within the Main Content Area, editors can create **sections** with different col
 
 Section padding (top/bottom spacing) is configurable per section via the section settings gear. Options: Default, No top padding, No bottom padding, No padding (top and bottom). Adjacent sections can be visually connected by removing bottom padding on the first and top padding on the second.
 
-
 ---
 
 ## The Design System — Themes and Constraints
 
 ### Global Theme ("lever")
-Set at the site level in Sitewide Settings. Controls the overall color palette for the site — which named colors are available and what they look like. Editors cannot override this per-page.
+Set at the site level in Sitewide Settings (top toolbar → Settings). Controls the overall color palette for the site — which named colors are available and what they look like. Editors cannot override this per-page.
 
 **Available Global Themes (as of current release):**
 - **Old Blues** — Yale blue-centric palette
@@ -161,16 +169,78 @@ These are the only font options available. Font size is not customizable — it 
 
 ---
 
+## Media Library
+
+The Media Library (accessible via top toolbar → Content → Media, or when inserting images in a block) stores all reusable media assets on the site. There are five media types:
+
+- **Images** — Standard images used in blocks, banners, and content. Supports alt text, focal point cropping, and reuse across multiple pages.
+- **Videos** — Embedded video content (typically YouTube or Vimeo). Used in the Video block and Video Banner.
+- **Background Videos** — Full-bleed autoplay videos used specifically in banner contexts.
+- **Embeds** — Third-party iframe embeds (managed via `ys_embed` module). Used in the Embed block for content like maps, forms, and external tools.
+- **Documents** — Uploaded files (PDFs, Word docs, etc.) for download links and the Resource content type.
+
+**Best practice:** Upload images through the Media Library rather than one-off. This allows the image to be reused across pages and updated site-wide from a single location.
+
+---
+
+## Menus & Navigation
+
+YaleSites supports three types of navigation menus:
+
+### Basic Nav
+Standard hierarchical navigation. Best for sites with straightforward information architecture and a modest number of top-level sections. Supports dropdown sub-menus.
+
+### Mega Nav
+Expanded navigation with rich content in the dropdown panels — supports images, descriptions, and grouped links. Best for large sites with many sections that benefit from visual navigation aids.
+
+### Focus Nav
+Simplified navigation designed for focused user journeys (e.g., campaign sites, event sites, single-purpose microsites). Presents fewer navigation options to reduce distraction.
+
+**To add a page to the main menu:** Go to that page's Manage Settings (`/edit`) → right sidebar → Menu settings → enable "Provide a menu link" → select the correct menu and parent item → save.
+
+**Shortcut for managing navigation directly:** Top toolbar → Content → Manage Main Menu. This bypasses individual page settings and lets you manage the entire menu tree in one place — drag to reorder, add custom links, disable items.
+
+**Footer and Utility Menus** are configured in Settings → Menus.
+
+---
+
+## Content Collections (Secondary Navigation)
+
+Content Collections are a secondary navigation system for sites that have sections with many related pages — a User Guide, a report series, a documentation hub. They appear as a persistent contextual nav within a defined section of the site.
+
+**What they do:** Group a set of pages under a shared label and display navigation links between those pages automatically. When a visitor is on any page within the collection, they see the collection nav, making it easy to move between related pages.
+
+**How to create a Content Collection:**
+1. Go to top toolbar → Structure → Content Collections
+2. Create a new collection with a name and optional description
+3. Add pages to the collection
+4. On each page that should display the collection nav, configure it via page settings
+
+**Key distinction:** Content Collections are for grouping and cross-linking related pages — NOT the same as the main menu. A page can be in both the main menu and a Content Collection; they serve different purposes.
+
+---
+
 ## Views — How They Work on YaleSites
 
-Views are configured **entirely within the Layout Builder**. Neither editors nor Site Administrators have access to the standard Drupal "Structure → Views" admin screen — "Structure" is a user0 (platform super-admin) only item and is not present in the custom YaleSites toolbar. The workflow is:
+Views are configured **entirely within the Layout Builder**. Site Administrators do not have access to the standard Drupal "Structure → Views" admin screen.
 
-1. In the Layout Builder, click "+" to add a block
-2. Search for and select the View block you want
-3. Configure the View's content type, display format, sort, filters, and item count directly in the block form
-4. Save the block
+### Current blocks available in the Layout Builder picker
 
-**The two View block modules:**
+There are two ways to add a content listing:
+
+- **"View"** — a generic configurable block. Inside the block form, editors choose the content type ("I want to show…") and display mode ("as…"), then configure sort, filters, and item count. This is the primary way to create a custom listing.
+- **"Post feed"** — a prebuilt, preconfigured view block for posts. No configuration needed — add it and it works.
+
+**The workflow for adding a "View" block:**
+1. In the Layout Builder, click **"Add block"** to add a block
+2. Search for and select **"View"**
+3. In the block form, choose the content type and display mode
+4. Configure sort, filters, and item count
+5. Save the block, then Save Layout
+
+**⚠️ Planned but not yet shipped:** A reworked block picker that groups listing blocks by content type (e.g., "Post Listings → Posts — Card Grid, Posts — List"). Do NOT describe this UI to editors — it does not exist in the platform yet.
+
+**The two View block modules (under the hood):**
 - **ys_views_basic** — for Posts, Events, Pages, and Profiles listings
 - **ys_views_content_resources** — for Resources listings only
 
@@ -184,25 +254,79 @@ Each content type supports specific display modes. These are editor-facing label
 | **Posts** | Card Grid, List, Condensed |
 | **Events** | Card Grid, List, Condensed, Calendar |
 | **Pages** | Card Grid, List, Condensed |
-| **Profiles** | Profile Grid, Profile List, Directory Grid, Condensed |
-| **Resources** | (handled by `ys_views_content_resources`) |
+| **People** | Card Grid, List, Directory, Condensed |
+| **Resources** | Card Grid, Portrait Card, List, Condensed |
 
-The **Calendar** display mode for Events is a separate block content type (`event_calendar`). The **Directory Grid** display mode for Profiles is a grid/table format specific to profile directories.
+The **Calendar** display mode for Events is a separate block content type (`event_calendar`). The **Directory** display mode for People is a grid/table format specific to profiles. The **Portrait Card** display mode for Resources is a taller book-cover-style card, designed for publications with distinct cover images.
 
-**Block picker grouping** — Views listing blocks are grouped by content type in the Layout Builder picker:
-- Post Listings → Posts — Card Grid, Posts — List, Posts — Condensed
-- Event Listings → Events — Card Grid, Events — List, Events — Condensed, Events — Calendar
-- Profile Listings → Profiles — Profile Grid, Profiles — Profile List, Profiles — Directory Grid, Profiles — Condensed
-- Page Listings → Pages — Card Grid, Pages — List, Pages — Condensed
+### Resource View block
+
+Resources use a **dedicated block called "Resource View"** — separate from the generic "View" block. Find it in the Layout Builder by clicking "Add block" and searching for "Resource View."
+
+**What makes it different from the View block:**
+- Exposes **checkboxes for all Resource-specific fields** as configurable filters — Journal Publication Name, Academic Year, Discipline, Tags, Areas of Study, Category, Affiliation, Audience, DCN, Geographic Areas, and more
+- Includes a **search bar** (searches across Resource title and Journal Publication Name)
+- Has a **Portrait Card** display mode — a taller, book-cover-style card built for publications with cover art or formatted thumbnails. Not available in the generic View block.
+- Lets you choose which **display fields** appear on each card (Publication Date, Authors, Abstract, etc.)
+
+**Best practices:**
+- Enable no more than **3–5 filters** at a time — too many makes the block feel cluttered
+- Show no more than **3–5 display fields** per card to keep results readable
+- Use Portrait Card when your Resources have distinct cover images (e.g. research publications, book covers)
+- Use Card Grid or List for general document/file libraries
+
+**Handled by:** `ys_views_content_resources` module
 
 ### Views Architecture (ys_views_basic)
 Internally, `ys_views_basic` uses:
 - `ViewsBasicManager` — service class that builds and executes views queries; contains `ALLOWED_ENTITIES` constant defining content types, view modes, and sort options
 - `ViewsBasicDefaultWidget` — the main FieldWidget that renders the block configuration form in Layout Builder
 - `EventCalendarDefaultWidget` — separate widget for the calendar display mode; extends `ViewsBasicWidgetBase`
+- `ViewsBasicWidgetBase` — abstract base class (being introduced in the Views Block Rework epic) containing shared form logic
 - The two Drupal Views scaffolds used internally: `views_basic_scaffold` (for post/page/profile) and `views_basic_scaffold_events` (for events, which requires aggregation for date handling)
 
 See `references/views-reference.md` for the complete list of display formats, sort options, and filter options with their exact labels.
+
+---
+
+## Editorial Workflow
+
+YaleSites uses a content moderation system with three states integrated into the Manage Settings right sidebar.
+
+**Content moderation states:**
+- **Draft** — default state when content is created; not publicly visible. Contributors can only save to Draft.
+- **Published** — live and visible to site visitors. Editors and Site Administrators can publish.
+- **Archived** — removed from public view but preserved in Drupal; content can be restored.
+
+**Revision history** is available via the "Revisions" tab in the second toolbar. Editors can compare revisions and restore previous versions.
+
+**Workflow by role:**
+- Contributor creates/edits → saves as Draft → Editor reviews → publishes or requests changes
+- Site Administrator has full control over all states
+- Only Editors and Site Administrators can move content to Published or Archived
+
+---
+
+## Taxonomy & Vocabulary
+
+Taxonomy vocabularies categorize content and power Views filters. Managed via `ys_taxonomy_manager`.
+
+**Common vocabularies:**
+- **Tags** — general-purpose content tagging; flexible, editor-defined
+- **Category** — structured classification for grouping content by type or topic
+- **Audience** — defines who content is intended for (e.g., students, faculty, staff, alumni)
+
+**How taxonomy connects to Views:** When a Views block is configured in the Layout Builder, editors can filter results by taxonomy terms — for example, showing only Posts tagged "Research" or Events categorized as "Public Lecture."
+
+---
+
+## Accessibility
+
+YaleSites has **Editoria11y** built in — an accessibility checker developed by Princeton that scans for WCAG violations after each page save. It highlights issues like missing alt text, empty headings, and poor link text directly on the page.
+
+**Site-wide accessibility reports** are available via top toolbar → Reports → Editoria11y.
+
+**Siteimprove** is a related external service for ongoing accessibility and SEO monitoring.
 
 ---
 
@@ -228,36 +352,6 @@ No. The platform is intentionally locked down. Editors cannot add custom CSS or 
 
 **7. "The menu section isn't on the Manage Settings page."**
 It is — but it's in the **right sidebar**, which can be accidentally collapsed. Tell the editor to look for the small gear/settings icon to reopen the sidebar. Menu settings live there, not in the main form area.
-
----
-
-## Taxonomy
-
-Taxonomy vocabularies are used for categorizing content and powering Views filters. Common vocabularies:
-- **Tags** — general-purpose content tagging
-- **Category** — structured classification
-- **Audience** — who content is for
-
-Taxonomy is managed via the `ys_taxonomy_manager` custom module.
-
----
-
-## Menus
-
-YaleSites supports multiple menu types:
-- **Main Navigation** — primary site nav, appears in header
-- **Footer Menu** — links in site footer
-- **Utility Menu** — secondary header links
-
-**To add a page to a menu:** Go to the page's Manage Settings → right sidebar → Menu settings → enable "Provide a menu link" → select the correct menu and parent item.
-
-**Shortcut for managing navigation directly:** Top toolbar → Content → Manage Main Menu.
-
----
-
-## Accessibility
-
-YaleSites has **Editoria11y** built in — an accessibility checker developed by Princeton that scans for WCAG violations after each page save. It highlights issues like missing alt text, empty headings, and poor link text directly on the page.
 
 ---
 
@@ -313,8 +407,6 @@ YaleSites has three user roles. See `references/user-roles-reference.md` for the
 
 **Content moderation states:** Draft (default, not public) → Published (live) → Archived (hidden, preserved).
 
-Existing users remain Site Administrators when these roles were introduced.
-
 ---
 
 ## Platform Eligibility & Lifecycle
@@ -341,7 +433,7 @@ When editors need help beyond what you can provide, direct them to these resourc
 
 **"How do I add a block to my page?"**
 1. Navigate to your page and click "Edit Layout and Content" in the second toolbar
-2. In the Layout Builder, click the "+" button in the region where you want the block (Banner or Main content area)
+2. In the Layout Builder, click **"Add block"** in the region where you want the block (Banner or Main content area)
 3. Browse or search for the block type you want
 4. Configure its content and design options in the block configuration panel
 5. Click Save Layout when done
@@ -353,7 +445,10 @@ In the Layout Builder, click the edit (pencil) icon on the block. Look for the c
 Go to the page's Manage Settings (`/edit`) and look at the **right sidebar**. If the sidebar is collapsed, click the gear icon to open it. Find "Menu settings," enable "Provide a menu link," select the correct menu, and save. You can also manage navigation directly at Content → Manage Main Menu in the top toolbar.
 
 **"How do I create a news listing page?"**
-In the Layout Builder, add a block and look for the Views block options. Choose a Views block from `ys_views_basic` or `ys_views_content_resources` and configure it in the block form. See `references/views-reference.md` for details on configuration options.
+In the Layout Builder, click "Add block" and select the "View" block. Set it to show Posts in your preferred display mode, configure your sort and filters, and save. See `references/views-reference.md` for details.
 
 **"Why can't I change the font or colors freely?"**
 Colors are limited to the Yale-approved palette in your site's theme. Font family can be changed in Site Settings (3 approved combinations), but font size is locked by the design system. This is intentional to maintain Yale brand consistency.
+
+**"My content is saved but visitors can't see it."**
+Check the publication status. Go to Manage Settings → right sidebar → look at the moderation state. If it says "Draft," the page is not publicly visible. Change it to "Published" (if you're an Editor or Administrator) or ask an Editor to publish it (if you're a Contributor).
