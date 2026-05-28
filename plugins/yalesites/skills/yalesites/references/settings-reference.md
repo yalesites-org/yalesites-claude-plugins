@@ -30,23 +30,11 @@ The **Global Theme** ("lever") controls the site-wide color palette. This is dis
 
 **How the theme system works:**
 1. Design tokens (from the `tokens` repo / Figma) define color variables
-2. The Global Theme maps those tokens to specific named colors (e.g., Yale Blue, New Haven Green)
-3. When editing a block in Layout Builder, editors see a color swatch picker showing the color name and hex preview
-4. Result: the same color slot looks different on a site with a different Global Theme
+2. The Global Theme maps those tokens to specific color values
+3. The Component Theme dial (one–five) references the active Global Theme's colors
+4. Result: all blocks using "theme two" on a Blue site look different from "theme two" on a Gray site
 
 Editors cannot create custom themes. Theme variants are maintained by the YaleSites platform team.
-
-## Font Settings
-
-In Site Settings, editors can choose the site's font pairing from three Yale-approved combinations:
-
-| Option | Description |
-|---|---|
-| **YaleNew (old-style numerals) / Mallory** (default) | YaleNew with old-style numerals in the site name and headings; Mallory for body text. The old-style numeral behavior is now explicitly labeled (previously just called "YaleNew / Mallory"). |
-| **Mallory / Mallory** | Mallory for both headings and body text |
-| **YaleNew (standard numerals) / Mallory** | YaleNew with standard lining numerals throughout — for sites that want a clean, modern number style. Added in v2.22. |
-
-Font size is not configurable — it is controlled by design tokens and cannot be overridden by editors.
 
 ---
 
@@ -62,7 +50,7 @@ The primary site navigation that appears in the header.
 | **Hierarchy** | Menus support nested items (parent → child) for dropdowns |
 | **Menu link titles** | Short labels display in nav; full titles can be set separately |
 
-**To add a page to the menu:** Go to the page's Manage Settings → Menu settings → check "Provide a menu link" → set parent and weight. You can also manage navigation links directly via Content → Manage Main Menu in the top toolbar. Note: the standard Drupal "Structure → Menus" admin path is not accessible to regular YaleSites users — it is a user0-only screen.
+**To add a page to the menu:** Go to the page's Manage Settings → Menu settings → check "Provide a menu link" → set parent and weight. Do NOT add pages to menus from the menu admin (Structure → Menus) unless managing links to external URLs.
 
 ### Footer Menu
 

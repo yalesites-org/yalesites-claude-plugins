@@ -1,16 +1,8 @@
 # YaleSites Block Reference
 
-All blocks available in the YaleSites Layout Builder, with their **verified Drupal field labels** sourced directly from the platform's Drupal config YAML files (`field.field.block_content.*.yml`, `web/profiles/custom/yalesites_profile/config/sync/`). These are the exact labels editors see in the "Configure block" form in the Layout Builder.
+All blocks available in the YaleSites Layout Builder, with their design options sourced from `*-props.yml` files in the `component-library-twig` repository. These are the authoritative design options — they drive both Storybook controls and Drupal block configuration.
 
-**All blocks verified:** All field labels and select options in this reference are sourced directly from Drupal config YAML files (`config/sync/`) and `ys_themes.component_overrides.yml`.
-
-**Color picker ("Theme" field):** Most blocks include a "Theme" field — a color swatch picker displaying named colors with hex codes (e.g., "Blue Yale #00366b", "Gray 100 #f7f7f7"). The available colors depend on the site's Global Theme setting. The Theme field includes options labeled One through Five internally, which map to actual named colors. Some blocks also include a "Default - No Color" option. Always refer to colors by their displayed name (e.g., "Blue Yale"), never as "theme one."
-
-**Padding Options field:** Most blocks include a "Padding Options" field with these choices:
-- Padding on both top and bottom *(default)*
-- No top padding
-- No bottom padding
-- No padding (removes both top and bottom padding)
+**Component Theme (dial)** appears on most blocks. Options are always: `default`, `one`, `two`, `three`, `four`, `five` — mapping to the site's Global Theme palette via design tokens.
 
 ---
 
@@ -20,72 +12,66 @@ Only one banner block can be placed at a time in the Banner region.
 
 ---
 
-### ✅ Grand Hero
+### Grand Hero
 
-The largest, most prominent banner. Full-width with a background image or video and optional overlay content.
+The largest, most prominent banner. Full-width with a background image or color and optional overlay content.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title (editors only) |
-| **Heading** | Required. 50-character recommended length. |
-| **Heading Level** | Select: "H1: This page's title is hidden" / "H2: This page's title is displayed or visually hidden" |
-| **Replace heading with image** | Checkbox — swap the text heading for an image |
-| **Text** | Rich text body. 90-character recommended length. |
-| **Theme** | Color swatch picker (named colors with hex codes) |
-| **Overlay Position** | Select: Full / Floating Box / Floating Box Narrow |
-| **Media Size** | Select: Tall / Short / Mini |
-| **Media** | Image or background video upload |
-| **Banner Overlay PNG** | Optional PNG image overlay (appears over the background) |
-| **Link** | Primary CTA — URL + link text |
-| **Link Two** | Secondary CTA — URL + link text |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Required |
+| `snippet` | HTML | — | Supporting body text |
+| `linkContent` | string | — | Primary CTA label |
+| `linkContentTwo` | string | — | Secondary CTA label |
+| `bgColor` | select | `one` `two` `three` `four` `five` | Background color |
+| `overlayVariation` | select | `contained` `contained-narrow` `full` | How text/content is positioned over image |
+| `size` | select | `reduced` `full` `mini` | Height of the hero |
+| `withVideo` | boolean | true/false | Show a background video instead of image |
 
 ---
 
-### ✅ Action Banner
+### Action Banner
 
-A prominent banner designed for calls to action. Supports two CTAs and a configurable content layout. Drupal machine name: `cta_banner`.
+A prominent banner designed for calls to action. Supports two buttons with layout controls.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Image** | Required background image |
-| **Action Banner Heading** | Required. Max 50 characters. |
-| **Action Banner Content** | Rich text body. Max 90 characters. |
-| **Call-to-action** | Primary CTA — URL + link text |
-| **Call-to-action Two** | Secondary CTA — URL + link text |
-| **Theme** | Color swatch picker — One through Five |
-| **Layout** | Select: Bottom / Left / Right — position of text/CTA over the image |
-| **Heading Level** | Select: H1 (page title hidden) / H2 (page title shown) |
-| **Overlay background image** | Optional additional overlay image |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Required |
+| `snippet` | HTML | — | Supporting body text |
+| `linkContent` | string | — | Primary link/CTA label |
+| `linkContentTwo` | string | — | Secondary link/CTA label |
+| `bgColor` | select | `one` `two` `three` `four` `five` | Background color |
+| `overlayBackgroundImage` | boolean | true/false | Whether a background image has a color overlay |
+| `linkStyle` | select | `cta` `text-link` `none` | Button style |
+| `contentLayout` | select | `bottom` `left` `right` | Position of text/CTA content over the image |
+| `buttonAlignment` | select | `left` `center` `right` | How buttons are aligned |
+| `buttonStyleConsistency` | select | `mixed` `both_primary` `both_secondary` | Whether both buttons share the same style |
 
 ---
 
-### ✅ Image Banner
+### Image Banner
 
 A simpler banner — primarily image-driven with minimal content controls.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Image** | Image or background video |
-| **Image Caption** | Rich text caption |
-| **Media Size** | Select: Tall / Short |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `bgColor` | select | `one` `two` `three` `four` `five` | Background color (for fallback / overlay) |
+| `size` | select | `tall` `short` | Banner height |
+| `withVideo` | boolean | true/false | Show a video instead of image |
+| `imageCaption` | string | — | Caption text below or over the image |
 
 ---
 
-### ✅ Video Banner
+### Video Banner
 
 A full-width banner driven by an embedded or background video.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Video** | Video media entity |
-| **Video Width** | Select: Contained / Full Width |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `width` | select | `max` `full` | Container width of the video |
 
 ---
 
@@ -93,194 +79,158 @@ A full-width banner driven by an embedded or background video.
 
 ---
 
-### ✅ Text
-
-A basic rich-text content block. The Drupal field for the body text is labeled **"Content"** in this block (not "Text" — this differs from other blocks like Grand Hero).
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Content** | Rich text body field |
-| **Text Style Variation** | Select: Default / Emphasized |
-| **Padding Options** | See above |
-
----
-
-### ✅ Accordion
+### Accordion
 
 Collapsible content sections. Each accordion item has its own heading and body. Ideal for FAQs.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Accordion Component Title** | Heading displayed above the accordion group |
-| **Accordion Item(s)** | Paragraph sub-items — each has its own heading and content |
-| **Theme** | Color swatch picker — includes "Default - No Color" option |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Required — group heading above the accordion |
+| `content` | string | — | Required — content per item |
+| `accordionHeading` | string | — | Optional secondary group heading |
+| `themeColor` | select | `default` `one` `two` `three` `four` `five` | Accent color for the accordion bars |
+| `accordionItems` | array | — | Each item has its own heading + content |
 
 ---
 
-### ✅ Inline Message
+### Callout
 
-An informational or marketing callout that appears inline within the content flow.
+A visually distinct text block — good for highlighting a key message or quote-style content.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Heading** | Block heading |
-| **Content** | Rich text body |
-| **Link** | CTA link — URL + link text |
-| **Theme** | Color swatch picker |
-| **Padding Options** | See above |
-
----
-
-### ✅ Quote Callout
-
-A styled pull-quote block with optional image and multiple style variants.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Quote** | Rich text — the quote content |
-| **Attribution** | Rich text — quote author/source |
-| **Image** | Optional portrait image (entity reference) |
-| **Theme** | Color swatch picker |
-| **Style** | Select: Bar / Quote |
-| **Alignment** | Select: Left / Right |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Callout headline |
+| `text` | string | — | Body text |
+| `linkText` | string | — | CTA label |
+| `linkType` | select | `cta` `link` | Button vs. text link style |
+| `backgroundColor` | select | `one` `two` `three` `four` `five` | Background fill color |
+| `calloutAlignment` | select | `left` `center` | Text alignment |
+| `overlayBackgroundImage` | boolean | true/false | Apply a color overlay on a background image |
 
 ---
 
-### ✅ Tabs
+### Inline Message
+
+An informational or marketing callout block — can appear within the content flow.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `type` | select | `general` `marketing` | Affects visual treatment |
+| `heading` | string | — | Block heading |
+| `content` | HTML | — | Body content |
+| `themeColor` | select | `one` `two` `three` `four` `five` | Accent color |
+| `linkContent` | string | — | CTA label |
+| `linkUrl` | string | — | CTA destination URL |
+
+---
+
+### Quote Callout
+
+A styled pull-quote block. Three visual styles plus optional image.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `quote` | HTML | — | Required — the quote text |
+| `attribution` | string | — | Quote author/source |
+| `style` | select | `default` `bar` `quote` `image` | Visual treatment: default (no decoration), bar (accent bar), quote (large quote marks), image (with portrait) |
+| `alignment` | select | `left` `right` | Quote text alignment |
+| `withImage` | boolean | true/false | Only applies when `style` = `image` |
+
+---
+
+### Tabs
 
 A tabbed interface where each tab contains independently authored content.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Tabs** | Paragraph sub-items — each tab has its own heading and content |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `tabsTheme` | select | `one` `two` `three` `four` `five` | Color accent for the tab bar (no `default` option — one through five only) |
 
-*Note: No "Theme" field on Tabs.*
-
----
-
-### ✅ Callout
-
-A visually distinct callout block — good for highlighting a key message or CTA. Uses paragraph sub-items for the callout content. Drupal machine name: `callout`.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Callout Item(s)** | Paragraph sub-items — each item contains the callout content |
-| **Theme** | Color swatch picker — One through Five |
-| **Alignment** | Select: Left / Center |
-| **Overlay background image** | Optional background overlay image |
-| **Padding Options** | See above |
+Each tab panel's content is authored separately in the CMS. The number of tabs is determined by how many tab items are added.
 
 ---
 
-### ✅ Text with Wrapped Image
+### Text with Wrapped Image (Wrapped Image)
 
-Inline image alongside running text. Drupal machine name: `wrapped_image`.
+Inline image floated or offset alongside running text — good for editorial content.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Content** | Rich text — the main body text that wraps around the image |
-| **Image** | Required image entity |
-| **Caption** | Optional image caption. Max 150 characters. |
-| **Position** | Select: Image Left / Image Right |
-| **Style** | Select: Inline (image within column) / Offset (image shifts outside column) |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `caption` | HTML | — | Image caption |
+| `imageAlignment` | select | `left` `right` | Which side the image floats to |
+| `imageStyle` | select | `floated` `offset` | `floated` = text wraps around image; `offset` = image shifts outside the content column |
 
 ---
 
-### ✅ Text with Wrapped Callout
+### Text with Wrapped Callout (Wrapped Callout)
 
-A styled callout box that floats alongside body text. Drupal machine name: `wrapped_text_callout`.
+Similar to Wrapped Image but replaces the image with a styled callout box that wraps alongside body text.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Callout Content** | Rich text — the content inside the floating callout box |
-| **Wrapped Content** | Rich text — the main body text that wraps around the callout |
-| **Callout Position** | Select: Left / Right |
-| **Theme** | Color swatch picker — One through Five |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `calloutAlignment` | select | `left` `right` | Which side the callout box appears on |
+| `calloutContent` | HTML | — | The main body text (the wrapping text) |
+| `calloutText` | HTML | — | The content inside the callout box |
+| `themeColor` | select | `default` `one` `two` `three` `four` `five` | Callout box accent color |
 
 ---
 
 ## Main Content Area Blocks — Spotlights
 
-Spotlight blocks feature a single piece of content prominently — often a person, story, or featured item — with an image and text side by side.
-
-**Reference Card vs. Spotlight:** For featuring an existing node (a Profile, a Post, an Event), a **Reference Card** is usually better — it pulls the node's title, image, and metadata automatically. Use Spotlights when you want full editorial control over custom copy and layout for a bespoke feature.
+Spotlight blocks feature a single piece of content prominently — often a person, story, or featured item — with an image and text side-by-side.
 
 ---
 
-### ✅ Content Spotlight Portrait
+### Content Spotlight Portrait
 
-Image and text side by side with a portrait (square or tall) image. Drupal machine name: `content_spotlight_portrait`, display label: "Spotlight - Portrait".
+Image and text side-by-side with a portrait (square or tall) image orientation.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Heading** | Optional. Max 50 characters. |
-| **Heading Level** | Select: H1 (page title hidden) / H2 (page title shown) |
-| **Image** | Required image entity |
-| **Caption** | Optional image caption. Max 90 characters. |
-| **Subheading** | Optional. Max 50 characters. |
-| **Content** | Required rich text body. Max 650 characters. |
-| **Link** | Primary CTA — URL + link text |
-| **Secondary Link** | Secondary CTA — URL + link text |
-| **Theme** | Color swatch picker — Default - No Color / One through Five |
-| **Image Position** | Select: Image Left / Image Right |
-| **Image Style** | Select: Inline / Offset |
-| **Vertical Alignment** | Select: Top / Middle / Bottom |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `componentTheme` | select | `default` `one` `two` `three` `four` `five` | Background/accent color |
+| `position` | select | `image-left` `image-right` | Which side the image appears on |
+| `contentVerticalAlignment` | select | `top` `middle` `bottom` | Vertical alignment of text relative to image |
+| `imageStyle` | select | `inline` `offset` | `inline` = image sits within container; `offset` = image bleeds outside |
+| `overline` | string | — | Small label text above the heading |
+| `heading` | string | — | Required — main headline |
+| `subheading` | string | — | Optional sub-headline |
+| `text` | string | — | Body text |
+| `linkContent` | string | — | Primary link label |
+| `linkTwoContent` | string | — | Secondary link label |
+| `caption` | string | — | Image caption |
 
 ---
 
-### ✅ Content Spotlight Landscape
+### Content Spotlight Landscape
 
-Like Portrait but with a wide landscape image. Drupal machine name: `content_spotlight`, display label: "Spotlight - Landscape".
+Like Portrait but with a landscape (wide) image orientation. Also called "Text with Image" in the component library.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Heading** | Optional. Max 80 characters. |
-| **Heading Level** | Select: H1 (page title hidden) / H2 (page title shown) |
-| **Subheading** | Optional. Max 50 characters. |
-| **Content** | Required rich text body. Max 600 characters. |
-| **Caption** | Optional image caption. Max 90 characters. |
-| **Image** | Required image entity |
-| **Call-to-action** | Primary CTA — URL + link text |
-| **Call-to-action Two** | Secondary CTA — URL + link text |
-| **Theme** | Color swatch picker — Default - No Color / One through Five |
-| **Image Position** | Select: Image Left / Image Right |
-| **Image Size** | Select: Large / Medium |
-| **Image Style** | Select: Inline / Offset |
-| **Focus** | Select: Equal Focus / Image Focus |
-| **Vertical Alignment** | Select: Top / Middle / Bottom |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `componentTheme` | select | `default` `one` `two` `three` `four` `five` | Background/accent color |
+| `width` | select | `site` `highlight` | Container width — `highlight` is narrower/inset |
+| `position` | select | `image-left` `image-right` | Which side the image appears on |
+| `contentVerticalAlignment` | select | `top` `middle` `bottom` | Vertical alignment of text |
+| `imageStyle` | select | `inline` `offset` | Image bleed behavior |
+| `focus` | select | `image` `equal` | Whether the image or text takes visual emphasis |
+| `overline` | string | — | Small label text above heading |
+| `heading` | string | — | Required — main headline |
+| `subheading` | string | — | Optional sub-headline |
+| `text` | string | — | Body text |
+| `linkContent` | string | — | Primary link label |
+| `linkTwoContent` | string | — | Secondary link label |
+| `caption` | string | — | Image caption |
 
-**Difference from Portrait:** Landscape has Image Size and Focus options; Portrait does not. Portrait is better for headshots; Landscape for editorial/story content.
-
----
-
-### ✅ Reference Card
-
-Dynamically pulls content from an existing node and displays it as a styled card. Best for featuring an existing Profile, Post, Event, Page, or Resource without re-entering content.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Reference source** | Entity reference — select a node (event, page, post, profile, resource) |
-| **Show teaser lead-in** | Checkbox — show the content's teaser/lead-in text |
-| **Style** | Select: Featured / Non-featured |
-| **Padding Options** | See above |
+**Difference from Portrait:** Landscape uses wider images and has the additional `focus` and `width` options. Portrait is better for headshots and people-focused content; Landscape for editorial/story content.
 
 ---
 
@@ -288,45 +238,39 @@ Dynamically pulls content from an existing node and displays it as a styled card
 
 ---
 
-### ✅ Video
+### Video
 
-An embedded video block (YouTube, Vimeo, or other oEmbed-supported platforms).
+An embedded video block (YouTube, Vimeo, or other supported platforms via oEmbed).
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Video Component Title** | Optional heading above the video |
-| **Video Description** | Rich text description/caption |
-| **Video** | Video media entity (via Media Library) |
-| **Alignment** | Select: Left / Center |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Optional title above the video |
+| `text` | string | — | Optional caption/description below |
+| `placement` | select | `left` `center` | Video alignment within its container |
 
 ---
 
-### ⚠️ Embed
+### Embed
 
-An iframe embed block for third-party tools — forms, maps, calendars, audio players. *Field labels unverified, but the workflow is confirmed.*
+An iframe embed block for third-party tools — forms, maps, calendars, audio players.
 
-**How it works:** Editors add embed content through the **Media Library** — they paste in an embed code or URL, which is saved as a media entity. The Embed block then references that media entity from the Library. Editors do not directly configure width, loading behavior, or type in the block form — those are applied automatically based on the embed type.
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `width` | select | `max` `site` `highlight` `content` | Container width from fullest to narrowest |
+| `type` | select | `form` `audio` `map` `calendar` | Type of embed; affects height and styling behavior |
+| `loading` | select | `lazy` `eager` | iframe loading strategy |
 
-**What editors do:** (1) Add an embed code via the Media Library. (2) Place the Embed block in the Layout Builder and select the media entity.
-
-**For guidance on supported embed types:** https://yalesites.yale.edu/community/requests/supporting-embedded-content-on-the-yalesites-platform
-
-**Important:** Yale no longer supports Qualtrics embeds. Do not recommend it. For surveys, direct editors to Yale-approved alternatives.
+**Common use cases:** Qualtrics forms, Google Maps, Spotify embeds, Yale Events calendar iframes.
 
 ---
 
-### ✅ Gallery (Media Grid)
+### Gallery (Media Grid)
 
-An interactive image grid that opens images in a lightbox/modal when clicked.
+An interactive image grid that opens images in a lightbox/modal when clicked. No design options exposed via props — gallery appearance is driven entirely by the images added and the automatic grid layout.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Gallery Component Title** | Heading above the gallery grid |
-| **Images** | Paragraph sub-items — each is an image with caption |
-| **Padding Options** | See above |
+**Notes:** Powered by the `media-grid` organism in the component library. Supports image captions and titles in the modal view. Built with full keyboard accessibility and focus management.
 
 ---
 
@@ -334,131 +278,154 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 
 ---
 
-### ✅ Link Grid
+### Link Grid
 
 A grid of links — useful for "quick access" navigation sections or topic indexes.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Link Grid Component Title** | Heading above the grid |
-| **Link Lists** | Paragraph sub-items — each is a list of links |
-| **Line Treatment** | Select: Default / All Strong Lines / All Light Lines / No Lines |
-| **Theme** | Color swatch picker |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `themeColor` | select | `one` `two` `three` `four` `five` | Accent color for the grid |
+| `lineTreatment` | select | `default` `all_strong_lines` `all_light_lines` `no_lines` | Whether divider lines appear between links and how strong they are |
 
 ---
 
-### ✅ Quick Links
+### Quick Links
 
-A compact, scannable list of links — often used as a "related links" or sidebar section.
+A compact, scannable list of links — often used in sidebars or as a "related links" section.
 
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Quick Links Component Title** | Heading above the links |
-| **Quick Link Content** | Rich text description |
-| **Links** | Multiple link fields (URL + link text) |
-| **Image** | Optional image entity reference |
-| **Padding Options** | See above |
-
----
-
-### ✅ Button Link
-
-A standalone button or pair of buttons. Useful for adding a prominent CTA without a full content block.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Button Link** | Link field — URL + link text |
-| **Button Alignment** | Select: Left / Center / Right |
-| **Button Style** | Select: Both Filled / Both Outline / Filled+Outline / Outline+Filled |
-| **Padding Options** | See above |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Section heading above the links |
+| `description` | string | — | Optional descriptor below the heading |
+| `withImage` | boolean | true/false | Show a thumbnail image next to each link |
 
 ---
 
 ## Main Content Area Blocks — Collections
 
+Collection blocks display multiple items in a structured layout. They are most powerful when combined with Views for dynamic content.
+
 ---
 
-### ✅ Facts & Figures
+### Card Collection
 
-A structured block for statistics, metrics, or key data points. Each item is a number + descriptor.
+The primary multi-card layout block. Displays a set of cards with configurable layout style.
 
-| Drupal Field Label | Notes |
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Section heading above the cards |
+| `collectionType` | select | `grid` `list` `condensed` | `grid` = card grid; `list` = horizontal list rows; `condensed` = compact text-only list |
+| `featured` | boolean | true/false | First card is larger/featured |
+| `withOverlay` | boolean | true/false | Show a "Pinned" badge on featured content |
+| `withImages` | boolean | true/false | Whether card images are displayed |
+
+---
+
+### Custom Card Collection
+
+Similar to Card Collection but uses the Global Theme lever (site-level theme) rather than the per-component dial.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `globalTheme` | — | — | Pulls from site Global Theme lever, not a per-block selection |
+| `customCardCollectionHeading` | string | — | Section heading |
+| `featured` | boolean | true/false | First card featured/larger |
+| `withImage` | boolean | true/false | Whether images are shown on cards |
+
+---
+
+### Reference Card
+
+The card component used within card collections and Views-powered listings. Exposed as a configurable block pattern.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `heading` | string | — | Required — card title |
+| `snippet` | string | — | Descriptive text below heading |
+| `collectionType` | select | `grid` `list` `condensed` `single` | Layout context (also `single` for standalone use) |
+| `featured` | boolean | true/false | Featured layout style |
+| `withImage` | boolean | true/false | Display an image |
+| `showEyebrow` | boolean | true/false | Show eyebrow label above heading |
+| `eyebrow` | string | — | Eyebrow text (visible when `showEyebrow` is true) |
+| `showCategories` | boolean | true/false | Show category/affiliation tags |
+| `showTags` | boolean | true/false | Show taxonomy tags |
+
+---
+
+### Tiles
+
+A structured grid of items — typically used for feature lists, service offerings, or icon-based navigation.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `presentationStyle` | select | `heading` `icon` `text-only` | Whether tiles show a heading, an icon, or text only |
+| `alignment` | select | `left` `center` `right` | Text/content alignment within tiles |
+| `verticalAlignment` | select | `top` `bottom` | Vertical content alignment |
+| `columnCount` | select | `two` `three` `four` | Number of columns in the grid |
+| `image` | boolean | true/false | Whether tiles have a background image |
+| `withAnimation` | boolean | true/false | Enable entrance animation on scroll |
+
+---
+
+### Facts & Figures
+
+A structured block for displaying statistics, numbers, or key data points.
+
+**Design options:**
+| Option | Type | Values | Notes |
+|---|---|---|---|
+| `themeColor` | select | `one` `two` `three` `four` `five` | Accent color |
+| `factsAndFiguresGroupHeading` | string | — | Section heading |
+| `factsAndFiguresGroupContent` | string | — | Supporting text |
+| `factsAndFiguresGroupLink` | string | — | CTA link |
+| `image` | boolean | true/false | Background image behind the facts |
+| `presentationStyle` | select | `basic` `icon-only` | `basic` = with a decorative line; `icon-only` = icon without line |
+| `fontStyle` | select | `normal` `numeric-oldstyle` | `numeric-oldstyle` uses oldstyle figures for a more refined typographic feel |
+| `columnCount` | select | `two` `three` `four` | Number of fact columns |
+| `alignment` | select | `left` `center` | Content alignment |
+| `iconName` | select | (from icon registry) | Icon shown per fact item |
+
+---
+
+## Views-Powered Blocks
+
+Views blocks are dynamic — they query the CMS database and display matching content automatically. They are placed in the Layout Builder like any other block, but their content updates as nodes are created/updated.
+
+Two modules handle Views:
+
+**`ys_views_basic`** — Simple listings. Good for: recent posts, upcoming events, featured people.
+
+**`ys_views_content_resources`** — Advanced content resource listings with more filter/sort/display options.
+
+The design options for Views blocks are configured in Drupal Views administration (Structure → Views), not in the Layout Builder block config panel. Each View exposes a display plugin (page, block, attachment) with its own path, format, and exposed filters.
+
+See `references/views-reference.md` for detailed Views configuration guidance.
+
+---
+
+## Block Selection Guide
+
+| User Goal | Recommended Block |
 |---|---|
-| **Administrative label** | Internal block title |
-| **Facts and Figures Block Title** | Heading above the collection |
-| **Content** | Rich text body/description |
-| **Image** | Optional image |
-| **Facts and Figures Items** | Paragraph sub-items — each has a number and label |
-| **Theme** | Color swatch picker |
-| **Alignment** | Select: Left / Center |
-| **Columns** | Select: Two / Three / Four — grid column count |
-| **Padding Options** | See above |
-
----
-
-### ✅ Custom Cards
-
-The platform's custom card collection block. Displays a set of manually authored cards. Drupal machine name: `custom_cards`, display label: "Custom Cards". **Note:** There is no separate "Card Collection" block type — this is the only card block.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Custom Cards Component Title** | Optional heading above the cards. Max 50 characters. |
-| **Cards** | Paragraph sub-items — each card is a `custom_card` paragraph |
-| **Padding Options** | See above |
-
-*No Theme/color field on this block — card styling is determined by the individual card paragraph items.*
-
----
-
-### ✅ Tiles
-
-A grid of icon/image + label tiles — useful for navigation or feature categories. Drupal machine name: `tiles`.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Tiles** | Paragraph sub-items — each tile is a `tile` paragraph |
-| **Columns** | Select: Two / Three / Four — grid column count |
-| **Alignment** | Select: Left / Center / Right |
-| **Content Position** | Select: Top / Bottom — position of text relative to tile image |
-| **Enable Animation** | Checkbox — enables entrance animation |
-| **Padding Options** | See above |
-
----
-
-## Dynamic Views Blocks
-
-Views blocks are configured entirely in the Layout Builder — site administrators do not have access to the standard Drupal "Structure → Views" admin. See `references/views-reference.md` for the full configuration guide.
-
----
-
-### ✅ Event Calendar
-
-A calendar-style event display block (distinct from the Views-based event listing).
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **Event Calendar Title** | Heading above the calendar |
-| **Links** | CTA links (paragraph sub-items) |
-| **Basic params** | Custom field — stores event calendar filter configuration |
-
----
-
-### ✅ Resource View
-
-A Views-powered resource listing block. This is a wrapper around the `ys_views_content_resources` Views configuration.
-
-| Drupal Field Label | Notes |
-|---|---|
-| **Administrative label** | Internal block title |
-| **View Heading** | Heading above the resource listing |
-| **View Resource Params** | Custom field — stores JSON-encoded filter configuration for the View |
-| **Padding Options** | See above |
-
-*For available display formats, sort options, and filter options, see `references/views-reference.md` → `ys_views_content_resources` section.*
+| Big homepage hero with CTA button | Grand Hero or Action Banner |
+| Simple image at top of page | Image Banner |
+| FAQ section | Accordion |
+| Highlight a quote | Quote Callout |
+| Feature a person or story with image | Content Spotlight Portrait or Landscape |
+| Side-by-side image + text (editorial) | Content Spotlight Landscape |
+| Image floating in text | Wrapped Image |
+| List of links / quick nav | Quick Links or Link Grid |
+| Stats and data points | Facts & Figures |
+| Features/services in a grid | Tiles |
+| News/event card listing | Card Collection + Views |
+| Photo gallery | Gallery |
+| Embed a form or map | Embed |
+| Tabbed content sections | Tabs |
+| Pull a quote with styling | Quote Callout |
+| Video (YouTube/Vimeo) | Video |

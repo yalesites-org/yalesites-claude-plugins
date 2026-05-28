@@ -91,7 +91,7 @@ Internal tasks (migrations, CI work, dependency updates) are omitted from user-f
 - Write for non-technical users first: site owners, content editors, department admins
 - Lead with user benefit, not technical implementation
 - Warm and collegial — this is a community announcement, not a changelog
-- Bug fix descriptions should name the symptom, not the cause
+- Bug fix descriptions should name the symptom ("a site's custom branding name could revert to..."), not the cause
 
 ### Version numbering
 Announcement title uses short form: v2.22.0 in code → "v2.22" in title. URL slug drops dots: v2.22 → `v222`.
@@ -126,8 +126,9 @@ Announcement title uses short form: v2.22.0 in code → "v2.22" in title. URL sl
 
 ### Voice & tone for docs
 - Write for a content editor who has never seen this feature
-- Use plain English; avoid Drupal jargon where possible
+- Use plain English; avoid Drupal jargon where possible (e.g., "block" is fine, "config entity" is not)
 - Steps should be numbered and scannable
+- Reference Yale's web writing best practices: short sentences, active voice, front-load the key information
 
 ### Output
 Save as `feature-doc-[feature-name]-draft.md` in the workspace folder.
@@ -136,7 +137,7 @@ Save as `feature-doc-[feature-name]-draft.md` in the workspace folder.
 
 ## Phase 3: Email Communication
 
-The release email highlights 2–3 of the most impactful new features — not a comprehensive list, and no bug fixes section.
+The release email is a brief, friendly announcement sent to the YaleSites community. It highlights 2–3 of the most impactful new features — not a comprehensive list, and no bug fixes section. Bug fixes are acknowledged in passing in the closing line, which directs readers to the full release notes.
 
 ### Format
 
@@ -149,10 +150,10 @@ To: The YaleSites Community
 
 What's new
 
-* [Feature name] - [One to two sentences. Plain English, no jargon.]
-* [Feature name] - [Same format. 2–3 bullets total.]
+* [Feature name] - [One to two sentences describing what it does and why it matters. Plain English, no jargon.]
+* [Feature name] - [Same format. 2–3 bullets total — only the most impactful features.]
 
-We encourage you to visit our Release Notes page for a full list of updates, including [brief mention of other categories].
+We encourage you to visit our Release Notes page for a full list of updates, including [brief mention of other categories, e.g. "enhancements to content creation and numerous bug fixes"].
 
 Thank you for using YaleSites, and please continue to share your feedback on features you'd like to see next.
 
@@ -161,10 +162,13 @@ The YaleSites Team
 ```
 
 ### Key rules
-- **2–3 feature bullets only**
-- **No bug fixes section** — mention them only in the closing paragraph
+- **2–3 feature bullets only** — be selective; this is not a comprehensive list
+- **No bug fixes section** — mention them only in the closing paragraph as "numerous bug fixes"
 - Feature format is `* Feature name - description` with a plain hyphen, not an em dash
-- No subject line needed in the draft
+- Feature names are not bolded in the bullet — just plain text followed by a hyphen
+- The opening line establishes collaboration context (or theme) once — don't repeat it
+- No subject line is needed in the draft; that's handled separately
+- Closing paragraph always references the Release Notes page on yalesites.yale.edu
 
 ### Output
 Save as `release-email-v[version]-draft.md` in the workspace folder.
@@ -173,34 +177,63 @@ Save as `release-email-v[version]-draft.md` in the workspace folder.
 
 ## Phase 4: Current Issues & Fixes Page Update
 
-The Current Issues & Fixes page (https://yalesites.yale.edu/continuous-improvement/current-issues-fixes) is a living document listing known bugs and recently deployed fixes.
+The Current Issues & Fixes page (https://yalesites.yale.edu/continuous-improvement/current-issues-fixes) is a living document that lists known bugs and recently deployed fixes.
 
-**Important:** yalesites.yale.edu is blocked from direct fetch. Paste the current page content in before drafting the update.
+**Important:** yalesites.yale.edu is blocked from direct fetch in this environment. Paste the current page content in before drafting the update.
 
 ### What changes in each release
-1. **Remove** bugs from the "known issues" list that were fixed in this release
-2. **Add** new bug fixes to the "recent fixes" section
-3. **Add** newly discovered bugs (confirm with the team)
-4. **Archive or remove** older fixes no longer relevant
+1. **Remove** any bugs from the "known issues" list that were fixed in this release
+2. **Add** the new bug fixes from this release to the "recent fixes" section
+3. **Add** any newly discovered bugs that aren't yet fixed (confirm with the team)
+4. **Archive or remove** older fixes that are no longer relevant to call out
+
+### Format guidance
+- Keep the "known issues" list honest and specific — vague entries erode trust
+- Bug fix descriptions should match the plain-English phrasing used in the release notes for consistency
+- Date each fix entry with the release version and approximate date
+- Keep the page skimmable — short bullets, no paragraphs
 
 ### Output
-Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder.
+Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This draft gets pasted into the CMS.
 
 ---
 
 ## Phase 5: QA Testing — Release Testing Steps (Runs in Parallel with Phases 2–4)
 
-Adds a **Release Testing Steps** section to any issue in `yalesites-org/YaleSites-Internal` that lacks clear, actionable testing instructions.
+This phase prepares GitHub issues for QA testing by adding a **Release Testing Steps** section to any issue that lacks clear, actionable testing instructions. Testers use the issues in `yalesites-org/YaleSites-Internal` as their checklist — this phase makes sure every issue is ready for them.
 
-Only issues linked from PRs in the confirmed release list should be updated.
+Only issues with a GitHub Project status of **"Ready for Release (in dev)"** should be updated.
 
-**REST API limitation:** GitHub Project status fields are only queryable via GraphQL. Use the confirmed PR list from Phase 1 as the source of truth for which issues to update.
+**Important — REST API limitation:** GitHub Project status fields (including "Ready for Release (in dev)") are stored in the Project board and are only queryable via GraphQL, not the REST API used by the GitHub MCP tool. This means the status cannot be filtered directly. The practical workaround: use the confirmed PR list from Phase 1 as the source of truth. Issues linked from those PRs should correspond exactly to the ones with "Ready for Release (in dev)" status. If there's any doubt, confirm before updating an issue.
 
-### Steps
-1. Extract linked issues from PR bodies (`#XXXX` references or GitHub issue URLs)
-2. Fetch each issue via `mcp__github__get_issue` on `yalesites-org/YaleSites-Internal`
-3. Assess whether clear testing steps already exist (specific actions, accessible environment, stated expected outcome)
-4. If missing, draft a **Release Testing Steps** section:
+This phase can start as soon as the PR list from Phase 1 is confirmed, and runs in parallel with the communication phases.
+
+### Step 1: Extract linked issues from PRs
+
+Each PR in the release links to one or more issues in `yalesites-org/YaleSites-Internal`. Extract these from the PR body — they typically appear as GitHub issue URLs or `#XXXX` references near the top of the description.
+
+Use `mcp__github__get_issue` on `yalesites-org/YaleSites-Internal` to fetch each issue.
+
+### Step 2: Assess whether testing steps are needed
+
+Read the issue description and acceptance criteria. Ask:
+
+- Are there clear, step-by-step instructions a tester could follow right now?
+- Do the steps reference a specific environment or URL the tester can actually access?
+- Are the expected outcomes clearly stated?
+
+If yes to all three — no action needed, move on.
+
+If any are missing or vague — draft a **Release Testing Steps** section.
+
+### Step 3: Draft the Release Testing Steps section
+
+Write step-by-step testing instructions grounded in:
+- The PR description's "Description of work" and "Functional testing steps"
+- The issue's acceptance criteria
+- What the feature or fix is supposed to do from a user perspective
+
+**Format:**
 
 ```
 ## Release Testing Steps
@@ -212,39 +245,89 @@ Only issues linked from PRs in the confirmed release list should be updated.
 **Expected result:** [What a passing test looks like in plain English]
 ```
 
-5. Append via `mcp__github__update_issue` — never overwrite existing content
-6. Report: how many updated, how many already sufficient, any flagged for review
+**Guidelines:**
+- Write for a tester, not a developer — use the admin UI path, not code references
+- Be specific: "Go to Site Settings → Appearance → Font Style" beats "check the font setting"
+- Each step should be a single action or observation
+- Include the expected result at the end so the tester knows what "passing" looks like
+- If the feature has multiple scenarios (e.g., a fix that should work for both inline and reusable blocks), cover each one
+- For bug fixes, include a step that confirms the broken behavior no longer occurs
+
+### Step 4: Update the issue
+
+Use `mcp__github__update_issue` on `yalesites-org/YaleSites-Internal` to append the new section to the existing issue body. Preserve all existing content — only add the new section at the bottom.
+
+Do not overwrite acceptance criteria or existing descriptions. The Release Testing Steps section is additive.
+
+### Step 5: Report back
+
+After processing all issues, report a summary:
+- How many issues were updated with new testing steps
+- How many already had sufficient steps (no action needed)
+- Any issues where the PR description lacked enough detail to write confident testing steps (flag these for review)
 
 ---
 
 ## Phase 6: Knowledge Base Sync (Runs After Phase 1)
 
-Audits every PR in the release for user-facing platform changes and patches the affected yalesites skill reference files directly.
+This phase keeps the YaleSites skill's reference files accurate. Every release may introduce new blocks, change field labels, add content type fields, modify settings options, or alter user roles — any of these can silently invalidate what's in the skill's references. This phase audits each PR and patches the affected reference files directly.
 
-### Change-to-file mapping
+This phase can begin as soon as the PR list from Phase 1 is confirmed.
 
-| Change type | Reference file |
-|-------------|----------------|
+### Step 1: Audit the release for platform changes
+
+For each PR in the release, read the PR description and any linked diffs to identify changes that affect the documented platform behavior. Look for:
+
+| Change type | Where it affects |
+|-------------|------------------|
 | New block added | `blocks-reference.md` |
 | Block removed or deprecated | `blocks-reference.md` |
 | Block field label changed | `blocks-reference.md` |
 | New field option added to a block | `blocks-reference.md` |
-| New paragraph type | `paragraphs-reference.md` |
+| New paragraph type (accordion item, card, tile, etc.) | `paragraphs-reference.md` |
 | Paragraph field label or option changed | `paragraphs-reference.md` |
-| New content type field | `content-types-reference.md` |
+| New content type field (Page, Post, Event, Resource, Person) | `content-types-reference.md` |
 | Content type field label or behavior changed | `content-types-reference.md` |
 | New Views filter, display, or module | `views-reference.md` |
-| New sitewide setting or changed options | `settings-reference.md` |
+| New sitewide setting or changed setting options | `settings-reference.md` |
 | User role added, removed, or permission changed | `user-roles-reference.md` |
 
-**Skip:** bug fixes restoring already-correct behavior, internal tooling, dependency bumps, styling tweaks with no field label changes.
+**What does NOT require a knowledge base update:**
+- Bug fixes that restore behavior already documented correctly
+- Internal/dev tooling changes with no user-facing effect
+- Dependency bumps with no behavior change
+- Styling tweaks that don't change field labels or options
 
-### Process
-1. Read each PR description for user-facing changes
-2. Read the affected reference file(s) to understand current structure
-3. Draft updates matching existing format (new block entries, updated field rows, added options, deprecation notes)
-4. Edit reference files directly — additive only, preserve all existing content
-5. Report: which files changed, what changed, any PRs flagged for manual review
+### Step 2: Read the affected reference files
+
+For each reference file that needs updating, read its current contents from the yalesites skill's `references/` directory (available in the skill's context). Understand the existing structure before making changes — new entries should follow the same format as existing ones.
+
+### Step 3: Draft the updates
+
+For each change identified:
+
+**New block:** Add a full entry following the existing block format — name, description, and a field table with Drupal field labels and notes. Mark it `✅` if fully documented or `⚠️` if field details are uncertain. Group it under the correct region (Banner Area, Main Content, etc.).
+
+**Changed field label:** Update the field table row in-place. Note the old label in parentheses if the rename is recent enough that editors may still see the old term in staging environments.
+
+**New field or option:** Add a new row to the relevant field table, or add the new option to the Notes column of the existing row.
+
+**Removed block or field:** Remove the entry or row. If it may still appear on older sites, add a deprecation note instead of deleting.
+
+**New paragraph type:** Add an entry under the correct parent block in `paragraphs-reference.md`, following the existing format.
+
+**Settings or roles change:** Update the relevant section in `settings-reference.md` or `user-roles-reference.md` following existing formatting conventions.
+
+### Step 4: Apply the updates
+
+Edit the reference files directly. Preserve all existing content — only add, modify, or remove the specific entries identified in Step 3. Do not reformat unrelated sections.
+
+### Step 5: Report back
+
+After processing all PRs, report a summary:
+- Which reference files were updated and what changed in each
+- Any PRs where the description lacked enough detail to confidently update the references (flag for review — may need to inspect the actual Drupal config YAML or check a staging environment)
+- Any changes that were skipped because they had no user-facing documentation impact
 
 ---
 
@@ -257,12 +340,16 @@ Audits every PR in the release for user-facing platform changes and patches the 
 | Email | `release-email-v[version]-draft.md` |
 | Current Issues & Fixes | `current-issues-fixes-v[version]-draft.md` |
 
+All draft files saved to the workspace folder.
+
 ---
 
 ## Notes
 
 - Run Phases 1 → 2 → 3 → 4 in order; Phases 5 and 6 run in parallel starting after Phase 1
-- If a release has no major new feature (e.g., a hotfix), skip Phase 2
-- Phase 4 is not always needed every release — confirm before starting
-- Tables don't render reliably in GitHub comments — always use bulleted lists for PR references
-- Issues live in `yalesites-org/YaleSites-Internal`; PRs live in `yalesites-org/yalesites-project`
+- If a release has no major new feature (e.g., a hotfix release), skip Phase 2
+- The Current Issues & Fixes update (Phase 4) is not always needed every release — confirm before starting
+- For collaboration releases, the partner name should appear in the release notes title, intro, and featured feature section — but doesn't need to be repeated in the email subject or docs page
+- Tables don't render reliably in GitHub comments — always use bulleted lists for the PR reference section
+- Issues live in `yalesites-org/YaleSites-Internal`; PRs live in `yalesites-org/yalesites-project` — don't mix them up when making API calls
+- Phase 6 edits the skill's own reference files — this keeps the knowledge base self-maintaining across releases
