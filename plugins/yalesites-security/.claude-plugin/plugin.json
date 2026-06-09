@@ -1,0 +1,10 @@
+{
+  "name": "yalesites-security",
+  "version": "0.1.0",
+  "description": "Security tooling for YaleSites projects — currently supply-chain auditing (malicious-package detection via live OSV.dev and GitHub malware advisories), distinct from ordinary CVE scanning.",
+  "author": {
+    "name": "Yale ITS Digital Experiences",
+    "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
+  },
+  "keywords": ["yalesites", "yale", "security", "supply-chain", "dependencies", "audit"]
+}
