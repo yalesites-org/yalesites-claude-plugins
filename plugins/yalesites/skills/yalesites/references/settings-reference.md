@@ -30,11 +30,25 @@ The **Global Theme** ("lever") controls the site-wide color palette. This is dis
 
 **How the theme system works:**
 1. Design tokens (from the `tokens` repo / Figma) define color variables
-2. The Global Theme maps those tokens to specific color values
-3. The Component Theme dial (one–five) references the active Global Theme's colors
-4. Result: all blocks using "theme two" on a Blue site look different from "theme two" on a Gray site
+2. The Global Theme maps those tokens to specific named colors (e.g., Yale Blue, New Haven Green)
+3. When editing a block in Layout Builder, editors see a color swatch picker showing the color name and hex preview
+4. Result: the same color slot looks different on a site with a different Global Theme
 
 Editors cannot create custom themes. Theme variants are maintained by the YaleSites platform team.
+
+**Header/footer accent lines are global, not per-page.** The accent line under the navigation and the one above the footer are part of the global header/footer, controlled by Header style / Footer style under Global Theme — there is no way to target or recolor them on a per-page basis. This is a distinct setting from the per-block "Theme" color swatch picker in Layout Builder, which does apply per-block/per-page. If someone asks for a per-page accent-line color change, the accurate answer is: not possible per page, only site-wide via Theme Settings. This distinction has caused confusion before when a request used a generic word like "accents" without specifying whether it meant the header/footer lines or a block's color option.
+
+## Font Settings
+
+In Site Settings, editors can choose the site's font pairing from three Yale-approved combinations:
+
+| Option | Heading Font | Body Font |
+|---|---|---|
+| **YaleNew / Mallory** (default) | YaleNew | Mallory |
+| **Mallory / Mallory** | Mallory | Mallory |
+| **YaleNew (old numbers) / Mallory** | YaleNew (oldstyle numerals variant) | Mallory *(coming in next release)* |
+
+Font size is not configurable — it is controlled by design tokens and cannot be overridden by editors.
 
 ---
 

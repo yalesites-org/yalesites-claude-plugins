@@ -16,6 +16,8 @@ This skill helps create well-formed GitHub issues for the YaleSites backlog and 
 
 Search these when you need implementation context, but always write the issue description in plain English first. Technical details belong in the acceptance criteria, not the description.
 
+**GitHub write-permission scope:** The GitHub connector can create and comment on issues in `yalesites-org/YaleSites-Internal`, but it cannot write comments to `yalesites-org/yalesites-project` (read-only there — good for searching code and reading PRs, not for posting PR comments). If a task calls for commenting on a `yalesites-project` PR, draft the comment text and hand it to Michael to paste in rather than retrying the write.
+
 ---
 
 ## Platform Fit Check (Do This First)
@@ -100,7 +102,7 @@ Choose one based on user and platform impact:
 Estimate relative effort and complexity:
 
 | Size | Definition |
-|------|------------|
+|------|-----------|
 | **XS** | Single file change or quick setting adjustment. < 1 hour |
 | **S** | Minor feature update or simple block modification. 1–4 hours |
 | **M** | New block component or moderate platform enhancement. 1–2 days |
@@ -114,7 +116,7 @@ Estimate relative effort and complexity:
 Choose one:
 
 | Type | When to use |
-|------|-------------|
+|------|------------|
 | **AI** | Work related to the Beacon AI chatbot |
 | **Bug** | An unexpected problem or behavior |
 | **Communications** | Work that falls under the Communications workstream |
