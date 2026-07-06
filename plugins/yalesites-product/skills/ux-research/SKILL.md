@@ -161,6 +161,16 @@ These were the five most-cited user needs across interviews, surveys, and shadow
 
 ---
 
+## Filter & Search Interaction Patterns
+
+When evaluating a request to change filter/search UI — e.g., removing an "Apply" button in favor of real-time/auto-submit filtering:
+
+- Real-time filtering (no separate Apply action) is generally fine on desktop — NN/g and Baymard research both support it in that context.
+- Mobile is the explicit exception in that same research: slower connections and the higher cost of an accidental refresh mean batch filtering with an explicit Apply button holds up better there. Don't assume a desktop-validated pattern carries over to mobile.
+- Any change here also has an accessibility floor — see `views-reference.md`'s WCAG 3.2.2 note on auto-submit filters.
+
+---
+
 ## What NOT to Use This Research For
 
 Do not cite the following as current pain points — they were addressed in the platform redesign:
