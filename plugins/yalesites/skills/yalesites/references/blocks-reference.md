@@ -313,6 +313,8 @@ An iframe embed block for third-party tools — forms, maps, calendars, audio pl
 
 **Accessibility note:** Bluesky, Instagram, and Localist embeds render as `blockquote`/`script` markup rather than an `<iframe>`, so they bypass `embed-wrapper.html.twig` — the one place that currently sets a title attribute for iframe-based embeds. These non-iframe embed types need their own accessible-title handling; don't assume the standard Embed block's title-attribute behavior applies to them. (Tracked in yalesites-org/YaleSites-Internal#1349.)
 
+**Datawrapper embeds:** Accessibility here is creator-dependent, not automatic — alt text/descriptions must be set manually by whoever builds the chart or map in Datawrapper (its auto-generated fallback description is weaker for maps than for line/scatter charts). When advising on a Datawrapper embed, tell editors to set custom alt text in Datawrapper before publishing rather than relying on the default.
+
 **For guidance on supported embed types:** https://yalesites.yale.edu/community/requests/supporting-embedded-content-on-the-yalesites-platform
 
 **Important:** Yale no longer supports Qualtrics embeds. Do not recommend it. For surveys, direct editors to Yale-approved alternatives.

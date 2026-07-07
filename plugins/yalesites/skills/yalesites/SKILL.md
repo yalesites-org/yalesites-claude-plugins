@@ -274,7 +274,7 @@ Internally, `ys_views_basic` uses:
 - `ViewsBasicManager` — service class that builds and executes views queries; contains `ALLOWED_ENTITIES` constant defining content types, view modes, and sort options
 - `ViewsBasicDefaultWidget` — the main FieldWidget that renders the block configuration form in Layout Builder
 - `EventCalendarDefaultWidget` — separate widget for the calendar display mode; extends `ViewsBasicWidgetBase`
-- `ViewsBasicWidgetBase` — abstract base class (being introduced in the Views Block Rework epic) containing shared form logic
+- `ViewsBasicWidgetBase` — abstract base class (being introduced in the Views Block Rework epic) containing shared form logic. Settings split three ways: shared settings live once on this base class, type-specific settings live in each type's own widget class, and mode-specific availability (e.g., a setting that only applies to Calendar mode) is controlled by a capability flag rather than duplicating the setting per type — one edit point per concern.
 - The two Drupal Views scaffolds used internally: `views_basic_scaffold` (for post/page/profile) and `views_basic_scaffold_events` (for events, which requires aggregation for date handling)
 
 See `references/views-reference.md` for the complete list of display formats, sort options, and filter options with their exact labels.
@@ -393,7 +393,7 @@ Key custom modules (`web/profiles/custom/yalesites_profile/modules/custom/`):
 | `ys_localist` | Localist events integration |
 | `ys_embed` | Third-party iframe embeds (via Media Library) |
 | `ys_servicenow` | ServiceNow integration |
-| `ys_ai` | Ask Beacon AI integration |
+| `ys_ai` | Ask Beacon AI integration — a **visitor-facing chatbot** that answers questions using the site's published content, with citations. It is not a content-authoring or editing assistant. |
 | `ys_alert` | Sitewide alert banner |
 | `ys_captcha` | Form spam protection |
 | `ys_migrate` | Content migration tools |

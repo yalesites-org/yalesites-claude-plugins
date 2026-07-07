@@ -91,3 +91,9 @@ Paragraph sub-items are the editable rows within certain blocks — accordion it
 | Drupal Field Label | Required | Notes |
 |---|---|---|
 | **Link** | Yes | URL + required link text. |
+
+---
+
+## Known Issues
+
+**Quick Node Clone + Paragraph Items module interaction:** Cloning a node with the Quick Node Clone module can lock the *original* node's paragraph-backed sub-item blocks (Accordion, Gallery, Link Grid, and similar components built on paragraph sub-items) instead of locking the clone — the opposite of the expected behavior. If an editor reports a block that's suddenly stuck or uneditable shortly after cloning a page, check whether this is the cause.
