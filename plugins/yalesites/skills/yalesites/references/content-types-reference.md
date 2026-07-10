@@ -16,7 +16,7 @@ These fields appear on every content type's Manage Settings form:
 | **Tags** | Taxonomy (tags vocabulary). General-purpose tagging. |
 | **URL alias** | Path alias for the page URL. |
 | **URL redirects** | Set up redirects from old URLs to this page. |
-| **Metadata** | SEO meta tags (title, description, Open Graph, etc.). In the sidebar. |
+| **Metadata** | SEO meta tags (title, description, Open Graph, etc.). In the sidebar. Uses the `metatag_firehose` widget — this is identical across all 5 content types (Event, Page, Post, Profile, Resource); there is no "simple" vs. "complex" metatag split by content type. `metatag_simple_widget` is not installed/used anywhere on the platform. If a content type appears to show fewer metatag groups in the live UI than another, that's not explained by a config difference at the widget/field level — treat it as unverified UI behavior, not a documented distinction. |
 | **CAS Login Required** | Boolean. Restrict this page to CAS-authenticated (Yale NetID) users only. |
 | **Pin to the beginning of list** | Boolean. Pins content to the top of Views listings. |
 | **External Source** | Link field. When set, clicking this content in listings redirects to an external URL instead of this page. Bypasses the Layout Builder. |
