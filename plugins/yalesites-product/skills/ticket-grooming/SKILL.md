@@ -16,7 +16,7 @@ This skill helps create well-formed GitHub issues for the YaleSites backlog — 
 
 Search these when you need implementation context, but always write the issue description in plain English first. Technical details belong in the acceptance criteria, not the description.
 
-**GitHub write-permission scope:** The GitHub connector can create and comment on issues in `yalesites-org/YaleSites-Internal`, but it cannot write comments to `yalesites-org/yalesites-project` (read-only there — good for searching code and reading PRs, not for posting PR comments). If a task calls for commenting on a `yalesites-project` PR, draft the comment text and hand it to Michael to paste in rather than retrying the write.
+**GitHub write-permission scope:** The GitHub connector can create and comment on issues in `yalesites-org/YaleSites-Internal`, but it cannot write comments to `yalesites-org/yalesites-project` (read-only there — good for searching code and reading PRs, not for posting PR comments). If a task calls for commenting on a `yalesites-project` PR, draft the comment text and hand it to the user to paste in rather than retrying the write.
 
 **GitHub workflow notes:**
 - Comments and reviews can only be *added*, never edited in place — there's no tool to revise a comment that's already posted. Post a follow-up comment instead of trying to update one.
@@ -36,7 +36,7 @@ Search these when you need implementation context, but always write the issue de
 
 Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt included **Status**, **Priority**, and **Size**. If any of these are missing, ask for them upfront using the `AskUserQuestion` tool — one question per missing field, or a single question covering all missing ones if there are multiple.
 
-Do not guess or default these values silently. These fields directly affect how the ticket is prioritized and sequenced in the project board, so getting them right from Mike matters.
+Do not guess or default these values silently. These fields directly affect how the ticket is prioritized and sequenced in the project board, so getting them right from the user matters.
 
 ### Status (project board column)
 
@@ -113,7 +113,7 @@ Every issue needs a clear title plus these six fields, in this order:
 
 The title is what shows up in board views, search results, and notification emails — it needs to tell someone what the work is without opening the issue. Write (or rewrite) the title so it names the specific thing being built, fixed, or requested, not a vague category. "Fix embed bug" tells nobody anything; "RC: Embed block: missing title attribute on Bluesky, Instagram, and event map embeds" tells the reader exactly what's broken and where.
 
-When grooming an existing stub ticket, check the title along with the other fields — a placeholder or overly generic title ("Bug in Layout Builder", "Update embeds") should be rewritten to reflect what the description actually says once it's filled in. If rewriting a title would change what the issue appears to be about (e.g., the original title implies a different bug than what's described), flag that for Mike rather than silently reinterpreting.
+When grooming an existing stub ticket, check the title along with the other fields — a placeholder or overly generic title ("Bug in Layout Builder", "Update embeds") should be rewritten to reflect what the description actually says once it's filled in. If rewriting a title would change what the issue appears to be about (e.g., the original title implies a different bug than what's described), flag that for the user rather than silently reinterpreting.
 
 **Common title prefixes.** The backlog uses a set of recurring prefixes that make similar tickets easy to spot and filter on. Apply one if it fits; don't force one onto a ticket that doesn't match any of these patterns — a plain, descriptive title is better than a mismatched prefix.
 
