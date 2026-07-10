@@ -1,18 +1,18 @@
 ---
 name: yalesites-pr-feedback
-description: "Review a YaleSites pull request and post feedback directly on GitHub. Use whenever Mike asks to review, look at, check, approve, or give feedback on a PR — even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, and atomic. Does a deep dive on the code diff, reads the linked issue, asks Mike clarifying questions, turns his answers into actionable developer feedback with exact file/line locations, then posts the review comment on GitHub — approving with the right labels or requesting changes — and @-mentions the assigned developer so they're notified."
+description: "Review a YaleSites pull request and post feedback directly on GitHub. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR — even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, and atomic. Does a deep dive on the code diff, reads the linked issue, asks the user clarifying questions, turns their answers into actionable developer feedback with exact file/line locations, then posts the review comment on GitHub — approving with the right labels or requesting changes — and @-mentions the assigned developer so they're notified."
 ---
 
 # YaleSites PR Feedback Skill
 
 ## Overview
 
-This skill runs a full PR review pass: understand what changed, understand what it was supposed to do, surface open questions for Mike, turn his feedback into something a developer can act on, and post it to GitHub with the correct approval state and labels.
+This skill runs a full PR review pass: understand what changed, understand what it was supposed to do, surface open questions for the user, turn their feedback into something a developer can act on, and post it to GitHub with the correct approval state and labels.
 
 **Repos in scope:** `yalesites-org/yalesites-project`, `yalesites-org/component-library-twig`, `yalesites-org/atomic`
 **Issues live in:** `yalesites-org/YaleSites-Internal` (PRs link to them in the body, usually as a `#XXXX` reference or full URL)
 
-Don't guess at a repo — if Mike gives a bare PR number without a repo, ask which of the three it's in (or check the URL if he pasted one).
+Don't guess at a repo — if the user gives a bare PR number without a repo, ask which of the three it's in (or check the URL if they pasted one).
 
 ---
 
@@ -20,7 +20,7 @@ Don't guess at a repo — if Mike gives a bare PR number without a repo, ask whi
 
 1. `mcp__github__get_pull_request` for the PR itself — title, body, assignee, base/head branches, current labels.
 2. `mcp__github__get_pull_request_files` — the actual diff, file by file. This is what you'll cite locations from later.
-3. Find the linked issue number in the PR body (near the top, usually `#XXXX` or a full GitHub URL) and pull it with `mcp__github__get_issue` on `YaleSites-Internal`. If nothing is linked, say so and ask Mike for the issue before going further — reviewing code against no stated intent produces shallow feedback.
+3. Find the linked issue number in the PR body (near the top, usually `#XXXX` or a full GitHub URL) and pull it with `mcp__github__get_issue` on `YaleSites-Internal`. If nothing is linked, say so and ask the user for the issue before going further — reviewing code against no stated intent produces shallow feedback.
 
 ## Step 2: Deep-dive the diff against the issue
 
@@ -33,13 +33,13 @@ Read the changed files closely, not just the summary. For each file, understand 
 
 **Don't assert CI/test coverage from memory — verify it.** If the diff touches an area where "we already have visual regression / a test / a CI check for that" seems like a reasonable assumption, confirm it by reading the actual workflow file (trigger conditions, path filters) rather than stating it as fact. A workflow that looks like it covers a directory can still miss it — e.g. a `paths-filter` scoped to `components/**` silently skips a sibling `web-components/**` directory, or a check that only runs on `ready_for_review` never fires on a draft PR. Wrong coverage claims undermine QA planning more than no claim at all.
 
-Keep a running list of concrete file/line references as you go — you'll need these twice: once to ask Mike sharper questions, and once in the final feedback.
+Keep a running list of concrete file/line references as you go — you'll need these twice: once to ask the user sharper questions, and once in the final feedback.
 
-Remember [[feedback_pm_scope]]: Mike makes product/UX/scope calls, not implementation calls. Don't surface things like "should this use a service class or a static method" — surface things like "the issue says this should be visible to all editors, but the diff gates it behind `platform_admin` — intentional?"
+Remember [[feedback_pm_scope]] (if this memory exists for the person running the skill): the PM makes product/UX/scope calls, not implementation calls. Don't surface things like "should this use a service class or a static method" — surface things like "the issue says this should be visible to all editors, but the diff gates it behind `platform_admin` — intentional?"
 
-## Step 3: Ask Mike your own questions, then ask for his feedback
+## Step 3: Ask the user your own questions, then ask for their feedback
 
-This is always a two-part step, even on a bare "review this PR" with no other input from Mike.
+This is always a two-part step, even on a bare "review this PR" with no other input from the user.
 
 **Part 1 — your clarifying questions.** Use the `AskUserQuestion` tool to surface genuine ambiguities from Step 2 — not a rubber-stamp checklist. Good candidates:
 
@@ -47,28 +47,28 @@ This is always a two-part step, even on a bare "review this PR" with no other in
 - A UX/product judgment call embedded in the implementation (copy text, default values, what's shown to which role)
 - Something the PR does that wasn't asked for, where it's unclear if that's welcome scope creep or worth cutting
 
-If the diff and issue line up cleanly with nothing ambiguous, it's fine to skip this part and tell Mike so — don't invent questions for the sake of asking.
+If the diff and issue line up cleanly with nothing ambiguous, it's fine to skip this part and tell the user so — don't invent questions for the sake of asking.
 
-**Part 2 — his feedback.** Regardless of whether Part 1 produced any questions, always explicitly ask Mike if he has his own feedback or notes on the PR (things he noticed testing it, UX opinions, concerns not obvious from the diff alone). He may have looked at the multidev environment himself and have observations the code alone won't surface. Don't skip this just because your own analysis turned up nothing — his input is a first-class input to the review, not a fallback for when you're stuck.
+**Part 2 — their feedback.** Regardless of whether Part 1 produced any questions, always explicitly ask the user if they have their own feedback or notes on the PR (things they noticed testing it, UX opinions, concerns not obvious from the diff alone). They may have looked at the multidev environment themselves and have observations the code alone won't surface. Don't skip this just because your own analysis turned up nothing — their input is a first-class input to the review, not a fallback for when you're stuck.
 
-## Step 4: Turn Mike's answers into actionable feedback
+## Step 4: Turn the user's answers into actionable feedback
 
-Once Mike responds, your job is translation: turn his (possibly short, possibly informal) input into feedback a developer can act on without a follow-up round trip. For every point:
+Once the user responds, your job is translation: turn their (possibly short, possibly informal) input into feedback a developer can act on without a follow-up round trip. For every point:
 
 - **Name the file and line(s)** from the diff pulled in Step 1 (`path/to/file.php:42` style, or the closest anchor if exact lines shifted).
 - **Say what to change**, not just what's wrong. "This should check the user's role before rendering" beats "this seems off."
 - **Say why**, tying back to the issue or a concrete risk (a11y, broken state, security, mismatched spec) — one line is enough.
-- **Separate blocking from optional.** If Mike's feedback includes both must-fix items and nice-to-haves, label them so the developer doesn't have to guess what's gating merge.
+- **Separate blocking from optional.** If the user's feedback includes both must-fix items and nice-to-haves, label them so the developer doesn't have to guess what's gating merge.
 
-Keep the tone direct and collegial, matching [[feedback_ticket_tone]] — no "PM-approved," no "do not push back," no ownership stamps. State the feedback and let it speak for itself.
+Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this memory exists for the person running the skill) — no "PM-approved," no "do not push back," no ownership stamps. State the feedback and let it speak for itself.
 
-**New scope found mid-review doesn't automatically become a new ticket.** If reviewing the diff surfaces functionality worth adding beyond what the linked issue asked for, don't default to grooming it into a separate backlog ticket — ask Mike first. He may want it folded into the existing ticket instead (edited in after the PR merges) with the new functionality just drafted as a PR comment for the developer to see now.
+**New scope found mid-review doesn't automatically become a new ticket.** If reviewing the diff surfaces functionality worth adding beyond what the linked issue asked for, don't default to grooming it into a separate backlog ticket — ask the user first. They may want it folded into the existing ticket instead (edited in after the PR merges) with the new functionality just drafted as a PR comment for the developer to see now.
 
-**Voice:** if a personal writing-voice skill exists for whoever is running this (e.g. `michael-voice`), check for it and apply it — the comment is going out under that person's name. If none exists, default to a plain, direct, dev-facing tone: specific, unadorned, no forced friendliness.
+**Voice:** if a personal writing-voice skill exists for whoever is running this, check for it and apply it — the comment is going out under that person's name. If none exists, default to a plain, direct, dev-facing tone: specific, unadorned, no forced friendliness.
 
 ## Step 5: Decide approve vs. request changes
 
-Ask Mike directly if it isn't obvious from his feedback: is this ready to approve, or does it need another pass?
+Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?
 
 **If approving:**
 - `mcp__github__create_pull_request_review` with `event: "APPROVE"` and the feedback (if any — approvals can be feedback-free) as `body`.
@@ -80,7 +80,7 @@ Ask Mike directly if it isn't obvious from his feedback: is this ready to approv
 
 ## Step 6: @-mention the assigned developer
 
-Pull the assignee's GitHub login from `get_pull_request` (`assignee.login`, or `assignees[]` if more than one) and include `@login` in the comment body so they get notified. If there's no assignee set, mention this to Mike rather than silently skipping the notification — an unassigned PR about to get review feedback is itself worth flagging.
+Pull the assignee's GitHub login from `get_pull_request` (`assignee.login`, or `assignees[]` if more than one) and include `@login` in the comment body so they get notified. If there's no assignee set, mention this to the user rather than silently skipping the notification — an unassigned PR about to get review feedback is itself worth flagging.
 
 ## Step 7: Update labels
 
@@ -116,18 +116,18 @@ Post the review from Step 5 and the label update from Step 7.
 
 **Known issue:** the GitHub connector's token has previously been unable to write (comment/review/label) on `yalesites-project` and other org repos, even though it can read fine — confirmed 403 "Permission Denied: Resource not accessible by personal access token." If `create_pull_request_review` or `update_issue` fails with a permission error, don't retry blindly. Instead:
 
-1. Tell Mike plainly that the write failed due to a token permission gap, and show him the drafted review body + label plan so nothing is lost.
-2. Walk him through creating a token with write access:
+1. Tell the user plainly that the write failed due to a token permission gap, and show them the drafted review body + label plan so nothing is lost.
+2. Walk them through creating a token with write access:
    - Go to **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
    - Scope it to the relevant repo(s) (`yalesites-project`, `component-library-twig`, `atomic` as needed).
    - Under **Repository permissions**, grant **Pull requests: Read and write** and **Issues: Read and write** (labels are an Issues permission even on a PR).
    - Copy the generated token.
    - In the app, go to the GitHub connector's settings and reconnect/update it with the new token (exact path may vary — look under Settings → Connectors → GitHub).
-3. Once reconnected, retry posting the same review and label update — don't make Mike redo the analysis.
+3. Once reconnected, retry posting the same review and label update — don't make the user redo the analysis.
 
-## Step 9: Confirm back to Mike
+## Step 9: Confirm back to the user
 
-After posting, report: a link to the review/comment, the final approval state, the labels applied (and removed), and who was @-mentioned. Keep it short — Mike was following along and doesn't need the whole analysis repeated.
+After posting, report: a link to the review/comment, the final approval state, the labels applied (and removed), and who was @-mentioned. Keep it short — the user was following along and doesn't need the whole analysis repeated.
 
 ---
 
