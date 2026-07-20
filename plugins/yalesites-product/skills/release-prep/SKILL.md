@@ -41,6 +41,10 @@ Confirm the following (if not already established):
 3. Everything **merged after that date** is in the next release
 4. Pull **open PRs** and cross-reference with the confirmed inclusion list
 
+**Watch for hotfixes that skip the normal Release PR pattern.** Not every release ships through a `Release v*` PR — hotfixes can go straight to `master` as their own standalone PR (e.g. "Hotfix 1: 2.23.0"). These are real, versioned releases that won't turn up if you only search for the `Release v*`/`Release Update:*` naming pattern. When auditing "what's shipped since the last tracked release," also check for PRs merged directly to `master` in the relevant date range, not just PRs matching the release-title pattern.
+
+**Don't trust a bundling/staging-branch PR's description as the complete manifest.** When a batch of fixes lands via an intermediate staging branch (e.g. "Bring in PRs held for after the X release"), other PRs can keep merging into that same staging branch *after* the bundling PR's description was written, and ride along in the eventual merge without ever being added to the list. Filtering strictly by base branch will structurally miss these. Cross-check the bundling PR's actual commit list, or the live GitHub Project board, rather than relying on its written body as ground truth.
+
 **Filter rules:**
 - Include only PRs where `merged_at` is set (not just `closed_at`)
 - Exclude: "DEMO ONLY / DO NOT MERGE" titles, `chore(deps):` dependency bumps, internal-only tasks (migrations, CI fixes, etc.) that aren't user-facing
@@ -192,6 +196,10 @@ The Current Issues & Fixes page (https://yalesites.yale.edu/continuous-improveme
 - Bug fix descriptions should match the plain-English phrasing used in the release notes for consistency
 - Date each fix entry with the release version and approximate date
 - Keep the page skimmable — short bullets, no paragraphs
+- For a standalone hotfix summary (e.g. a quick post-release note of what got pushed), phrase each fix as "Fixed X where XYZ happened," and only include fixes that were actually user-facing and reported/noticed — leave out fixes for problems the release itself caused that no one flagged (no need to surface a bug nobody knew existed)
+
+### Copy-paste into the Drupal WYSIWYG
+When the output needs to be pasted directly into a Drupal WYSIWYG block form (CKEditor), don't hand over a markdown table — CKEditor treats pipe syntax as plain text, so the whole table lands in a single cell. Build a real HTML file instead (an actual `<table>` and `<ul>` list), open it in a browser, and copy from there — the browser copies the real HTML structure, so cells and bullets paste in correctly.
 
 ### Output
 Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This draft gets pasted into the CMS.
@@ -279,7 +287,7 @@ This phase can begin as soon as the PR list from Phase 1 is confirmed.
 For each PR in the release, read the PR description and any linked diffs to identify changes that affect the documented platform behavior. Look for:
 
 | Change type | Where it affects |
-|-------------|------------------|
+|-------------|-----------------|
 | New block added | `blocks-reference.md` |
 | Block removed or deprecated | `blocks-reference.md` |
 | Block field label changed | `blocks-reference.md` |
