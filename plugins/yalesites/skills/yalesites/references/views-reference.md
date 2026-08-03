@@ -156,10 +156,12 @@ Published = Yes
 
 Common exposed filter patterns:
 ```
-Taxonomy term (Category, Tags, Audience) = user-selectable dropdown
+Taxonomy term (Category, Audience, Custom Vocabulary) = user-selectable dropdown
 Date (for Events) = date range picker
 Full-text search = search box
 ```
+
+**Tags is not one of them** — see "Tags vs. Category" below.
 
 ### Sort Criteria
 Determines the order results appear:
@@ -235,6 +237,22 @@ Taxonomy is the primary way to filter Views. The relationship is:
 5. Optionally expose it so users can filter by category
 
 **Best practice:** Plan your taxonomy vocabulary structure before building Views. Changing taxonomy structures mid-site is disruptive to existing Views filters and any hardcoded term IDs.
+
+### Tags vs. Category — which vocabulary powers a visitor-facing filter
+
+These two vocabularies look interchangeable to an editor, but they do different jobs, and picking the wrong one is a common cause of "why is there no filter dropdown on my page?"
+
+| | **Tags** (`tags`) | **Category** (`post_category`, `page_category`, `event_category`, `resource_category`) |
+|---|---|---|
+| Purpose | Back-end logic and scoping | Front-end, visitor-facing filtering |
+| Exposed as a filter dropdown? | **No** | **Yes** — this is the "Category filter" checkbox on the block form |
+| Typical use | Scoping *which* content a View pulls in — e.g. include the tag "Publication" so a listing only shows publication posts | Letting a site visitor narrow the results themselves by topic |
+
+Tags is shared across every content type and is deliberately not exposed as a visitor-facing filter. It's the vocabulary you reach for when *the site builder* wants to define a set of content, not when *the visitor* wants to slice it.
+
+**What this means in practice:** if an editor has tagged all their content with the Tags vocabulary and then asks why they can't offer a topic dropdown, the answer isn't a bug or a missing feature. They need to re-tag that content using the Category vocabulary for their content type, and then enable the Category filter on the listing block. Re-tagging is real work for them, so say so plainly rather than implying it's a checkbox away.
+
+**Before recommending a content-type change:** Resources carry noticeably more taxonomy options than Posts (Resource Category, Audience, Custom Vocabulary, Year), so "use Resources instead" is a tempting answer to a taxonomy problem. It's usually the wrong first move if the site has already built its library on Posts — that's a content migration, not a setting change. Solve it with the vocabulary they already have where possible, and raise Resources as a longer-term option with the migration cost named.
 
 ---
 
