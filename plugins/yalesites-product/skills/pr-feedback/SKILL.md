@@ -51,6 +51,62 @@ If the diff and issue line up cleanly with nothing ambiguous, it's fine to skip 
 
 **Part 2 — their feedback.** Regardless of whether Part 1 produced any questions, always explicitly ask the user if they have their own feedback or notes on the PR (things they noticed testing it, UX opinions, concerns not obvious from the diff alone). They may have looked at the multidev environment themselves and have observations the code alone won't surface. Don't skip this just because your own analysis turned up nothing — their input is a first-class input to the review, not a fallback for when you're stuck.
 
+**Where to look on the multidev:** PR multidevs are seeded from the `dev-yalesites-platform.pantheonsite.io` database, which now runs the **visreg** (visual regression) content set. That means most multidevs already have dedicated test content for blocks and content types, so testing rarely requires building content from scratch or guessing at URLs.
+
+The base pattern is `https://pr-{PR_NUMBER}-yalesites-platform.pantheonsite.io/`. When testing steps mention a block or content type, go straight to its page below (swap in the PR number) instead of navigating the menu to find it:
+
+**Blocks** — `/blocks-for-visreg/{slug}`
+
+| Block | slug |
+|---|---|
+| Accordion | `accordion` |
+| Action Banner | `action-banner` |
+| Button Link | `button` |
+| Calendar List | `calendar-list` |
+| Callout | `callout` |
+| Custom Cards | `custom-cards` |
+| Directory | `directory` |
+| Divider | `divider` |
+| Embed | `embed` |
+| Events Calendar | `events-calendar` |
+| Facts and Figures | `facts-and-figures` |
+| Gallery | `gallery` |
+| Grand Hero | `grand-hero` |
+| Image Banner | `image-banner` |
+| Image | `image` |
+| In-Line Message | `in-line-message` |
+| Link Grid | `link-grid` |
+| Media Grid | `media-grid` |
+| Post feed | `post-feed` |
+| Pre-Built Form | `pre-built-form` |
+| Quick Links | `quick-links` |
+| Quote Callout | `quote-callout` |
+| Quote | `quote` |
+| Reference Card | `reference-card` |
+| Spotlight - Landscape | `spotlight-landscape` |
+| Spotlight - Portrait | `spotlight-portrait` |
+| Tabs | `tabs` |
+| Text | `text` |
+| Tiles | `tiles` |
+| Video Banner | `video-banner` |
+| Video | `video` |
+| View | `view` |
+| Wrapped Image | `wrapped-image` |
+| Wrapped Text Callout | `wrapped-text-callout` |
+
+**Content types** — `/content-types/{slug}`
+
+| Content type | slug |
+|---|---|
+| Events | `events` |
+| Posts | `posts` |
+| Profile | `profile` |
+| Resource | `resource` |
+
+Example: PR #1374 testing steps that mention the Accordion block → `https://pr-1374-yalesites-platform.pantheonsite.io/blocks-for-visreg/accordion`.
+
+This list reflects the menu structure as of 2026-07-20 — if a lookup 404s, the block/content type may be new or renamed; fall back to browsing `/blocks-for-visreg` or `/content-types` on that PR's multidev directly and note the discrepancy to the user.
+
 ## Step 4: Turn the user's answers into actionable feedback
 
 Once the user responds, your job is translation: turn their (possibly short, possibly informal) input into feedback a developer can act on without a follow-up round trip. For every point:
@@ -66,23 +122,56 @@ Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this m
 
 **Voice:** if a personal writing-voice skill exists for whoever is running this, check for it and apply it — the comment is going out under that person's name. If none exists, default to a plain, direct, dev-facing tone: specific, unadorned, no forced friendliness.
 
-## Step 5: Decide approve vs. request changes
+**Exception — stay singular ("I"), not "we."** This overrides any writing-voice skill's default person, even if that skill normally speaks as "we" (e.g. `michael-voice`). PR feedback is one reviewer's read on the code, not an org-wide statement, so write it in first person singular: "I think this should check the role first," not "we think." Apply this to every comment this skill posts — clarifying questions, the review body, and any follow-up ticket offers from Step 5.
+
+## Step 5: Flag follow-up work — visreg coverage and documentation
+
+Two independent checks, both non-blocking. Neither should affect the approve/request-changes call in Step 6 — these are optional follow-up tickets to offer the user, not gating conditions for this PR.
+
+**A. New or changed blocks not yet represented in visreg**
+
+While deep-diving the diff in Step 2, note whether the PR:
+
+- Introduces a brand-new block (new Twig component, new SDC, new block plugin), or
+- Adds a new feature, variant, field, or display option to an *existing* block
+
+Check the block against the reference table in Step 3. If it's a new block that isn't listed there, or an existing block gaining a variant the table's page won't show, the visreg dev instance has a coverage gap: the block/feature exists in code but isn't represented in the shared test content, so the *next* PR that touches this area won't have a reference page for it either.
+
+When you spot this, tell the user directly (a heads-up, not an `AskUserQuestion` — it's not a blocking ambiguity) and ask if they want a follow-up ticket opened to add representative content for the new block/feature to the dev visreg instance. Be explicit that it's non-blocking — this PR can be reviewed and merged on its own merits regardless of the answer.
+
+If they say yes, draft the ticket using the ticket-grooming skill's conventions: a plain descriptive title (no special prefix needed unless one clearly fits), assignee defaulting to whoever is running this skill, and acceptance criteria naming the specific block/feature and which page it belongs on under `/blocks-for-visreg` (or `/content-types`).
+
+**B. Documentation follow-up**
+
+Check the linked issue's acceptance criteria (pulled in Step 1) for a documentation item — YaleSites tickets commonly include one (see the ticket-grooming skill's "Documentation" acceptance-criteria line: note if any existing docs need updating or new docs need to be created). If the issue calls for a doc update, or the diff clearly changes user-facing or editor-facing behavior with no accompanying doc change in the PR, ask the user if they want a follow-up documentation ticket spun off — don't create it unprompted.
+
+If they say yes:
+
+- **Assignee:** default to whoever is running this skill (the PM), not the PR's developer.
+- **Title prefix:** `Docs:`, per the ticket-grooming skill's conventions.
+- **Where it lives:** ask or note which of these applies, since YaleSites documentation has a few homes:
+  - **External** (end-user/editor-facing): yalesites.yale.edu
+  - **Internal**: Teams, or GitHub (either the org-wide internal knowledge repo or a repo-specific README/docs folder)
+
+This is a follow-up ticket, not scope on this PR — it doesn't affect the approve/request-changes decision in Step 6 either.
+
+## Step 6: Decide approve vs. request changes
 
 Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?
 
 **If approving:**
 - `mcp__github__create_pull_request_review` with `event: "APPROVE"` and the feedback (if any — approvals can be feedback-free) as `body`.
-- Update labels (see Step 7).
+- Update labels (see Step 8).
 
 **If requesting changes:**
 - `mcp__github__create_pull_request_review` with `event: "REQUEST_CHANGES"` and the actionable feedback from Step 4 as `body`.
-- Update labels (see Step 7).
+- Update labels (see Step 8).
 
-## Step 6: @-mention the assigned developer
+## Step 7: @-mention the assigned developer
 
 Pull the assignee's GitHub login from `get_pull_request` (`assignee.login`, or `assignees[]` if more than one) and include `@login` in the comment body so they get notified. If there's no assignee set, mention this to the user rather than silently skipping the notification — an unassigned PR about to get review feedback is itself worth flagging.
 
-## Step 7: Update labels
+## Step 8: Update labels
 
 `mcp__github__update_issue` takes a full replacement array for `labels` — **fetch the PR's current labels first** (from Step 1) and compute the new full list, don't just push the labels you're adding or you'll wipe out everything else on the PR (type labels, epic links, etc.).
 
@@ -110,9 +199,9 @@ This matters in practice — a PR can look "ready to merge" on the label alone w
 
 Apply the label update via `mcp__github__update_issue` with `owner`, `repo`, `issue_number` (the PR number — PRs share the issue numbering), and the recomputed `labels` array.
 
-## Step 8: Post it — and handle the permission gap
+## Step 9: Post it — and handle the permission gap
 
-Post the review from Step 5 and the label update from Step 7.
+Post the review from Step 6 and the label update from Step 8.
 
 **Known issue:** the GitHub connector's token has previously been unable to write (comment/review/label) on `yalesites-project` and other org repos, even though it can read fine — confirmed 403 "Permission Denied: Resource not accessible by personal access token." If `create_pull_request_review` or `update_issue` fails with a permission error, don't retry blindly. Instead:
 
@@ -125,7 +214,7 @@ Post the review from Step 5 and the label update from Step 7.
    - In the app, go to the GitHub connector's settings and reconnect/update it with the new token (exact path may vary — look under Settings → Connectors → GitHub).
 3. Once reconnected, retry posting the same review and label update — don't make the user redo the analysis.
 
-## Step 9: Confirm back to the user
+## Step 10: Confirm back to the user
 
 After posting, report: a link to the review/comment, the final approval state, the labels applied (and removed), and who was @-mentioned. Keep it short — the user was following along and doesn't need the whole analysis repeated.
 

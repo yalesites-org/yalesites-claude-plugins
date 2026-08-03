@@ -9,8 +9,9 @@ team with:
 
 - **Release prep** — drafting release notes, feature documentation, release
   emails, QA testing steps, and knowledge base sync
-- **Ticket grooming** — creating and grooming GitHub issues with correct
-  format, acceptance criteria, priority, size, type, and labels
+- **Ticket creation & grooming** — creating new GitHub issues and grooming
+  existing ones with correct format, acceptance criteria, priority, size,
+  type, and labels
 - **UX research** — user archetypes, mental models, and pain points from the
   YaleSites User Insight Report for informing product decisions
 
@@ -33,7 +34,7 @@ knowledge that the workflow skills reference:
 | Skill | Trigger |
 |---|---|
 | `release-prep` | Preparing a YaleSites release |
-| `ticket-grooming` | Creating or grooming GitHub issues |
+| `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `ux-research` | Product decisions and feature evaluation |
 
 ## Maintainer

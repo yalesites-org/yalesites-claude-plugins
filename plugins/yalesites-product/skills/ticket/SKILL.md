@@ -1,9 +1,9 @@
 ---
-name: yalesites-ticket-grooming
+name: ticket
 description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
-# YaleSites Ticket Grooming Skill
+# YaleSites Ticket Skill
 
 ## Overview
 
@@ -28,7 +28,9 @@ Search these when you need implementation context, but always write the issue de
 - **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI — distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) also can't be set via the API/MCP tools — it has to be set manually in the issue UI or org settings.
 - **Sub-issue linking may not be automatic.** A `- [ ] #XXXX` checklist reference in an issue body creates a backlink, but don't assume it always registers as a tracked GitHub sub-issue (the mechanism that drives the parent's progress bar) — if the epic's progress bar isn't reflecting a child ticket, check whether it needs to be linked explicitly via "Add sub-issue" in the GitHub UI.
 - Before recommending a ticket as "available" for pickup (by a person or an unmoderated agent), check more than the absence of an assignment label — confirm there's no assignee set and no `in-review-tag`/`forming`-style in-progress signal on it. A ticket can look open on one signal and still be actively claimed.
+- **Also check for merged PRs, not just open ones, before recommending a ticket as available.** A `claude`-tagged or open-looking ticket can already be done — the PR merged but the issue was never closed (the team's PR body format isn't a GitHub-recognized closing keyword, so merges don't auto-close issues). A backlog sweep that only checks for *open* PRs will hand out already-finished work. Cross-reference against merged PR activity in the relevant repo(s) before calling a batch of tickets "ready."
 - Don't close a ticket as stale or duplicate without first checking whether it has a live, unmerged PR against it — closing out from under active work is an easy mistake during a backlog sweep.
+- **Cross-repo issue/PR references need the full `owner/repo#number` form.** A bare `#1299` in an issue body always resolves to that number *in the current repo*, even if the surrounding text names a different repo. Linking a `yalesites-project` PR from a `YaleSites-Internal` issue with just `#1299` will silently link to YaleSites-Internal's own issue #1299 instead. Always write the full cross-repo reference (e.g. `yalesites-org/yalesites-project#1299`) when linking across repos.
 
 ---
 
