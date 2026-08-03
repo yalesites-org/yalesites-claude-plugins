@@ -169,6 +169,15 @@ When evaluating a request to change filter/search UI — e.g., removing an "Appl
 - Mobile is the explicit exception in that same research: slower connections and the higher cost of an accidental refresh mean batch filtering with an explicit Apply button holds up better there. Don't assume a desktop-validated pattern carries over to mobile.
 - Any change here also has an accessibility floor — see `views-reference.md`'s WCAG 3.2.2 note on auto-submit filters.
 
+### Segmented controls (two-option toggles) in authoring forms
+
+A recurring pattern in the block authoring forms is a binary operator choice, e.g. Any vs. All for "match content tagged with." A few things hold consistently here:
+
+- **Text labels, not icons.** A two-segment control works for this only when each segment carries a word. Icons can't communicate a logical operator, so an icon-only treatment pushes the Uninformed and Dabbler archetypes into guessing. If earlier guidance said "avoid the button treatment," that concern was about icons carrying the meaning, not about segmented controls as such.
+- **Keep it a radio group underneath.** Style `#type => 'radios'` with CSS rather than rebuilding the control out of `<button>` elements. Buttons submit the form, and switching away from radios loses arrow-key navigation and the free "radio group, 1 of 2" screen reader announcement.
+- **Prefer always-visible-but-disabled over conditionally-appearing.** A control that only renders once a sibling field has content is three states to QA and shifts the layout while someone is typing. Showing it in a disabled state is steadier. The tradeoff: disabled styling still needs to stay at or above 3:1 contrast. Disabled controls are technically exempt from contrast requirements, but leaning on that exemption defeats the reason you showed the control in the first place.
+- **Watch the vertical footprint.** These forms are tabbed and dense. An operator that reads as one line (`[Any|All]` followed by short help text on the same line) instead of a stacked title/radios/description block frees enough room to keep later settings in view. Dropping a redundant standalone `#title` is usually safe as long as the group is still labelled for screen readers.
+
 ---
 
 ## What NOT to Use This Research For
