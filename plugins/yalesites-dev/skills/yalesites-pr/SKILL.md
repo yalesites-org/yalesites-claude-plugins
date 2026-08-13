@@ -1,7 +1,7 @@
 ---
 name: yalesites-pr
 description: Use when creating pull requests in YaleSites repositories (yalesites-project, atomic, component-library-twig, tokens)
-disable-model-invocation: true
+disable-model-invocation: false
 argument-hint: "[issue-number (optional — parsed from branch if omitted)]"
 allowed-tools:
   - Bash(git branch *)
