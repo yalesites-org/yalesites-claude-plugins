@@ -23,7 +23,7 @@
     },
     {
       "name": "yalesites-dev",
-      "description": "Day-to-day Git, pull-request, and GitHub-issue workflow skills for YaleSites developers — file/look up/plan issues, conventional commits, cross-repo branch management, and PR description and creation.",
+      "description": "Day-to-day Git, pull-request, GitHub-issue, and Drupal development skills for YaleSites developers — look up/plan issues, conventional commits, cross-repo branch management, PR description and creation, Drupal coding conventions, and running PHPUnit tests in the YaleSites Lando environment.",
       "category": "development",
       "source": "./plugins/yalesites-dev",
       "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites-dev"
