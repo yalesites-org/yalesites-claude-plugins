@@ -42,9 +42,17 @@ Do not guess or default these values silently. These fields directly affect how 
 
 ### Status (project board column)
 
-Valid options: `Forming` · `Backlog` · `Ready For Work` · `In Progress` · `In Review` · `Done` · `Blocked`
+Valid options, exactly as configured on the YaleSites Board. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased:
+
+`Backlog` · `Ready For Work` · `To Do` · `In progress` · `In review` · `Ready for Release (in dev)` · `Blocked` · `Done`
 
 If not specified, ask: *"What status should this ticket be set to on the project board?"*
+
+If the board's options ever change, re-check them rather than trusting this list:
+
+```bash
+gh project field-list 6 --owner yalesites-org
+```
 
 ### Priority
 
@@ -78,7 +86,7 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
    gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
    gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
    ```
-   Use the exact option text from the "Clarify Missing Fields" section above — `gh` matches it against the field's configured options.
+   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`, `Ready for Release (in dev)`).
 4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
 
 **Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later.
