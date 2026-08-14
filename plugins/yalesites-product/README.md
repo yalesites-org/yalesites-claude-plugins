@@ -12,6 +12,9 @@ team with:
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
   existing ones with correct format, acceptance criteria, priority, size,
   type, and labels
+- **Backlog hygiene** — a read-only audit of the backlog that reports tickets
+  missing acceptance criteria, board fields, or a type, and hands findings off
+  to the `ticket` skill for grooming
 - **PR feedback** — reviewing a pull request against its linked issue and
   posting approve/request-changes feedback directly to GitHub
 - **Ticket sync** — checking whether a ticket still matches how the work
@@ -47,6 +50,7 @@ knowledge that the workflow skills reference:
 |---|---|
 | `release-prep` | Preparing a YaleSites release |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
+| `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
