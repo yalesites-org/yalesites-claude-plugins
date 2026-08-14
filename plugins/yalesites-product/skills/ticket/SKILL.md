@@ -42,9 +42,20 @@ Do not guess or default these values silently. These fields directly affect how 
 
 ### Status (project board column)
 
-Valid options, exactly as configured on the YaleSites Board. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased:
+Valid options, exactly as configured on the YaleSites Board, in board order. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased:
 
-`Backlog` · `Ready For Work` · `To Do` · `In progress` · `In review` · `Ready for Release (in dev)` · `Blocked` · `Done`
+| Status | Meaning |
+|--------|---------|
+| `Backlog` | This item hasn't been started |
+| `Ready For Work` | Work that is up next |
+| `To Do` | This is ready to be picked up |
+| `Blocked` | Work is blocked and cannot move forward |
+| `In progress` | This is actively being worked on |
+| `In review` | This item is in review |
+| `Ready for Release (in dev)` | This work is done, but has not been released yet |
+| `Done` | This has been completed |
+
+`Ready For Work` and `To Do` are both pre-start states and are easy to confuse. `Ready For Work` means queued as up-next; `To Do` means cleared for someone to pick up now. If the user hasn't said which they mean and the distinction matters, ask rather than guessing.
 
 If not specified, ask: *"What status should this ticket be set to on the project board?"*
 
