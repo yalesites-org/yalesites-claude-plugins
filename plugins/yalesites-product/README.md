@@ -14,6 +14,9 @@ team with:
   type, and labels
 - **UX research** — user archetypes, mental models, and pain points from the
   YaleSites User Insight Report for informing product decisions
+- **Backlog hygiene** — a read-only audit of the backlog that reports tickets
+  missing acceptance criteria, board fields, or a type, and hands findings off
+  to the `ticket` skill for grooming
 
 ## Installation
 
@@ -36,6 +39,7 @@ knowledge that the workflow skills reference:
 | `release-prep` | Preparing a YaleSites release |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `ux-research` | Product decisions and feature evaluation |
+| `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 
 ## Maintainer
 
