@@ -42,7 +42,7 @@ Do not guess or default these values silently. These fields directly affect how 
 
 ### Status (project board column)
 
-Valid options, exactly as configured on the YaleSites Board, in board order. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased:
+Valid options, exactly as configured on the YaleSites Board, in board order. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased. This is a convenience copy; `references/board-status.md` is canonical and wins if they ever disagree.
 
 | Status | Meaning |
 |--------|---------|
@@ -100,7 +100,9 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
    Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`, `Ready for Release (in dev)`).
 4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
 
-**Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later.
+**Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
+
+For the full board reference — reading current values, the `project` scope requirement, which skill owns which lifecycle transition, and the known gaps — see `references/board-status.md`. **Only set the fields this skill is responsible for (the ones the user confirmed at creation/grooming time). Don't advance a ticket through the workflow as a side effect of grooming it.**
 
 ---
 
@@ -123,6 +125,23 @@ Load the relevant yalesites skill references and ask:
 
 - **Are there existing Views or display modes that could be repurposed?**
   Check `views-reference.md`.
+
+### Step 1b: Check who the change affects
+
+**Do this for any ticket that changes what users see or do** — features, UX changes, editorial workflow changes, and bugs that affect an editor-facing behavior. Skip it for purely internal work (dependency bumps, CI, refactors with no user-visible surface) and say you're skipping it rather than silently omitting it.
+
+Load the `yalesites-ux-research` skill and answer three questions in the ticket:
+
+1. **Which archetype(s) does this affect?** Name them explicitly. The six are Multi-Site Manager, Part-Time Owner, The Maintainer, Transitioning Team, New Recruit, and Solo Starter.
+2. **Does it map to a known pain point?** Check the pain point table. A request matching a high-count pain point (confusing terminology at 67%, misleading search results at 61%, poor UI discoverability at 56%) carries real evidence behind it, and the ticket should say so.
+3. **Does it put a current delight at risk?** Check the delights table before scoping anything that changes learning resources, the Views GUI, release communications, or brand-compliant output.
+
+Two traps worth naming, both from the 2026 research:
+
+- **Don't "simplify" for the Part-Time Owner.** They are time-poor, not skill-poor. Reducing steps helps them; removing capability doesn't.
+- **New-user cost is the usual hidden cost.** The five most-cited pain points all land hardest on Solo Starter and New Recruit. If a change adds a new term, setting, or interface surface, say what it costs those two archetypes even when it's aimed at someone else.
+
+Where this lands in the ticket: name the affected archetypes in the **description**, and turn archetype-specific expectations into **acceptance criteria** (for example, "labels should be understandable to a New Recruit with no YaleSites training"). Don't paste archetype summaries in wholesale.
 
 ### Step 2: Determine the scope recommendation
 
@@ -190,7 +209,7 @@ Briefly describe the feature, bug, or improvement in plain language. Avoid devel
 A single bulleted list of everything required to close the issue. Cover all relevant angles:
 
 - Developer tasks and technical requirements
-- UX considerations (field labels, design option names, UI behavior)
+- UX considerations (field labels, design option names, UI behavior). Where Step 1b identified an affected archetype, write the expectation as a testable criterion rather than a general aspiration — "a New Recruit can complete this without asking a teammate" is checkable, "should be intuitive" isn't.
 - Accessibility: flag anything that needs WCAG 2.1 AA validation for the accessibility engineer
 - Documentation: note if any existing docs need updating or new docs need to be created
 
@@ -345,6 +364,7 @@ Before submitting or updating an issue, check:
 - [ ] Title clearly states the specific work, and uses a matching prefix if one applies
 - [ ] Description is jargon-free and makes sense to a non-developer
 - [ ] Acceptance criteria covers dev, UX, accessibility, and docs angles
+- [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set

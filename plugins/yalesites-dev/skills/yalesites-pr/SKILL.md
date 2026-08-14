@@ -73,19 +73,19 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 7. **Move the issue to "In review"** (only if an issue number was found)
    Once the PR(s) exist, the solution is ready for review, so set the issue's status to **In review** on the YaleSites Board (GitHub Projects v2, org `yalesites-org`, project number 6) — but only if it is not already there.
 
-   Look the IDs up dynamically, then mutate only when the status actually differs:
+   Check the current status first, and only write if it differs:
 
    ```bash
-   # a. Project id + Status field/options
-   gh api graphql -f query='query { organization(login:"yalesites-org") { projectV2(number:6) { id field(name:"Status") { ... on ProjectV2SingleSelectField { id options { id name } } } } } }'
+   # a. Current Status for this issue
+   gh api graphql -f query='query { repository(owner:"yalesites-org", name:"YaleSites-Internal") { issue(number:NNN) { projectItems(first:10) { nodes { project { number } fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }'
 
-   # b. The issue's item in project 6 and its current Status
-   gh api graphql -f query='query { repository(owner:"yalesites-org", name:"YaleSites-Internal") { issue(number:NNN) { projectItems(first:10) { nodes { id project { number } fieldValueByName(name:"Status") { ... on ProjectV2ItemFieldSingleSelectValue { name } } } } } } }'
-
-   # c. Only if that item's current Status is NOT already "In review", set it:
-   gh api graphql -f query='mutation { updateProjectV2ItemFieldValue(input:{ projectId:"<PROJECT_ID>", itemId:"<ITEM_ID_IN_PROJECT_6>", fieldId:"<STATUS_FIELD_ID>", value:{ singleSelectOptionId:"<IN_REVIEW_OPTION_ID>" } }) { projectV2Item { id } } }'
+   # b. Only if it is not already "In review":
+   gh project item-edit 6 --owner yalesites-org --url https://github.com/yalesites-org/YaleSites-Internal/issues/NNN --field "Status" --value "In review"
    ```
 
+   - The option name is **"In review"**, lowercase "r". `--value` is matched against the configured option text, so the capitalization matters.
    - If the issue has no item in project 6, skip silently — nothing to move.
    - If it is already "In review", make no change.
-   - The option name is **"In review"** (lowercase "r"). As of this writing the project id is `PVT_kwDOA_XQ-s4A-PeJ`, the Status field id is `PVTSSF_lADOA_XQ-s4A-PeJzgxtHE8`, and the "In review" option id is `aba860b9` — but prefer the dynamic lookup above in case they change.
+   - `gh` needs the **`project` scope** for this write; `read:project` can read the board but not write to it. If the write fails, don't retry or troubleshoot the user's `gh` setup mid-task — report that the status wasn't moved and carry on. The PR itself is the important artifact.
+
+   Full board reference (all Status options and their meanings, Priority/Size, reading current values, and which skill owns which transition) lives in the `ticket` skill's `references/board-status.md`, in the `yalesites-product` plugin. The command above is self-sufficient without it.
