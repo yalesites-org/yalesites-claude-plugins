@@ -123,18 +123,27 @@ Only one field per invocation for non-draft issues. Run the command once per fie
 
 ## Lifecycle: who sets what, and when
 
-The board is only as accurate as the transitions we actually perform. Current ownership:
+The board is only as accurate as the transitions we actually perform. Ownership is split between skills and GitHub Actions in `yalesites-org/YaleSites-Internal/.github/workflows/`.
 
-| Transition | Trigger | Owning skill | Status |
+| Transition | Trigger | Owner | State |
 |---|---|---|---|
-| Ticket created or groomed | PM sets Status/Priority/Size | `ticket` | Implemented |
-| Work starts | Dev picks up the ticket | *(unassigned)* | **Gap** |
-| PR opened | PR(s) created for the issue | `yalesites-pr` | Implemented, sets `In review` |
-| PR reviewed | Approve or request changes | `pr-feedback` | Labels only, board untouched |
-| Merged to `develop` | PR merges | *(unassigned)* | **Gap**, should set `Ready for Release (in dev)` |
-| Released | Release ships | `release-prep` | **Gap**, should set `Done` |
+| Ticket created or groomed | PM sets Status/Priority/Size | `ticket` skill | Working |
+| Work starts → `In progress` | Dev picks up the ticket | *(nothing)* | **Genuine gap** |
+| PR opened → `In review` | PR(s) created for the issue | `yalesites-pr` skill | Working |
+| PR reviewed | Approve or request changes | `pr-feedback` skill | Labels only, board untouched by design |
+| Merged to `develop` → `Ready for Release (in dev)` | PR merges | Workflow `02-pr-status-monitor` | **Built but dormant** |
+| Merged to `master` → `Done` | RC released | Workflow `02-pr-status-monitor` | **Built but dormant** |
+| Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | Working |
+| Trigger label → board field | Label applied | Workflow `07-label-to-project-fields` | Working |
 
-The unassigned rows are known gaps, not oversights to silently fix in passing. `release-prep` currently works around the merge gap by inferring which issues are release-ready from the confirmed PR list rather than querying Status, because nothing reliably sets it.
+**Workflow 02 is written correctly but has never fired on real work.** It last ran 2026-01-06. Two independent causes, either fatal on its own:
+
+1. **Wrong repo for the trigger.** It uses `on: pull_request` but lives in `YaleSites-Internal`, while the actual PRs are in `yalesites-project`, `atomic`, and `component-library-twig`. A `pull_request` event only fires in the repo containing the PR, so it never sees them.
+2. **Inverted dry-run default.** `const dryRun = '${{ github.event.inputs.dry_run }}' !== 'false'` evaluates to `true` on any non-`workflow_dispatch` event, because `inputs` doesn't exist there and the expression renders as `''`. Every automatic run would make no changes even if it fired.
+
+Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for the same reasons.
+
+**Practical consequence:** treat `Ready for Release (in dev)` and `Done` as **not reliably set** until workflow 02 is fixed. This is why `release-prep` infers release-readiness from the confirmed PR list rather than querying board Status.
 
 **Do not invent transitions.** If a skill's own instructions don't tell you to move a ticket, don't move it. Changing board state out from under a developer is worse than a stale board.
 
