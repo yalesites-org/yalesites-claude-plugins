@@ -13,7 +13,7 @@ These fields appear on every content type's Manage Settings form:
 | **Title** | Required. The page/content title. |
 | **Audience** | Taxonomy (audience vocabulary). Filters content in Views. |
 | **Custom Vocab** | Taxonomy (custom_vocab vocabulary). Site-specific custom categorization. |
-| **Tags** | Taxonomy (tags vocabulary). General-purpose tagging. |
+| **Tags** | Taxonomy (tags vocabulary). General-purpose tagging, used for back-end scoping of Views. Not available as a visitor-facing filter dropdown — see the "Tags vs. Category" section in `views-reference.md` before advising an editor on filtering. |
 | **URL alias** | Path alias for the page URL. |
 | **URL redirects** | Set up redirects from old URLs to this page. |
 | **Metadata** | SEO meta tags (title, description, Open Graph, etc.). In the sidebar. Uses the `metatag_firehose` widget — this is identical across all 5 content types (Event, Page, Post, Profile, Resource); there is no "simple" vs. "complex" metatag split by content type. `metatag_simple_widget` is not installed/used anywhere on the platform. If a content type appears to show fewer metatag groups in the live UI than another, that's not explained by a config difference at the widget/field level — treat it as unverified UI behavior, not a documented distinction. |
@@ -21,6 +21,16 @@ These fields appear on every content type's Manage Settings form:
 | **Pin to the beginning of list** | Boolean. Pins content to the top of Views listings. |
 | **External Source** | Link field. When set, clicking this content in listings redirects to an external URL instead of this page. Bypasses the Layout Builder. |
 | **Simple XML Sitemap** | Controls whether this content appears in the XML sitemap. |
+| **Disable indexing for AI feeds** | Checkbox in the Metadata sidebar (AI metatag group, provided by the `ai_engine_metadata` module). Controls whether Beacon/AI ingestion may index this content. See the note below — the stored value reads backwards from what you'd expect. |
+
+**Reading the `ai_disable_indexing` metatag.** The rendered meta tag stores the *resulting state of indexing*, not the state of the checkbox:
+
+| Rendered value | Checkbox | Meaning |
+|---|---|---|
+| `content="enabled"` | unchecked (default for nodes) | Indexing is **allowed** — this content is fair game for AI ingestion |
+| `content="disabled"` | checked | Indexing is **turned off** — this content is excluded |
+
+Media entities default to `disabled`; all other entity types default to `enabled`. Read `enabled` as "indexing enabled," never as "the exclusion is enabled" — inverting this produces false findings about content being wrongly indexed or wrongly excluded. Verified in `yalesites-org/ai_engine` → `modules/ai_engine_metadata/src/Plugin/metatag/Tag/AiDisableIndexing.php`.
 
 **Teaser fields** (also shared by all — used in card/feed displays):
 
