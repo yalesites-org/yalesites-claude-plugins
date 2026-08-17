@@ -1,6 +1,6 @@
 ---
 name: yalesites-release-prep
-description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, and syncing the YaleSites knowledge base with any platform changes introduced in the release. Use when it's time to plan or prepare for a release."
+description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, grouping release-candidate test sites and sending the testing kickoff, and syncing the YaleSites knowledge base with any platform changes introduced in the release. Use when it's time to plan or prepare for a release."
 ---
 
 # YaleSites Release Prep Skill
@@ -15,7 +15,7 @@ This skill runs the full release planning workflow. Each phase produces a distin
 | 2. Feature Documentation | New or updated page draft for yalesites.yale.edu |
 | 3. Email Communication | Concise release announcement email |
 | 4. Current Issues & Fixes | Updated version of the yalesites.yale.edu issues page |
-| 5. QA Testing Steps | Release Testing Steps added to GitHub issues |
+| 5. QA Testing Steps | Release Testing Steps added to GitHub issues, RC site groups, testing kickoff message |
 | 6. Knowledge Base Sync | Updated yalesites skill reference files reflecting platform changes |
 
 ---
@@ -91,6 +91,9 @@ Internal tasks (migrations, CI work, dependency updates) are omitted from user-f
 - [#XXXX](https://github.com/yalesites-org/yalesites-project/pull/XXXX) — One-line summary
 ```
 
+### Publishing to the website
+This format, PRs Included section and all, is for the GitHub comment audience. If the same content gets reused as the public Release Notes page on yalesites.yale.edu, drop the **PRs Included** section before publishing — that list isn't something the site's audience sees; it belongs to the GitHub PR thread only.
+
 ### Voice & tone
 - Write for non-technical users first: site owners, content editors, department admins
 - Lead with user benefit, not technical implementation
@@ -109,6 +112,12 @@ Announcement title uses short form: v2.22.0 in code → "v2.22" in title. URL sl
 
 - **New page** — Draft a full standalone page following the YaleSites documentation style
 - **Addition** — Paste in the current page content; draft the new section to insert
+
+**Name the actual page, not "the documentation."** YaleSites documentation on yalesites.yale.edu is plain page content — there's no help center, no article IDs, no doc-tree structure to point at generically. A documentation acceptance criterion that says "update the documentation" gives whoever picks it up nothing to work from, and they'll spend the first twenty minutes finding the page you already found.
+
+Before writing a docs acceptance criterion, fetch the live site and confirm where the content actually belongs, then write the criterion as a specific URL plus the section within it — e.g. "Add to yalesites.yale.edu/building-with-blocks, Media Content Blocks section" or "Update yalesites.yale.edu/in-line-message-block." If the feature genuinely has no existing page, say that explicitly and flag it as a new-page decision rather than guessing at a URL that doesn't exist. Guessed URLs are worse than an honest "no page yet."
+
+While you're in there, note any stale or duplicate pages you pass through, but keep them out of the release ticket — they're their own cleanup item.
 
 ### Structure for a new documentation page
 
@@ -260,6 +269,7 @@ Write step-by-step testing instructions grounded in:
 - Include the expected result at the end so the tester knows what "passing" looks like
 - If the feature has multiple scenarios (e.g., a fix that should work for both inline and reusable blocks), cover each one
 - For bug fixes, include a step that confirms the broken behavior no longer occurs
+- Some tickets have no direct UI reproduction path at all (CI fixes, dev tooling). Don't invent steps for these — say plainly that verification happens in dev and point at what to check.
 
 ### Step 4: Update the issue
 
@@ -273,6 +283,31 @@ After processing all issues, report a summary:
 - How many issues were updated with new testing steps
 - How many already had sufficient steps (no action needed)
 - Any issues where the PR description lacked enough detail to write confident testing steps (flag these for review)
+
+Two things worth surfacing separately from the counts, because they're board-hygiene problems rather than testing-steps problems:
+
+- An issue marked ready for release whose acceptance criteria are still largely unchecked — especially where only the research/discovery items are ticked and the implementation items aren't. That usually means it landed on the board ahead of the work, and a tester needs to confirm with the developer what actually shipped before testing it.
+- An issue that's unassigned or still carrying a `forming`-style label. Both signal it wasn't fully groomed, and it's worth confirming it belongs in the release at all.
+
+### Step 6: Group the RC test sites and send the testing kickoff
+
+Once the issues are ready, testers need somewhere to test and a note telling them to start.
+
+**Grouping the RC sites.** The release candidate spins up a multidev per participating site, following the pattern `https://v{VERSION}-{site-slug}.pantheonsite.io` (e.g. `v2260-ys-mcdb-yale-edu` for v2.26.0). Split those links into two groups:
+
+- **Site-owner outreach** — sites that have a named contact. Pair each RC link with its contact so the outreach can go out per site rather than as a broadcast.
+- **Internal team** — platform/sandbox sites, plus any site whose contact list says they're no longer participating. These go to the testing team as a single block of links.
+
+Matching RC slugs back to a contact list is fuzzier than it looks: slugs flatten dots to hyphens and sometimes carry extra segments (`research-computing` vs `research.computing`, `-yalecollege-` inserted mid-slug). Match on the underlying domain, and report any site that appears in one list but not the other rather than silently dropping it.
+
+**The kickoff message.** This goes to the testing team, usually in Teams. Keep it short and lead with the version. It should cover:
+
+- The version number, confirmed against the release PR rather than inferred from the RC slug
+- That the testing board is updated and every issue has testing steps, with a link to the board view
+- That they can start now or wait for the kickoff meeting, either is fine
+- Important dates: testing start, pending release date, communications date
+- The internal-team testing links
+- Anything that makes this release unusual — a longer testing window, a migration bundled in, an unusually large scope. Testers plan their time around this, so say it plainly.
 
 ---
 
