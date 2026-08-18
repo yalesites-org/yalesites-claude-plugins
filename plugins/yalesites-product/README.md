@@ -12,8 +12,9 @@ team with:
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
   existing ones with correct format, acceptance criteria, priority, size,
   type, and labels
-- **UX research** — user archetypes, mental models, and pain points from the
-  YaleSites User Insight Report for informing product decisions
+- **UX research** — the six current user archetypes, top pain points, delights,
+  and platform usage data from the 2026 YaleSites UX Report for informing
+  product decisions
 
 ## Installation
 
