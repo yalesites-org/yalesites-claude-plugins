@@ -212,7 +212,17 @@ This phase prepares GitHub issues for QA testing by adding a **Release Testing S
 
 Only issues with a GitHub Project status of **"Ready for Release (in dev)"** should be updated.
 
-**Important — REST API limitation:** GitHub Project status fields (including "Ready for Release (in dev)") are stored in the Project board and are only queryable via GraphQL, not the REST API used by the GitHub MCP tool. This means the status cannot be filtered directly. The practical workaround: use the confirmed PR list from Phase 1 as the source of truth. Issues linked from those PRs should correspond exactly to the ones with "Ready for Release (in dev)" status. If there's any doubt, confirm before updating an issue.
+**Important — the status isn't in the REST API.** GitHub Project status fields (including "Ready for Release (in dev)") live on the Project board and are only reachable via GraphQL, so the GitHub MCP tools (`get_issue`, `search_issues`, `list_issues`) can't see or filter on them.
+
+The **PR list from Phase 1 remains the source of truth.** Issues linked from those PRs should correspond to the ones marked "Ready for Release (in dev)". If there's any doubt, confirm before updating an issue.
+
+Where `gh` is available, you can read the board directly as a cross-check rather than relying on the PR list alone:
+
+```bash
+gh project item-list 6 --owner yalesites-org --format json --limit 500
+```
+
+Filter client-side for items whose Status is "Ready for Release (in dev)". Treat a mismatch between that list and the Phase 1 PR list as a signal to ask, not as license to update issues the PR list didn't cover — nothing currently sets this status automatically, so the board can lag reality. See the `ticket` skill's `references/board-status.md` for the full field reference.
 
 This phase can start as soon as the PR list from Phase 1 is confirmed, and runs in parallel with the communication phases.
 

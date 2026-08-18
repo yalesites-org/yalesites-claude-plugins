@@ -23,7 +23,7 @@ Search these when you need implementation context, but always write the issue de
 - An epic's native GitHub progress bar only reflects open/closed sub-issue state. It has no awareness of custom Project board Status fields (e.g., "Ready for Deployment"), so don't expect it to show a custom workflow stage as complete — that needs to be tracked separately if it matters.
 - Some larger reworks run as "the whole epic lives in one PR" — nothing merges until the full scope is done and approved, rather than the usual merge-then-follow-up-tickets model. Confirm which model applies to a given epic before drafting PR review feedback that assumes work will continue after merge.
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
-- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields, and the issue-creation/update tools can't write to them directly. After creating or updating an issue, these values still need to be set on the project board itself (or via the `status:*`/`priority:*`/`size:*` trigger labels, if that workflow is in place — they sync to the board field and then the label is auto-deleted, so don't expect the label to persist as a way to check the value later).
+- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields, and the issue-creation/update tools (`mcp__github__create_issue`/`update_issue`) can't write to them directly — see "Writing Status, Priority, and Size to the Board" below for how to actually set them.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
 - **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI — distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) also can't be set via the API/MCP tools — it has to be set manually in the issue UI or org settings.
 - **Sub-issue linking may not be automatic.** A `- [ ] #XXXX` checklist reference in an issue body creates a backlink, but don't assume it always registers as a tracked GitHub sub-issue (the mechanism that drives the parent's progress bar) — if the epic's progress bar isn't reflecting a child ticket, check whether it needs to be linked explicitly via "Add sub-issue" in the GitHub UI.
@@ -42,9 +42,28 @@ Do not guess or default these values silently. These fields directly affect how 
 
 ### Status (project board column)
 
-Valid options: `Forming` · `Backlog` · `Ready For Work` · `In Progress` · `In Review` · `Done` · `Blocked`
+Valid options, exactly as configured on the YaleSites Board, in board order. **Match this capitalization exactly** — these strings get passed straight to `gh project item-edit`, and several are not title-cased. This is a convenience copy; `references/board-status.md` is canonical and wins if they ever disagree.
+
+| Status | Meaning |
+|--------|---------|
+| `Backlog` | This item hasn't been started |
+| `Ready For Work` | Work that is up next |
+| `To Do` | This is ready to be picked up |
+| `Blocked` | Work is blocked and cannot move forward |
+| `In progress` | This is actively being worked on |
+| `In review` | This item is in review |
+| `Ready for Release (in dev)` | This work is done, but has not been released yet |
+| `Done` | This has been completed |
+
+`Ready For Work` and `To Do` are both pre-start states and are easy to confuse. `Ready For Work` means queued as up-next; `To Do` means cleared for someone to pick up now. If the user hasn't said which they mean and the distinction matters, ask rather than guessing.
 
 If not specified, ask: *"What status should this ticket be set to on the project board?"*
+
+If the board's options ever change, re-check them rather than trusting this list:
+
+```bash
+gh project field-list 6 --owner yalesites-org
+```
 
 ### Priority
 
@@ -61,6 +80,29 @@ If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"
 Once you have all three values confirmed, proceed with grooming.
 
 **Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Size to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
+
+---
+
+## Writing Status, Priority, and Size to the Board
+
+Once the issue exists and Status/Priority/Size are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`). Try the `gh` CLI first; fall back to the trigger-label workflow if it's not usable in this session (e.g. Cowork sessions that don't have `gh` configured).
+
+**Preferred: `gh` CLI** — writes the Project v2 fields directly. No label workaround, no waiting on the GitHub Action to migrate it.
+
+1. Check it's usable before relying on it: `gh auth status`. `gh` needs to be installed, authenticated, and its token needs the `project` scope specifically — `read:project` alone can read the board but can't write to it. If any of that isn't true, stop and use the MCP fallback below instead of troubleshooting the user's `gh` setup mid-task.
+2. Make sure the issue is on the board (a no-op if it's already there): `gh project item-add 6 --owner yalesites-org --url <issue-url>`
+3. Set each field by name — no need to look up field or option IDs:
+   ```bash
+   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "Ready For Work"
+   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
+   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
+   ```
+   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`, `Ready for Release (in dev)`).
+4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
+
+**Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
+
+For the full board reference — reading current values, the `project` scope requirement, which skill owns which lifecycle transition, and the known gaps — see `references/board-status.md`. **Only set the fields this skill is responsible for (the ones the user confirmed at creation/grooming time). Don't advance a ticket through the workflow as a side effect of grooming it.**
 
 ---
 
@@ -83,6 +125,23 @@ Load the relevant yalesites skill references and ask:
 
 - **Are there existing Views or display modes that could be repurposed?**
   Check `views-reference.md`.
+
+### Step 1b: Check who the change affects
+
+**Do this for any ticket that changes what users see or do** — features, UX changes, editorial workflow changes, and bugs that affect an editor-facing behavior. Skip it for purely internal work (dependency bumps, CI, refactors with no user-visible surface) and say you're skipping it rather than silently omitting it.
+
+Load the `yalesites-ux-research` skill and answer three questions in the ticket:
+
+1. **Which archetype(s) does this affect?** Name them explicitly. The six are Multi-Site Manager, Part-Time Owner, The Maintainer, Transitioning Team, New Recruit, and Solo Starter.
+2. **Does it map to a known pain point?** Check the pain point table. A request matching a high-count pain point (confusing terminology at 67%, misleading search results at 61%, poor UI discoverability at 56%) carries real evidence behind it, and the ticket should say so.
+3. **Does it put a current delight at risk?** Check the delights table before scoping anything that changes learning resources, the Views GUI, release communications, or brand-compliant output.
+
+Two traps worth naming, both from the 2026 research:
+
+- **Don't "simplify" for the Part-Time Owner.** They are time-poor, not skill-poor. Reducing steps helps them; removing capability doesn't.
+- **New-user cost is the usual hidden cost.** The five most-cited pain points all land hardest on Solo Starter and New Recruit. If a change adds a new term, setting, or interface surface, say what it costs those two archetypes even when it's aimed at someone else.
+
+Where this lands in the ticket: name the affected archetypes in the **description**, and turn archetype-specific expectations into **acceptance criteria** (for example, "labels should be understandable to a New Recruit with no YaleSites training"). Don't paste archetype summaries in wholesale.
 
 ### Step 2: Determine the scope recommendation
 
@@ -150,7 +209,7 @@ Briefly describe the feature, bug, or improvement in plain language. Avoid devel
 A single bulleted list of everything required to close the issue. Cover all relevant angles:
 
 - Developer tasks and technical requirements
-- UX considerations (field labels, design option names, UI behavior)
+- UX considerations (field labels, design option names, UI behavior). Where Step 1b identified an affected archetype, write the expectation as a testable criterion rather than a general aspiration — "a New Recruit can complete this without asking a teammate" is checkable, "should be intuitive" isn't.
 - Accessibility: flag anything that needs WCAG 2.1 AA validation for the accessibility engineer
 - Documentation: note if any existing docs need updating or new docs need to be created
 
@@ -305,6 +364,7 @@ Before submitting or updating an issue, check:
 - [ ] Title clearly states the specific work, and uses a matching prefix if one applies
 - [ ] Description is jargon-free and makes sense to a non-developer
 - [ ] Acceptance criteria covers dev, UX, accessibility, and docs angles
+- [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set
