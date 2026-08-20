@@ -25,7 +25,22 @@ Search these when you need implementation context, but always write the issue de
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
 - **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields, and the issue-creation/update tools (`mcp__github__create_issue`/`update_issue`) can't write to them directly — see "Writing Status, Priority, and Size to the Board" below for how to actually set them.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
-- **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI — distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) also can't be set via the API/MCP tools — it has to be set manually in the issue UI or org settings.
+- **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI, distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
+
+  ```bash
+  # 1. list the org's types and their ids (ids are stable; look them up once)
+  gh api graphql -f query='query{organization(login:"yalesites-org"){issueTypes(first:20){nodes{id name}}}}'
+
+  # 2. get the issue's NODE id (not its number)
+  ID=$(gh api graphql -f query='query{repository(owner:"yalesites-org",name:"YaleSites-Internal"){issue(number:1583){id}}}' --jq '.data.repository.issue.id')
+
+  # 3. set the type
+  gh api graphql -f query='mutation($id:ID!,$t:ID!){updateIssue(input:{id:$id,issueTypeId:$t}){issue{number issueType{name}}}}' -F id="$ID" -F t="<type-id>"
+  ```
+
+  Type ids as of 2026-08-20: Task `IT_kwDOA_XQ-s4Av2Na`, Bug `IT_kwDOA_XQ-s4Av2Nd`, Feature `IT_kwDOA_XQ-s4Av2Nf`, Vendor/Supported Builds `IT_kwDOA_XQ-s4BtnpX`, Communications `IT_kwDOA_XQ-s4BwK1h`, AI `IT_kwDOA_XQ-s4BwLHQ`, Epic `IT_kwDOA_XQ-s4CE0Px`. Re-run step 1 rather than trusting this list if a type looks missing.
+
+  This note previously said Issue Type had to be set manually in the UI. That was wrong, and it meant tickets created through this skill were shipping with no Type set at all.
 - **Sub-issue linking may not be automatic.** A `- [ ] #XXXX` checklist reference in an issue body creates a backlink, but don't assume it always registers as a tracked GitHub sub-issue (the mechanism that drives the parent's progress bar) — if the epic's progress bar isn't reflecting a child ticket, check whether it needs to be linked explicitly via "Add sub-issue" in the GitHub UI.
 - Before recommending a ticket as "available" for pickup (by a person or an unmoderated agent), check more than the absence of an assignment label — confirm there's no assignee set and no `in-review-tag`/`forming`-style in-progress signal on it. A ticket can look open on one signal and still be actively claimed.
 - **Also check for merged PRs, not just open ones, before recommending a ticket as available.** A `claude`-tagged or open-looking ticket can already be done — the PR merged but the issue was never closed (the team's PR body format isn't a GitHub-recognized closing keyword, so merges don't auto-close issues). A backlog sweep that only checks for *open* PRs will hand out already-finished work. Cross-reference against merged PR activity in the relevant repo(s) before calling a batch of tickets "ready."
@@ -254,7 +269,7 @@ Choose one:
 |------|------------|
 | **AI** | Work related to the Beacon AI chatbot |
 | **Bug** | An unexpected problem or behavior |
-| **Communications** | Work that falls under the Communications workstream |
+| **Communications** | Work that falls under the Communications workstream. Includes documentation written for the public yalesites.yale.edu site (user guide pages, resource pages, release documentation), even when the title carries the `Docs:` prefix. A `Docs:` prefix does not imply Task. |
 | **Feature** | A request, idea, or new functionality |
 | **Task** | A specific piece of work |
 | **Vendor/Supported Builds** | Websites being built by vendors or supported by the YaleSites team |
@@ -367,7 +382,7 @@ Before submitting or updating an issue, check:
 - [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
 - [ ] Size is realistic — if unsure, err toward larger
-- [ ] Type is set
+- [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
 - [ ] Relevant labels are applied
 
 For epics specifically, also run through the Epic Quality Bar above.
