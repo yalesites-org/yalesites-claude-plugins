@@ -24,6 +24,32 @@ manifest schema.
 
 ---
 
+## Step 0: Ask what kind of coverage is actually wanted
+
+Don't default to building all four buckets. Sometimes the ask is genuinely "test the
+guardrails" and nothing else; sometimes it's "we just want extensive content coverage,
+no safety testing." If the user's initial prompt already states this clearly, don't
+re-ask — proceed with what they said. Otherwise, use `AskUserQuestion` before doing any
+research or drafting:
+
+- **Guardrail/safety only** — testing the Beacon technology itself (injection,
+  jailbreak, credential/secret requests, scope boundaries). No content-accuracy
+  questions.
+- **Extensive content coverage only** — factual questions from pages, PDFs, and other
+  indexed documents. No guardrail/safety questions. (If this is *all* that's wanted and
+  guardrails are explicitly out of scope, `beacon-question-set` may be the better fit —
+  point that out rather than building the heavier manifest/tier apparatus for a
+  content-only ask.)
+- **Full tiered bank** — all four buckets: content knowledge, knows its limits,
+  guardrails/safety, and real-use robustness.
+- **Something narrower** — e.g. only the "knows its limits" bucket, or only a specific
+  platform bug's custom test content. Let the user name it rather than assuming.
+
+This decision changes which buckets get built and whether guardrail questions belong in
+the set at all — get it settled before spending research effort.
+
+---
+
 ## The one rule that overrides everything else: ship ONE flat file
 
 **Always maintain a single `.txt` upload file for the whole bank, never split it into
@@ -106,6 +132,36 @@ depends on a follow-up turn (a clarifying question, a "no, the other one" correc
 cannot be evaluated this way. Tag these `in_tester: false` in the manifest, leave them
 out of the `.txt` upload entirely, and flag them for the user to run by hand in the live
 chat widget instead.
+
+---
+
+## Sourcing PDF/document content (when content coverage is in scope)
+
+If the requested coverage includes documents and not just web pages, don't assume a
+sitemap crawl surfaces them. A sitemap generally only lists the site's own pages — PDFs
+linked *from* those pages usually aren't enumerated there, and even when you do find a
+PDF's URL by crawling links, finding the link tells you nothing about whether that
+specific file is actually indexed for AI/Beacon retrieval in Drupal. A PDF can be linked
+on a page and still be entirely outside the search index.
+
+Work through this in order:
+
+1. **Look for obviously-linked PDFs** while sampling pages for content questions, but
+   treat anything found as a lead, not a confirmed indexed source.
+2. **If you don't find any, or can't confirm indexing status, ask the user directly:**
+   do they have specific PDFs they know are indexed in Drupal for AI analysis? Get the
+   exact links or files from them rather than guessing from what a page happens to
+   link to.
+3. **If they don't have any real ones on hand, ask whether they want dummy/synthetic
+   test PDFs drafted instead.** This is sometimes genuinely needed — testing whether
+   Beacon can find and cite document content at all, or verifying chunking/retrieval
+   behavior specific to PDFs, requires content that provably isn't available anywhere
+   else on the site (see the decoy-fact guidance below). But it's not always needed —
+   if the ask is pure page-content coverage, skip this step entirely rather than
+   manufacturing document-testing scope nobody asked for.
+
+Don't silently skip document coverage just because a sitemap crawl came up empty, and
+don't silently invent test PDFs either — both are a reason to ask, not to guess.
 
 ---
 

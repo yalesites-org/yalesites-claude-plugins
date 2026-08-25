@@ -1,6 +1,6 @@
 ---
 name: beacon-comparison-review
-description: "Analyze a Beacon AI Tester comparison JSON export (compare-N-M.json, with run_a/run_b metadata, a summary, and per-question pairs with answers and citations) for answer correctness, citation quality, and notable divergences between the two runs. Use for any A/B comparison from the Beacon AI Tester regardless of what's being compared — Beacon vs. the legacy ai_engine, one model vs. another (e.g. Haiku vs. Sonnet), or a before/after run around a content or code fix. Produces a stakeholder-ready summary and, for larger runs, a scored spreadsheet. Trigger on phrases like 'analyze this compare JSON', 'here's an A/B test run from Beacon', or an uploaded compare-*.json file."
+description: "Analyze a Beacon AI Tester comparison JSON export (compare-N-M.json, with run_a/run_b metadata, a summary, and per-question pairs with answers and citations) for answer correctness, citation quality, and notable divergences between the two runs. Use for any A/B comparison from the Beacon AI Tester regardless of what's being compared — Beacon vs. the legacy ai_engine, one model vs. another (e.g. Haiku vs. Sonnet), or a before/after run around a content or code fix. Always produces two paired deliverables: a high-level executive/C-suite summary (no jargon, no question IDs) and detailed developer-facing themes (per-question findings, citation analysis, pipeline bugs), plus a scored spreadsheet when there's enough detail to warrant one. Trigger on phrases like 'analyze this compare JSON', 'here's an A/B test run from Beacon', or an uploaded compare-*.json file."
 ---
 
 # Beacon Comparison Review
@@ -12,6 +12,15 @@ and quality assessment. The same export shape gets used for very different compa
 (new backend vs. legacy, model vs. model, before vs. after a fix), so don't assume the
 "right" answer is whichever side looks more polished — establish what's actually being
 compared before scoring anything.
+
+**Every review produces two paired deliverables, not one:** a high-level executive/
+C-suite summary (verdict, headline numbers, plain-language risk framing, no question IDs
+or technical jargon) and detailed developer-facing themes (per-question findings,
+citation/retrieval analysis, pipeline bugs). Neither replaces the other — a director
+needs the first without wading through the second, and a lead developer needs the
+second to actually act on anything. Produce both by default; don't treat the executive
+summary as an optional trim-down you build only if asked, and don't treat the detailed
+themes as optional scaffolding you skip on a "quick" review.
 
 See `references/compare-json-schema.md` for the full field reference and
 `references/pipeline-bug-checklist.md` for the recurring formatting/pipeline defects
@@ -94,23 +103,38 @@ model or backend wins the comparison. Don't score them as evidence one model is 
 call them out separately as their own fix items. See
 `references/pipeline-bug-checklist.md` for the full list of things to scan for.
 
-## Step 7: Produce the write-up
+## Step 7: Produce both deliverables, paired
 
-Two layers, not one:
+**1. Executive / C-suite summary.** Written for someone who has not seen the actual
+question text and never will, and who is deciding whether to sign off on something (a
+cutover, a model upgrade, holding at the status quo) rather than reading for interest.
 
-1. **Technical detail** — organized around what was asked: themes in where/why answers
-   differ, citation quality and overlap, per-question quality assessment with the
-   clearest failures called out. For a run large enough to need one, build a scored
-   spreadsheet (see below).
-2. **Stakeholder summary** — written for someone who has not seen the actual question
-   text and never will. Describe findings by topic/category, not by quoting internal
-   question IDs or exact prompts the reader has no context for. Lead with the bottom
-   line and a clear recommendation, not a chronological walkthrough of the analysis. Load
-   the `michael-voice` skill when the summary is meant to be sent onward as-is (an email,
-   a message to a director) — casual but professional, "we" not "I," lead with the point,
-   no em dashes.
+- Lead with the bottom line and a clear recommendation — not a chronological walkthrough
+  of how the analysis was done.
+- Describe findings by topic/category, never by quoting internal question IDs, tier
+  numbers, or exact prompts the reader has no context for ("a question about financial
+  aid thresholds," not "T3-07").
+- State the headline numbers (pass rates, correctness counts) but keep the framing on
+  risk and readiness, not on the mechanics of how those numbers were produced.
+- Load the `michael-voice` skill when this is meant to be sent onward as-is (an email, a
+  message to a director) — casual but professional, "we" not "I," lead with the point,
+  no em dashes.
+- Point to the detailed themes for anyone who wants to go deeper, rather than omitting
+  that layer because the summary stands alone.
 
-### Scored spreadsheet (for larger runs)
+**2. Detailed developer themes.** Organized around what was actually asked: themes in
+where/why answers differ, citation quality and overlap, per-question quality assessment
+with the clearest failures called out by question and evidence. This is where question
+IDs, exact citation URLs, and specific answer text belong. Build a scored spreadsheet
+alongside this layer whenever there's enough question-level detail to warrant one (see
+below) — don't gate the spreadsheet on run size alone if the findings are dense enough
+to need it at any size.
+
+Produce both layers for every review, not just the large or high-stakes ones — a
+three-question comparison still deserves a one-paragraph executive framing and a short
+detailed section, even if neither needs to be long.
+
+### Scored spreadsheet
 
 Columns: `#`, `Category`, `Question`, `Expected Answer / Key Facts` (if ground truth
 exists), a verdict + notes column per side. Color-code verdicts (correct/appropriate
