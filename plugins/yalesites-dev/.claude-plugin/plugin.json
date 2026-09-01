@@ -1,6 +1,6 @@
 {
   "name": "yalesites-dev",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Day-to-day Git, pull-request, GitHub-issue, and Drupal development skills for YaleSites developers — look up/plan issues, conventional commits, cross-repo branch management, PR description and creation, Drupal coding conventions, and running PHPUnit tests in the YaleSites Lando environment.",
   "author": {
     "name": "Yale ITS Digital Experiences",

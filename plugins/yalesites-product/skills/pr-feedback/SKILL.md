@@ -155,6 +155,14 @@ If they say yes:
 
 This is a follow-up ticket, not scope on this PR — it doesn't affect the approve/request-changes decision in Step 6 either.
 
+## Step 5b: Check whether the linked ticket needs to catch up
+
+This is exactly the moment tickets go stale — Step 2 may have surfaced a place where the diff and the issue's acceptance criteria diverge, and Step 3 resolved it in conversation with the user. If nothing writes that resolution back to the ticket, the next person who reads it sees the original ask, not what was actually decided.
+
+Load the `ticket-sync` skill and hand it the linked issue from Step 1, the divergences found in Step 2, and how they were resolved in Step 3. It decides whether the resolution is worth a comment (context only) or an edit (scope/acceptance criteria actually changed), and — if the issue is a child ticket under an epic — whether the parent epic's `Scope` or `Child Tickets` section needs a matching update.
+
+Non-blocking, like Step 5 above: it doesn't change the approve/request-changes call, it just makes sure the ticket reflects it. Skip straight to Step 6 if `ticket-sync` finds nothing to flag.
+
 ## Step 6: Decide approve vs. request changes
 
 Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?

@@ -342,6 +342,15 @@ Before treating an epic as ready:
 - [ ] Child tickets exist and are checklisted in the parent
 - [ ] If the technical approach is unsettled, a spike/ADR ticket is first in the child list
 - [ ] Milestone reflects a single release, not an open-ended span
+- [ ] `Scope` and `Child Tickets` reflect current reality — if any child ticket has diverged since the epic was written, run the `ticket-sync` skill before calling the epic ready
+
+---
+
+## Checking for Drift, Not Just Gaps
+
+Grooming isn't only about filling in missing fields. A ticket can have a complete Description and Acceptance Criteria and still be wrong, because the work moved past what's written and nobody wrote the change back. This shows up most on epics and other long-running tickets, where scope gets resolved in PR reviews or side conversations that never make it into the ticket body itself.
+
+Before treating an established ticket as groomed — one with real history (comments, linked PRs, sub-issues), not a blank stub — load the `ticket-sync` skill and run its check. It compares what's written against what's actually been decided and tells you whether anything needs a comment (context only) or an edit (scope/acceptance criteria actually changed). Run this in addition to the gap-filling steps below, not instead of them.
 
 ---
 
