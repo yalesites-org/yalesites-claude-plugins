@@ -346,14 +346,6 @@ Before treating an epic as ready:
 
 ---
 
-## Checking for Drift, Not Just Gaps
-
-Grooming isn't only about filling in missing fields. A ticket can have a complete Description and Acceptance Criteria and still be wrong, because the work moved past what's written and nobody wrote the change back. This shows up most on epics and other long-running tickets, where scope gets resolved in PR reviews or side conversations that never make it into the ticket body itself.
-
-Before treating an established ticket as groomed — one with real history (comments, linked PRs, sub-issues), not a blank stub — load the `ticket-sync` skill and run its check. It compares what's written against what's actually been decided and tells you whether anything needs a comment (context only) or an edit (scope/acceptance criteria actually changed). Run this in addition to the gap-filling steps below, not instead of them.
-
----
-
 ## Grooming Existing Stub Tickets
 
 When grooming an existing ticket that's missing fields or has a thin description:
@@ -363,6 +355,14 @@ When grooming an existing ticket that's missing fields or has a thin description
 3. Search the relevant repos for context if the work is technical
 4. Fill in the missing fields following the format above, rewriting the title if it doesn't clearly state the work (see "Title" above)
 5. Use `mcp__github__update_issue` on `yalesites-org/YaleSites-Internal` — **append or replace only the missing sections**, never overwrite content the team has already written
+
+---
+
+## Checking for Drift, Not Just Gaps
+
+Grooming isn't only about filling in missing fields. A ticket can have a complete Description and Acceptance Criteria and still be wrong, because the work moved past what's written and nobody wrote the change back. This shows up most on epics and other long-running tickets, where scope gets resolved in PR reviews or side conversations that never make it into the ticket body itself.
+
+This applies to an established ticket with real history — comments, linked PRs, sub-issues — not the blank-stub case the gap-filling steps above cover. Before treating that kind of ticket as groomed, load the `ticket-sync` skill and run its check. It compares what's written against what's actually been decided and tells you whether anything needs a comment (context only) or an edit (scope/acceptance criteria actually changed). Run this in addition to the gap-filling steps above, not instead of them — see the Quality Bar below.
 
 ---
 
@@ -378,5 +378,6 @@ Before submitting or updating an issue, check:
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set
 - [ ] Relevant labels are applied
+- [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
 
 For epics specifically, also run through the Epic Quality Bar above.

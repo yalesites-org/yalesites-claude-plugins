@@ -44,6 +44,8 @@ The source of "what changed" depends on how this was invoked:
 
 Don't re-derive this from scratch if the caller already did the work — that's the entire reason this runs mid-flow instead of as a cold re-read.
 
+**Check for a prior sync first.** The same ticket can pass through this skill more than once in one lifecycle — at PR creation (`yalesites-pr`), during review (`pr-feedback`), and again in grooming (`ticket`). Before flagging a divergence, scan the ticket's recent comments for one that already reads as a `ticket-sync` note (a comment or edit made specifically to reconcile the same gap). If the same divergence was already caught and resolved by an earlier pass, don't raise it again — say so in one line and move on.
+
 ## Step 3: Compare against Description, Acceptance Criteria, and Scope
 
 Read the ticket's `Description` and `Acceptance Criteria` (and, for an epic, `Scope` and `Child Tickets`) against what Step 2 turned up. Look specifically for:
@@ -92,6 +94,6 @@ Say so in one line — "the ticket still matches what's happening, nothing to up
 
 ## Notes
 
-- Comments and edits can't be walked back once posted — there's no tool to revise a GitHub comment in place. If the draft is wrong, fix it before Step 6, not after.
+- Get the draft right before Step 6 rather than posting and correcting it — an edited comment still notifies and still shows an edit history to everyone watching the thread, so a fixable mistake still costs attention it didn't need to.
 - Cross-repo references need the full `owner/repo#number` form — a bare `#1299` in a comment always resolves against the current repo, not whatever repo the surrounding text names.
 - This skill writes to `yalesites-org/YaleSites-Internal`. If the GitHub connector's token can't write there (a known intermittent gap — see the `ticket` and `pr-feedback` skills' notes on this), show the user the drafted edit/comment so nothing is lost rather than retrying blind.
