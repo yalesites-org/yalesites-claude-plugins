@@ -10,6 +10,8 @@ allowed-tools:
   - Bash(git -C * push *)
   - Bash(gh issue view *)
   - Bash(gh issue create *)
+  - Bash(gh issue edit *)
+  - Bash(gh issue comment *)
   - Bash(gh pr create *)
   - Bash(gh pr edit *)
   - Bash(git log *)
@@ -70,7 +72,16 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    gh pr edit {NNN} --repo yalesites-org/{repo} --body "..."
    ```
 
-7. **Move the issue to "In review"** (only if an issue number was found)
+7. **Check whether the issue needs to catch up** (only if an issue number was found, and the `yalesites-product` plugin's `ticket-sync` skill is available)
+   Load the `ticket-sync` skill and hand it the issue number and the PR body/bodies just created in Step 5 as the "what actually happened" input, to compare against the issue's Description and Acceptance Criteria. Fetch the full body first, since Step 2 only pulled the title:
+   ```bash
+   gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json body -q .body
+   ```
+   This catches cases where implementation drifted from the original ask during development — common on longer-running tickets — before the issue moves forward looking finished but describing something slightly different from what shipped.
+
+   Non-blocking and silent if nothing has drifted. If something has, `ticket-sync` decides comment vs. edit and drafts the text for your approval — use `gh issue edit` for a scope/acceptance-criteria change or `gh issue comment` for context only. If the `ticket-sync` skill isn't available in this session, skip this step rather than attempting the comparison ad hoc.
+
+8. **Move the issue to "In review"** (only if an issue number was found)
    Once the PR(s) exist, the solution is ready for review, so set the issue's status to **In review** on the YaleSites Board (GitHub Projects v2, org `yalesites-org`, project number 6) — but only if it is not already there.
 
    Check the current status first, and only write if it differs:
