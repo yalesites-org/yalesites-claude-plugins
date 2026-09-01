@@ -18,7 +18,7 @@ implement → test → commit → describe → open the PR(s)**.
 | `phpunit-drupal` | Run Drupal PHPUnit Unit, Kernel, and Functional tests correctly in the YaleSites Lando environment (the direct `lando ssh` invocation is non-obvious and the commonly copied form fails silently). |
 | `commit-conventional` | Create Conventional Commits (Angular style) following YaleSites commit specs. |
 | `pr-description` | Generate a PR body from the current branch's commits and diff, filling a provided template. |
-| `yalesites-pr` | Create the pull request(s) following YaleSites conventions, including cross-repo companion PRs. |
+| `yalesites-pr` | Create the pull request(s) following YaleSites conventions, including cross-repo companion PRs. Also checks the linked issue for drift before moving it to In review (via the `ticket-sync` skill in `yalesites-product`, if installed). |
 | `cross-repo` | Check status, create matching branches, or clean merged branches across all four repos at once. |
 
 Issue creation and grooming now live in the `ticket` skill (`yalesites-product`

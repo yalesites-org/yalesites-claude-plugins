@@ -214,9 +214,17 @@ Post the review from Step 6 and the label update from Step 8.
    - In the app, go to the GitHub connector's settings and reconnect/update it with the new token (exact path may vary — look under Settings → Connectors → GitHub).
 3. Once reconnected, retry posting the same review and label update — don't make the user redo the analysis.
 
+## Step 9b: Check whether the linked ticket needs to catch up
+
+This is exactly the moment tickets go stale — Step 2 may have surfaced a place where the diff and the issue's acceptance criteria diverge, and Step 3 resolved it in conversation with the user. If nothing writes that resolution back to the ticket, the next person who reads it sees the original ask, not what was actually decided.
+
+Now that the review from Step 9 is posted, load the `ticket-sync` skill and hand it the linked issue from Step 1, the divergences found in Step 2, and how they were resolved — Step 3's conversation plus the final posted review body. It decides whether the resolution is worth a comment (context only) or an edit (scope/acceptance criteria actually changed), and — if the issue is a child ticket under an epic — whether the parent epic's `Scope` or `Child Tickets` section needs a matching update.
+
+Non-blocking: it doesn't change the approve/request-changes call already made in Step 6, it just makes sure the ticket reflects it. Running this after Step 9 rather than before means the ticket never ends up reading as settled before the review that settled it actually posts.
+
 ## Step 10: Confirm back to the user
 
-After posting, report: a link to the review/comment, the final approval state, the labels applied (and removed), and who was @-mentioned. Keep it short — the user was following along and doesn't need the whole analysis repeated.
+After posting, report: a link to the review/comment, the final approval state, the labels applied (and removed), who was @-mentioned, and whether Step 9b updated the linked ticket. Keep it short — the user was following along and doesn't need the whole analysis repeated.
 
 ---
 
