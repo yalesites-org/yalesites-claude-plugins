@@ -122,6 +122,62 @@ too slow, narrow it instead:
 --filter '(testFooBar|testBazQux)'
 ```
 
+## Scope the run to the diff — a full run is ~4 HOURS
+
+**Never run the whole suite as an iteration loop.** A full run takes roughly
+**4 hours** (2026-09). An unscoped run is a blocker, not feedback, and it
+serializes everything else — parallel runs kill each other, and source files
+must not be edited while a run is in flight.
+
+Scope by cost, in this order:
+
+1. **The whole `tests/src/Unit` directory is effectively free** — hundreds of
+   tests in about a second. Run it in full; never bother narrowing it.
+2. **Kernel and Functional tests are the expensive part** (historically ~4m45s
+   *per class*). Run only the individual test **files covering the code the diff
+   touches**. Derive them from the diff: for each changed source file, its sibling
+   test under `<module>/tests/src/{Kernel,Functional}/`, plus any test that names
+   the changed class or service. **One path per invocation, sequentially** — see
+   the first-path-argument trap below.
+3. **A full-module run is a single pre-commit gate at most.** Say up front that
+   it is one run and roughly how long it will take.
+
+If the loop would exceed a few minutes per iteration, propose the narrower scope
+rather than waiting to be asked.
+
+### If you are dispatching a subagent to run tests
+
+A subagent does not inherit this judgment and **will** reach for the whole suite
+and burn hours. Put the scope in the prompt. Include all of:
+
+- **The exact test paths to run** — you derive them from the diff; do not make
+  the subagent guess — plus the full working `lando ssh -c` invocation above, and
+  the instruction to run **one path per invocation** (see below).
+- **An explicit prohibition:** "Run ONLY these paths. Do NOT run the module's
+  whole `tests/` directory, the default suite, or anything under `web/core` or
+  `web/modules/contrib` — a full run takes about 4 hours."
+- **The baseline** (counts *and* already-failing names) so it reports a delta
+  instead of re-deriving one.
+- **A time budget:** "if this exceeds ~10 minutes, stop and report what you have."
+
+The same applies to Playwright or accessibility subagents: name the specific
+pages and flows, never hand over the whole site.
+
+### PHPUnit honours only the FIRST path argument
+
+Passing two paths in one invocation silently runs only the first and reports a
+total that looks like it covered both:
+
+```bash
+# WRONG - only ys_ai_tester runs; ys_ai_tester_legacy is silently skipped
+lando ssh -c "php /app/vendor/bin/phpunit -c /app/phpunit.xml \
+  $B/modules/ys_ai_tester/tests/src/Unit/ $B/modules/ys_ai_tester_legacy/tests/src/Unit/"
+```
+
+Run one path per invocation, sequentially, and record the count per module. This
+matters most for a **baseline**: one captured this way understates what it covers,
+so "no regressions" is measured against the wrong number.
+
 ## Reading the result
 
 **Exit 1 with every test green** is usually not a failure. If the output shows
