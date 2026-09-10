@@ -26,6 +26,10 @@ team with:
 - **Beacon comparison analysis** — reading an AI Tester A/B comparison export
   (Beacon vs. legacy, model vs. model, or before/after a fix) for answer
   correctness, citation quality, and a stakeholder-ready summary
+- **Migration assessment** — a read-only probe of a public source site (Drupal 7
+  included) mapped against the YaleSites content model, producing a
+  migration-path assessment: content type and component mapping, what will not
+  carry over cleanly, an effort rating, and mechanism options
 
 ## Installation
 
@@ -53,6 +57,7 @@ knowledge that the workflow skills reference:
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
 | `beacon-test-bank` | A full tiered test bank with guardrails, safety, and edge-case coverage |
 | `beacon-comparison-review` | Analyzing a Beacon AI Tester A/B comparison JSON export |
+| `migration-assessment` | Assessing a source site for migration onto YaleSites |
 
 ## Maintainer
 

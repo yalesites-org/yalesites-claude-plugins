@@ -15,3 +15,6 @@ jobs:
 
       - name: Validate plugin structure
         run: bash scripts/validate-plugins.sh
+
+      - name: Run skill script tests
+        run: bash scripts/run-skill-tests.sh

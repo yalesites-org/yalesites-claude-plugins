@@ -1,10 +1,10 @@
 {
   "name": "yalesites-product",
-  "version": "0.4.0",
-  "description": "Product team workflows for YaleSites — release prep, ticket creation and grooming, PR feedback, keeping tickets in sync with how work actually turns out, UX research context for product decisions, and Beacon AI chatbot test question sets and comparison analysis.",
+  "version": "0.5.0",
+  "description": "Product team workflows for YaleSites — release prep, ticket creation and grooming, PR feedback, keeping tickets in sync with how work actually turns out, UX research context for product decisions, Beacon AI chatbot test question sets and comparison analysis, and read-only migration assessment of a source site against the YaleSites content model.",
   "author": {
     "name": "Yale ITS Digital Experiences",
     "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
   },
-  "keywords": ["yalesites", "drupal", "yale", "cms", "product", "release", "beacon", "ai"]
+  "keywords": ["yalesites", "drupal", "yale", "cms", "product", "release", "beacon", "ai", "migration"]
 }

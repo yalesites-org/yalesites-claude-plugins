@@ -309,6 +309,7 @@ For each PR in the release, read the PR description and any linked diffs to iden
 | New Views filter, display, or module | `views-reference.md` |
 | New sitewide setting or changed setting options | `settings-reference.md` |
 | User role added, removed, or permission changed | `user-roles-reference.md` |
+| Layout added/removed, Layout Builder region allow-list changed, or a platform limit relaxed (custom forms, text formats, media types, translations) | `yalesites-product` -> `migration-assessment/references/yalesites-target-model.md` |
 
 **What does NOT require a knowledge base update:**
 - Bug fixes that restore behavior already documented correctly
