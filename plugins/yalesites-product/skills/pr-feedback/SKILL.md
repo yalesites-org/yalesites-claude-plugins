@@ -124,6 +124,15 @@ Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this m
 
 **Exception — stay singular ("I"), not "we."** This overrides any writing-voice skill's default person, even if that skill normally speaks as "we" (e.g. `michael-voice`). PR feedback is one reviewer's read on the code, not an org-wide statement, so write it in first person singular: "I think this should check the role first," not "we think." Apply this to every comment this skill posts — clarifying questions, the review body, and any follow-up ticket offers from Step 5.
 
+### How this reads on GitHub
+
+The review body is read by a person first. Compose it per `references/github-communication-format.md` (in the `ticket` skill's `references/` directory, in this same `yalesites-product` plugin):
+
+- **Open with a TL;DR line** — the outcome in one or two sentences. "Approving. One optional note about the empty state." / "Requesting changes: two blocking items, both about role gating."
+- **Keep visible:** the TL;DR, and on a request-changes review the numbered list of blocking items (one line each — what to change, which file).
+- **Collapse into `<details>` blocks with named summaries:** the per-item detail (file/line references, why it matters, how to fix), the optional/nice-to-have items, "what I checked" notes, and the visreg-coverage and documentation follow-up discussion from Step 5. Group them, two to four blocks, not one per point.
+- The same TL;DR-first shape applies to the Step 3 clarifying-question comment if it goes to GitHub rather than staying in chat.
+
 ## Step 5: Flag follow-up work — visreg coverage and documentation
 
 Two independent checks, both non-blocking. Neither should affect the approve/request-changes call in Step 6 — these are optional follow-up tickets to offer the user, not gating conditions for this PR.
@@ -158,6 +167,8 @@ This is a follow-up ticket, not scope on this PR — it doesn't affect the appro
 ## Step 6: Decide approve vs. request changes
 
 Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?
+
+Whichever way it goes, format the `body` per "How this reads on GitHub" above: TL;DR first, blocking items visible, everything else in named `<details>` blocks.
 
 **If approving:**
 - `mcp__github__create_pull_request_review` with `event: "APPROVE"` and the feedback (if any — approvals can be feedback-free) as `body`.

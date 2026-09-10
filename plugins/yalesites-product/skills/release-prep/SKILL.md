@@ -63,10 +63,14 @@ Internal tasks (migrations, CI work, dependency updates) are omitted from user-f
 
 ### Format
 
+The release notes comment is read by the whole community. Per `references/github-communication-format.md` (in the `ticket` skill's `references/` directory, same `yalesites-product` plugin): lead with a TL;DR, keep the Featured Feature visible, and collapse the longer lists (New Features & Enhancements, Bug Fixes, PRs Included) into named `<details>` blocks so the top of the comment stays short.
+
 ```
 ## YaleSites v[X.X] in Collaboration with [Partner]
   — OR —
 ## YaleSites v[X.X]: [Descriptive Theme]
+
+**TL;DR:** [One or two sentences: the release theme plus headline counts, e.g. "One featured feature (X), 6 enhancements, 11 bug fixes." Plain language.]
 
 [Intro paragraph — collaboration callout + overview of the release]
 
@@ -77,19 +81,29 @@ Internal tasks (migrations, CI work, dependency updates) are omitted from user-f
 
 ---
 
-### ✨ New Features & Enhancements
+<details>
+<summary><b>✨ New Features & Enhancements</b></summary>
+
 - **Feature name** — Plain-English description of what changed and why it matters.
 
----
+</details>
 
-### 🐛 Bug Fixes
+<details>
+<summary><b>🐛 Bug Fixes</b></summary>
+
 - **Fix name** — Plain English: what broke, what's fixed.
 
----
+</details>
 
-### PRs Included
+<details>
+<summary><b>PRs Included</b></summary>
+
 - [#XXXX](https://github.com/yalesites-org/yalesites-project/pull/XXXX) — One-line summary
+
+</details>
 ```
+
+Keep the bulleted list inside "PRs Included" (not a table) — the no-table rule still applies inside a `<details>` block in a comment.
 
 ### Voice & tone
 - Write for non-technical users first: site owners, content editors, department admins
@@ -256,12 +270,16 @@ Write step-by-step testing instructions grounded in:
 ```
 ## Release Testing Steps
 
+**TL;DR:** [One line — what a tester is checking here, e.g. "Confirm the font-style setting saves and applies on the front end."]
+
 1. [Concrete action — where to go, what to click, what to do]
 2. [What to verify or observe]
 3. [Edge case or secondary scenario if relevant]
 
 **Expected result:** [What a passing test looks like in plain English]
 ```
+
+Keep the numbered steps and the expected result visible — they are the tester's checklist, not detail to collapse. The TL;DR is the only thing added on top.
 
 **Guidelines:**
 - Write for a tester, not a developer — use the admin UI path, not code references
