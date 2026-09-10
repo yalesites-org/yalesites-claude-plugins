@@ -50,6 +50,7 @@ When this command is invoked:
 
 3. **Fill in the template**:
    - **Preserve exact template structure** (headers, formatting, checkboxes)
+   - **Add a `**TL;DR:**` line** immediately under the H2 title line, before the first template section: one or two sentences, plain language, what this PR does and why. This is the one thing a reviewer skimming the PR list will read. It is the only addition allowed on top of the template — see `../yalesites-pr/references/github-communication-format.md` for the full rationale.
    - Replace ticket placeholder (`YSP-XXXX`, `XX`, etc.) with actual ticket number from branch
    - Replace "Title" placeholder with:
      - If GitHub issue was found: Use the title from `gh issue view`
@@ -78,8 +79,19 @@ When this command is invoked:
    - Inform the user the markdown has been copied to their clipboard
 
 5. **Important guidelines**:
-   - Do NOT add new sections unless in template
+   - Do NOT add new sections unless in template — the one exception is the `**TL;DR:**` line under the H2 (see step 3)
    - Do NOT list individual files changed
+   - If the diff is large enough that the "Description of work" bullets can't stay short without losing something a reviewer needs, keep the high-level bullets in the section and put the finer-grained notes in a collapsed block:
+
+     ```markdown
+     <details>
+     <summary><b>Detailed changes</b></summary>
+
+     - Longer per-area notes here
+
+     </details>
+     ```
+     Leave a blank line after `</summary>` and before `</details>` or GitHub won't render the list.
    - Focus on WHAT changed functionally, not technical details
    - Use consistent verb forms (Adds, Fixes, Updates, Refactors)
    - Group related changes into single bullets
@@ -90,6 +102,8 @@ For a branch named `1167-reference-card-colors` where GitHub issue #1167 exists:
 
 ```markdown
 ## [1167: Reference Card Theme Slot Background Colors](https://github.com/yalesites-org/YaleSites-Internal/issues/1167)
+
+**TL;DR:** Reference cards now inherit the theme's background colors instead of always rendering white, so card collections match the rest of the page.
 
 ### Description of work
 - Adds theme color pass-through to reference card collection

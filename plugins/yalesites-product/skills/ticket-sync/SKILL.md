@@ -84,6 +84,12 @@ If a ticket in scope needs both (an edit to the direct ticket, and a separate co
 
 **Comments:** `mcp__github__add_issue_comment`, or `gh issue comment {NNN} --repo yalesites-org/YaleSites-Internal --body "..."`.
 
+**Format both per `references/github-communication-format.md`** (in the `ticket` skill's `references/` directory, same `yalesites-product` plugin):
+
+- A **comment** opens with a one-line TL;DR of what changed or what is now accurate ("The role-gating criterion was dropped in review; this comment records that."). The before/after reasoning, the PR or decision trail, and cross-references go in a named `<details>` block below it.
+- An **edit** leaves the reconciled section reading cleanly, as if it had always said this. Don't wedge an explanatory aside into the section body. If the "why did this change" is worth preserving, add it as a short collapsed note at the end of the section or as a separate companion comment.
+- When keeping a ticket's TL;DR line accurate is itself part of the reconciliation (the summary at the top no longer matches the work), that counts as an edit.
+
 **Parent epic updates** are a separate write from the child ticket's — don't fold an epic's `Scope`/`Child Tickets` correction into the same edit call as the child ticket's own update.
 
 ## When there's nothing to flag

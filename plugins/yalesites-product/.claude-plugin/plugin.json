@@ -1,6 +1,6 @@
 {
   "name": "yalesites-product",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Product team workflows for YaleSites — release prep, ticket creation and grooming, PR feedback, keeping tickets in sync with how work actually turns out, UX research context for product decisions, and Beacon AI chatbot test question sets and comparison analysis.",
   "author": {
     "name": "Yale ITS Digital Experiences",

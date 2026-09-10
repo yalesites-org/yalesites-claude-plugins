@@ -156,7 +156,7 @@ Two traps worth naming, both from the 2026 research:
 - **Don't "simplify" for the Part-Time Owner.** They are time-poor, not skill-poor. Reducing steps helps them; removing capability doesn't.
 - **New-user cost is the usual hidden cost.** The five most-cited pain points all land hardest on Solo Starter and New Recruit. If a change adds a new term, setting, or interface surface, say what it costs those two archetypes even when it's aimed at someone else.
 
-Where this lands in the ticket: name the affected archetypes in the **description**, and turn archetype-specific expectations into **acceptance criteria** (for example, "labels should be understandable to a New Recruit with no YaleSites training"). Don't paste archetype summaries in wholesale.
+Where this lands in the ticket: name the affected archetypes and the reasoning in the collapsed **Background and analysis** block (see "How this reads on GitHub" above), and turn archetype-specific expectations into **acceptance criteria** (for example, "labels should be understandable to a New Recruit with no YaleSites training"), which stay visible. Don't paste archetype summaries in wholesale.
 
 ### Step 2: Determine the scope recommendation
 
@@ -171,17 +171,26 @@ Based on the platform check, classify the ticket as one of:
 
 ### Step 3: Surface the findings in the ticket
 
-Incorporate the platform check findings directly into the ticket:
+Incorporate the platform check findings into the ticket. The full write-up goes in the collapsed **Background and analysis** block, but these three cases also get a short visible note right under the TL;DR, because they change whether or how the ticket should be scoped:
 
 - **If extending existing:** The description should name the existing feature ("This adds a new layout option to the existing Action Banner block…"). The acceptance criteria should note which existing docs need updating rather than pointing to new docs.
-- **If already exists:** Add a note at the top of the issue ("Note: this functionality may already exist via [X]. Recommend confirming before scoping.").
-- **If conflicts:** Add a note flagging the concern for the PM to review before development is assigned.
+- **If already exists:** Short note under the TL;DR ("Note: this functionality may already exist via [X]. Recommend confirming before scoping.").
+- **If conflicts:** Short note under the TL;DR flagging the concern for the PM to review before development is assigned.
 
 ---
 
 ## Issue Format
 
-Every issue needs a clear title plus these six fields, in this order:
+Every issue needs a clear title, a TL;DR line, then these six fields, in this order.
+
+### How this reads on GitHub
+
+An issue is opened and skimmed by people across the team, most of them non-technical. Compose the body per `references/github-communication-format.md`:
+
+- **First line of the body is a TL;DR** — one or two plain-language sentences saying what the work is and why it matters. No Drupal jargon. This is the part everyone actually reads.
+- **Keep visible:** the TL;DR, the Description, and the full Acceptance Criteria. Developers and QA work straight from the Acceptance Criteria, so it never gets collapsed.
+- **Collapse into a named `<details>` block** (for example `<summary><b>Background and analysis</b></summary>`): the Platform Fit Check write-up, the archetype and UX-research reasoning from Step 1b, implementation context pulled from the repos, and links to prior art. The *conclusions* that change the work still surface in the Description and Acceptance Criteria; the supporting analysis sits in the collapsed block.
+- One exception stays visible: an "already exists" or "conflicts with platform direction" flag from Step 3 (see below) goes as a short note directly under the TL;DR, not inside the collapsed block, because it gates whether the ticket should be scoped at all.
 
 ---
 
@@ -212,6 +221,10 @@ When grooming an existing stub ticket, check the title along with the other fiel
 **Epic child tickets** follow a related but distinct pattern: they're prefixed with a short form of their epic's name rather than one of the prefixes above, so they group together visually in the backlog (e.g., `Views Block Rework: Authoring Form UX/UI Audit`, `Publications: Teaser Display`, `Wave 3: Interactive molecules`). When scoping child tickets for a new epic, pick one short, consistent name and apply it to every child ticket — see "Creating an Epic" below.
 
 ---
+
+### TL;DR (first line of the body)
+
+One or two sentences, plain language, leading with what the work is and why it matters. Write it last, once the Description and Acceptance Criteria are settled. Example: *"Editors can't set alt text on gallery images, so galleries fail accessibility review. This adds an alt-text field to each gallery item."* Keep it above the Description; it is the only part guaranteed to be read.
 
 ### 1. Description
 
@@ -306,17 +319,24 @@ If the technical approach isn't settled, make the first child ticket a spike or 
 
 ### Step 3: Write the epic (parent ticket)
 
-Use this structure, modeled on #1161:
+Use this structure, modeled on #1161. Same GitHub-reading rules as a regular ticket (see "How this reads on GitHub" above): lead with a TL;DR, keep Summary / Scope / Child Tickets visible, and collapse the longer context (Current State, Proposed Approach) into a named `<details>` block.
 
 ```markdown
+**TL;DR:** [One or two sentences: the outcome this epic delivers and why. Plain language.]
+
 ## Summary
 [What is being built or changed, and why — the outcome, not just the mechanism]
 
-## Current State
+<details>
+<summary><b>Current state and proposed approach</b></summary>
+
+### Current State
 [Optional, valuable for refactors/rework: what exists today and why it's a problem]
 
-## Proposed Approach
+### Proposed Approach
 [High-level shape of the solution — enough for the team to orient, not a full technical design. Point to the spike/ADR ticket for the detailed design.]
+
+</details>
 
 ## Scope
 [What's in scope — content types, features, user flows, etc. affected]
@@ -351,6 +371,7 @@ Every child ticket still follows the six-field format above (Description, Accept
 
 Before treating an epic as ready:
 
+- [ ] Body opens with a TL;DR line, and the longer context (Current State, Proposed Approach) is in a collapsed block
 - [ ] Problem/goal and success criteria are stated in the Summary
 - [ ] Scope is explicit — in-scope, and out-of-scope/follow-up if relevant
 - [ ] `epic` label is applied to the parent ticket
@@ -369,7 +390,8 @@ When grooming an existing ticket that's missing fields or has a thin description
 2. Identify what's missing (description too vague, no acceptance criteria, no size/priority, etc.) — including whether the title is vague, generic, or doesn't match what the description actually says
 3. Search the relevant repos for context if the work is technical
 4. Fill in the missing fields following the format above, rewriting the title if it doesn't clearly state the work (see "Title" above)
-5. Use `mcp__github__update_issue` on `yalesites-org/YaleSites-Internal` — **append or replace only the missing sections**, never overwrite content the team has already written
+5. If the ticket has no TL;DR line, add one at the top. If it carries a block of platform-fit or archetype analysis inline above the Description, move it into a collapsed **Background and analysis** block — this is a reformat, not a rewrite; preserve the words
+6. Use `mcp__github__update_issue` on `yalesites-org/YaleSites-Internal` — **append or replace only the missing sections**, never overwrite content the team has already written
 
 ---
 
@@ -386,6 +408,8 @@ This applies to an established ticket with real history — comments, linked PRs
 Before submitting or updating an issue, check:
 
 - [ ] Title clearly states the specific work, and uses a matching prefix if one applies
+- [ ] Body opens with a TL;DR line: one or two plain-language sentences, no jargon
+- [ ] Platform-fit and archetype analysis is in a collapsed **Background and analysis** block, not inline above the Description (an "already exists" / "conflicts" flag excepted — that stays visible under the TL;DR)
 - [ ] Description is jargon-free and makes sense to a non-developer
 - [ ] Acceptance criteria covers dev, UX, accessibility, and docs angles
 - [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
