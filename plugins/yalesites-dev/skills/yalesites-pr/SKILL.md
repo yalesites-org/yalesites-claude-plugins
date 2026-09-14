@@ -19,7 +19,7 @@ allowed-tools:
 
 # YaleSites PR
 
-Creates pull requests following YaleSites conventions. See references/pr-template.md for the full template, references/github-communication-format.md for how the body should read (TL;DR first, detail collapsed), and references/preview-urls.md for turning testing steps into links that land the reviewer on the change.
+Creates pull requests following YaleSites conventions. See references/pr-template.md for the full template and references/github-communication-format.md for how the body should read (TL;DR first, detail collapsed).
 
 ## Steps
 
@@ -63,12 +63,6 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
    The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
 
-   **Write the testing steps as links** — a step that names a place should link to it, so the
-   reviewer lands on the change instead of hunting for it. references/preview-urls.md has the
-   URL forms per repo, how to read a route out of a `*.routing.yml` and a Storybook slug out
-   of a `.stories.js` `title`, and how to verify both. The PR numbers do not exist yet here,
-   so draft with `<N>` placeholders and tell the user Step 6 fills them in.
-
    Each PR must include:
    - `--assignee @me`
    - `--base develop`
@@ -76,22 +70,10 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
    - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
 
-6. **Update cross-links and fill in the preview URLs** — once all PRs exist, every number is
-   known. In one `gh pr edit` per repo, add the companion links **and** replace every `<N>`
-   placeholder in the testing-step URLs with the real number (yalesites-project's number in a
-   multidev URL, component-library-twig's in a Netlify URL):
+6. **Update cross-links** — once all PRs exist, edit each body to add the companion links:
    ```bash
    gh pr edit {NNN} --repo yalesites-org/{repo} --body "..."
    ```
-
-   Then confirm no placeholder survived, and verify any Storybook link against the built
-   preview's index if it is up (see references/preview-urls.md):
-   ```bash
-   gh pr view {NNN} --repo yalesites-org/{repo} --json body -q .body \
-     | grep -nE '<N>|pr-<|deploy-preview-<'
-   ```
-   No output (exit 1) is the pass. A published body containing `<N>` is a broken link in
-   front of every reviewer.
 
 7. **Check whether the issue needs to catch up** (only if an issue number was found, and the `yalesites-product` plugin's `ticket-sync` skill is available)
    Load the `ticket-sync` skill and hand it the issue number and the PR body/bodies just created in Step 5 as the "what actually happened" input, to compare against the issue's Description and Acceptance Criteria. Fetch the full body first, since Step 2 only pulled the title:
