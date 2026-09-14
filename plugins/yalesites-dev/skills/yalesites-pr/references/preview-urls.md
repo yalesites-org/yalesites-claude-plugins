@@ -14,16 +14,27 @@ errors" has nowhere to point — but the step that starts the job almost always 
 |---|---|---|
 | `yalesites-project` | Pantheon multidev, built by the `Deploy to Pantheon` job | `https://pr-<N>-yalesites-platform.pantheonsite.io` |
 | `component-library-twig` | Netlify deploy preview of Storybook | `https://deploy-preview-<N>--dev-component-library-twig.netlify.app` |
-| `atomic` | nothing of its own — the **yalesites-project** multidev | the multidev URL |
-| `tokens` | nothing of its own — the **CLT** preview and/or the multidev | whichever companion PRs exist |
+| `atomic` | the multidev of its **cross-linked yalesites-project PR** | that PR's multidev URL |
+| `tokens` | usually nothing — see below | often no link to give |
 
-**Only yalesites-project and component-library-twig build a preview.** `atomic` and `tokens`
-have no deploy workflow at all, so their PRs are testable only through a companion PR. The
-yalesites-project `build_frontend` step requires `dev-<branch>` of atomic and clones the
-matching-name CLT branch when either exists, which is what carries a companion change into
-the multidev; `tokens` reaches the multidev only indirectly, through the CLT branch that
-consumes it. **If a companion PR does not exist, there is no preview to link — say so in the
-step rather than linking a URL that will 404.**
+**Only yalesites-project and component-library-twig build a preview of their own.** Neither
+`atomic` nor `tokens` has a deploy workflow, so a change there is seen through a companion
+PR's environment.
+
+**An atomic PR should be cross-linked to a yalesites-project PR, and that PR's multidev is
+the one to target.** This is not a special case to work around — Step 3 already detects the
+matching-name branch and Step 6 already writes the `Other work completed in:
+yalesites-org/yalesites-project#NNN` line, so the number needed for the URL is the number
+that line carries. yalesites-project's `build_frontend` requires `dev-<branch>` of atomic
+when that branch exists, which is what puts the theme change into the multidev. If an atomic
+change has no companion yalesites-project PR, the gap is the missing PR, not the missing
+link: an atomic change is not reviewable outside a site that renders it, so raise that rather
+than shipping testing steps with nowhere to go.
+
+**A tokens PR usually has no site to point at.** Tokens reaches the multidev only
+indirectly, through the CLT branch that consumes it, so unless companion CLT and
+yalesites-project PRs exist there is genuinely nothing to link — say so in the step instead
+of linking a URL that will 404.
 
 **`<N>` is the PR number of the repo that owns the environment, not the PR you are
 writing.** The multidev URL always takes the yalesites-project PR number and the Netlify
