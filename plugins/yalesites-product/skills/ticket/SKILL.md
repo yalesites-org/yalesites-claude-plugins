@@ -132,10 +132,15 @@ Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
 | `laura-johnson` | Laura Johnson, Four Kitchens | Development work. Four Kitchens is our outside dev partner, so weigh in-house capacity before routing here by default. |
 | `atiddei` | April | UX work: flows, interface design, research-driven changes. |
 | `ntay90` | Nick Taylor | Accessibility. Anything needing WCAG 2.1 AA validation or an a11y review. |
-| `chrissuquie` | Chris Suquilanda | Communications workstream: release emails, training emails, office hours, yalesites.yale.edu content. |
+| `alyssadechiaro` | Alyssa DeChiaro | Events and Localist: channels, imports, event content and display. |
+| `chrissuquie` | Chris Suquilanda | Communications workstream (release emails, training emails, office hours, yalesites.yale.edu content), and a lot of feature requests and bug reports, since he works the ServiceNow queue. |
+| `rachel-is-at-yale` | Rachel | Same shape as Chris: support intake off the ServiceNow queue, so a lot of feature requests and bug reports, plus mailing list and support-page work. |
 | `miketullo95` | Mike Tullo, Product Manager | PM-owned tickets, release coordination, ticket grooming follow-ups. |
 
-Accessibility work in particular is easy to leave unrouted: if a ticket carries an accessibility acceptance criterion or the `accessibility-bug` label and nobody is named, suggest `ntay90`.
+Two routing habits worth keeping:
+
+- **Accessibility is easy to leave unrouted.** If a ticket carries an accessibility acceptance criterion or the `accessibility-bug` label and nobody is named, suggest `ntay90`.
+- **A ticket that came in through ServiceNow usually stays with whoever filed it.** `Feature Request:` and `Bug:` tickets often originate with Chris or Rachel working the support queue. If the user is grooming one of theirs, keep them on it rather than reassigning, since they hold the reporter context and will be the one closing the loop with the requester.
 
 Also offer **"leave it unassigned for now"** as a real option. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
 
