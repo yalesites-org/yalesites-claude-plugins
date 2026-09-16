@@ -126,12 +126,16 @@ Always ask whether the ticket should go to someone, rather than creating it unas
 
 Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
 
-| Handle | Usually gets |
-|--------|--------------|
-| `dblanken-yale` | Development work. The lead developer, and the default for anything that needs code written. |
-| `miketullo95` | Michael, the Product Manager. PM-owned tickets, release coordination, ticket grooming follow-ups. |
-| `laura-johnson` | Design, UX, and front-end/editor-interface work (WYSIWYG, Layout Builder UI, tokens and Storybook). |
-| `chrissuquie` | Communications workstream: release emails, training emails, office hours, yalesites.yale.edu content. |
+| Handle | Who | Usually gets |
+|--------|-----|--------------|
+| `dblanken-yale` | David Blankenship, lead developer (Yale) | Development work. The default for anything that needs code written. |
+| `laura-johnson` | Laura Johnson, Four Kitchens | Development work. Four Kitchens is our outside dev partner, so weigh in-house capacity before routing here by default. |
+| `atiddei` | April | UX work: flows, interface design, research-driven changes. |
+| `ntay90` | Nick Taylor | Accessibility. Anything needing WCAG 2.1 AA validation or an a11y review. |
+| `chrissuquie` | Chris Suquilanda | Communications workstream: release emails, training emails, office hours, yalesites.yale.edu content. |
+| `miketullo95` | Mike Tullo, Product Manager | PM-owned tickets, release coordination, ticket grooming follow-ups. |
+
+Accessibility work in particular is easy to leave unrouted: if a ticket carries an accessibility acceptance criterion or the `accessibility-bug` label and nobody is named, suggest `ntay90`.
 
 Also offer **"leave it unassigned for now"** as a real option. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
 
