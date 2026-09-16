@@ -392,6 +392,18 @@ gh pr list --repo yalesites-org/yalesites-project --base master --state merged -
 
 Confirm with the user which of these is *the* release being reconciled, and note its merge timestamp. Anything merged to `develop` after that timestamp is in the *next* release and must not be touched.
 
+**Scope the run by milestone.** Milestones in `YaleSites-Internal` map to releases (`09-16-26 Feature Release` is v2.26.0), which is far more tractable than reconciling the whole `Ready for Release (in dev)` column at once. Treat the milestone as a good but not perfect source of truth — it's set by hand, so a ticket can be in the wrong one.
+
+```bash
+gh api repos/yalesites-org/YaleSites-Internal/milestones --paginate -X GET -f state=all -f per_page=100 \
+  --jq '.[] | "\(.number)\t\(.title)\topen=\(.open_issues) closed=\(.closed_issues)\tdue=\(.due_on)"'
+
+gh issue list --repo yalesites-org/YaleSites-Internal --milestone "09-16-26 Feature Release" \
+  --state all --limit 300 --json number,title,state,labels,issueType > milestone.json
+```
+
+Because the milestone can be wrong in either direction, the buckets in Step 5 still decide the outcome. A ticket in the milestone whose code isn't in `master` does not move, and a ticket outside the milestone whose code *is* in `master` is still worth reporting.
+
 Then make sure the local checkout can answer ancestry questions. The `yalesites-project` clone usually tracks `develop` only, so `master` may not exist as a remote-tracking ref:
 
 ```bash
@@ -425,10 +437,10 @@ for repo in yalesites-project atomic component-library-twig; do
 done
 ```
 
-The team's PR titles start with the issue number (`1518: Section Color: ...`), so the join key is a leading-number match:
+The team's PR titles start with the issue number, in **two conventions** — `1518: Section Color: ...` and the older `#1232 :: Bug: Site-Wide Alert ...`. Match both or you will miss roughly one in ten:
 
 ```bash
-jq -r '.[] | select(.title|test("^[0-9]{3,4}:")) | "\(.title|capture("^(?<n>[0-9]+):").n)\t\(.number)\t\(.mergeCommit.oid)\t\(.baseRefName)"' prs-yalesites-project.json
+jq -r '.[] | select(.title|test("^#?[0-9]{3,4} *(:|::)")) | "\(.title|capture("^#?(?<n>[0-9]+)").n)\t\(.number)\t\(.mergeCommit.oid)\t\(.baseRefName)"' prs-yalesites-project.json
 ```
 
 For board items with no title match, fall back to the issue timeline, which gives real linkage rather than full-text guessing:
@@ -446,7 +458,30 @@ gh api repos/yalesites-org/YaleSites-Internal/issues/NNNN/timeline \
 
 ### Step 4: Verify each item actually shipped
 
-Ship verification keys on the **`yalesites-project`** PR. `atomic` and `component-library-twig` changes reach production through the `yalesites-project` dependency bump, so a merged `atomic` PR on its own proves nothing about the release.
+Ship verification keys on the **`yalesites-project`** PR wherever one exists. A merged `atomic` or `component-library-twig` PR on its own proves nothing, because those reach production only through a version bump.
+
+**For tickets whose only PRs are in `atomic` or `component-library-twig`, walk the release chain.** It is three hops, and each one is a pin you can read out of `master`:
+
+```bash
+# hop 1: which atomic release does master pin?
+git show origin/master:web/profiles/custom/yalesites_profile/composer.json | grep atomic
+# -> "yalesites-org/atomic": "1.84.0"   (tags are prefixed: v1.84.0)
+
+# hop 2: which component-library-twig version is inside that atomic release?
+# package.json only gives a caret range, so read the lock file for the resolved version
+gh api "repos/yalesites-org/atomic/contents/package-lock.json?ref=v1.84.0" --jq .content \
+  | base64 -d | python3 -c "import json,sys; d=json.load(sys.stdin)['packages']; print(d['node_modules/@yalesites-org/component-library-twig']['version'])"
+# -> 1.85.0
+```
+
+Then a satellite PR shipped if its merge commit is contained in that release's tag:
+
+```bash
+gh api repos/yalesites-org/atomic/compare/v1.84.0...<mergeCommit> --jq '.status'
+gh api repos/yalesites-org/component-library-twig/compare/v1.85.0...<mergeCommit> --jq '.status'
+```
+
+Note the version skew is real and not a mistake: atomic 1.84.0 carries CLT 1.85.0. Never assume the two track each other, and never compare a CLT commit against an atomic tag.
 
 Locally, when the commit is present:
 
@@ -520,6 +555,21 @@ Broader backlog problems — tickets with no acceptance criteria, missing board 
 - How many items moved to `Done`, and how many were left alone
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
 - Whether workflow `02-pr-status-monitor` is still dormant — if this phase keeps having to do its job by hand, that's the fix worth ticketing
+
+### What a real run looks like
+
+The first run of this phase, against v2.26.0 (milestone `09-16-26 Feature Release`, 187 issues), to calibrate what to expect:
+
+| Bucket | Count |
+|---|---|
+| A — confirmed shipped, eligible for `Done` | 109 |
+| B — board said released, code not in `master` | 4 |
+| C — shipped but open in another status | 8 |
+| D — undetermined | 2 |
+| Shipped, already closed, never on the board | 10 |
+| In the milestone but not release-ready | 13 |
+
+Three of the four bucket-B items were children of the same epic (#1616 Section Color), all sitting on the `1616-section-color-parity` branch while the board showed them as released. That clustering is the tell: when several bucket-B items share a branch, the epic is mid-flight and its children's board status ran ahead of the code. Check for that pattern before reporting them as four separate problems.
 
 ---
 
