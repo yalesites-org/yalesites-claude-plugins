@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks who the ticket should be assigned to and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -51,9 +51,9 @@ Search these when you need implementation context, but always write the issue de
 
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool. Batch them: one `AskUserQuestion` call carrying a question per unanswered field is much less tedious than five separate round trips.
+Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool. Batch them: one `AskUserQuestion` call carrying a question per unanswered field is much less tedious than six separate round trips.
 
-Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Assignee and the `claude` label decide who (or what) actually picks it up.
+Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
 
 ### Status (project board column)
 
@@ -91,6 +91,34 @@ If not specified, ask: *"What priority should this be — Hotfix, High, Medium, 
 Valid options: `XS` · `S` · `M` · `L` · `XL`
 
 If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"*
+
+### Milestone
+
+Every ticket should land in a milestone. Ask which one, and **lead with the next upcoming feature release** as the recommended answer: the open milestone whose title follows the `MM-DD-YY Feature Release` pattern and whose due date is the soonest one still ahead of today.
+
+Read the live list rather than working from memory, because the dates move and releases close:
+
+```bash
+gh api repos/yalesites-org/YaleSites-Internal/milestones --paginate \
+  -q '.[] | "\(.number)\t\(.title)\tdue=\(.due_on)\topen=\(.open_issues)"'
+```
+
+Three kinds of milestone show up in that list, and only the first is ever a valid default:
+
+| Kind | Examples | When it's right |
+|------|----------|-----------------|
+| **Dated release** | `12-08-26 Feature Release`, `07-07-26 Drupal 10.6 Release` | The normal case. This is what "next upcoming release" means. |
+| **Initiative** | `Views Block Rework`, `Drupal AI Migration` | Only when the ticket is a child of that epic or initiative. Don't pick one just because it happens to be open. |
+| **Catch-all bucket** | `Ready For Work`, `Backlog` | The work is real but genuinely unscheduled. These carry sentinel due dates far in the future (2030), so they'll never win a soonest-due-date sort. Don't let one become the default by accident. |
+
+Two traps when working out which release is "next":
+
+- **A due date that has already passed, or is today, is not upcoming.** The current release milestone stays open through and past its due date while the release ships and late fixes land, so the smallest due date in the list is often the one that's already going out the door. Sort only on due dates still ahead of today.
+- **Don't drop new feature work into a release that's already in its RC window.** Once RC testing has started, only fixes for that release belong in it; new feature work goes to the release after. If you can't tell whether a release is locked, ask instead of assuming.
+
+If not specified, ask: *"What milestone should this go in?"* Offer the next upcoming feature release first as the recommendation, with the current in-flight release and "no milestone for now" as the alternatives.
+
+For an **epic**, the milestone is a scoping decision rather than a routine field, and the epic's own clarifying questions already cover it (Step 1 under "Creating an Epic": YaleSites epics ship as a single unit in one milestone). Don't ask for it twice.
 
 ### Assignee
 
@@ -155,16 +183,19 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
 
 **Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
 
-### Writing the assignee and the `claude` label
+### Writing the milestone, assignee, and `claude` label
 
-Neither of these is a Project v2 field, so neither needs `gh project item-edit`. Both live on the issue itself:
+None of these three is a Project v2 field, so none of them needs `gh project item-edit`. All three live on the issue itself:
 
 ```bash
+gh issue edit <number> --repo yalesites-org/YaleSites-Internal --milestone "12-08-26 Feature Release"
 gh issue edit <number> --repo yalesites-org/YaleSites-Internal --add-assignee dblanken-yale
 gh issue edit <number> --repo yalesites-org/YaleSites-Internal --add-label claude
 ```
 
-Both can also be set at creation time by passing `assignees` and `labels` to `mcp__github__create_issue`, or after the fact with `mcp__github__update_issue`. If you use `update_issue`, remember it replaces the whole label array: fetch the issue's current labels first and send the complete list, or you'll silently drop the ones already on it.
+`gh issue edit --milestone` takes the milestone's **title**, matched exactly. `mcp__github__create_issue`/`update_issue` take the milestone's **number** instead, so grab it from the `gh api .../milestones` listing above rather than passing the title.
+
+All three can also be set at creation time via `mcp__github__create_issue` (`milestone`, `assignees`, `labels`), or after the fact with `mcp__github__update_issue`. If you use `update_issue`, remember it replaces the whole label array: fetch the issue's current labels first and send the complete list, or you'll silently drop the ones already on it.
 
 For the full board reference — reading current values, the `project` scope requirement, which skill owns which lifecycle transition, and the known gaps — see `references/board-status.md`. **Only set the fields this skill is responsible for (the ones the user confirmed at creation/grooming time). Don't advance a ticket through the workflow as a side effect of grooming it.**
 
@@ -468,6 +499,7 @@ Before submitting or updating an issue, check:
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
 - [ ] Relevant labels are applied
+- [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first
 - [ ] Assignee is set, or the user explicitly chose to leave it unassigned
 - [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
