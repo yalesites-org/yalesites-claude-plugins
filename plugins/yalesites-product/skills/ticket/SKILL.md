@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks who the ticket should be assigned to and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -51,9 +51,9 @@ Search these when you need implementation context, but always write the issue de
 
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt included **Status**, **Priority**, and **Size**. If any of these are missing, ask for them upfront using the `AskUserQuestion` tool — one question per missing field, or a single question covering all missing ones if there are multiple.
+Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool. Batch them: one `AskUserQuestion` call carrying a question per unanswered field is much less tedious than five separate round trips.
 
-Do not guess or default these values silently. These fields directly affect how the ticket is prioritized and sequenced in the project board, so getting them right from the user matters.
+Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Assignee and the `claude` label decide who (or what) actually picks it up.
 
 ### Status (project board column)
 
@@ -92,7 +92,45 @@ Valid options: `XS` · `S` · `M` · `L` · `XL`
 
 If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"*
 
-Once you have all three values confirmed, proceed with grooming.
+### Assignee
+
+Always ask whether the ticket should go to someone, rather than creating it unassigned by default. An unassigned ticket is easy to lose in the backlog.
+
+Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
+
+| Handle | Usually gets |
+|--------|--------------|
+| `dblanken-yale` | Development work. The lead developer, and the default for anything that needs code written. |
+| `miketullo95` | Michael, the Product Manager. PM-owned tickets, release coordination, ticket grooming follow-ups. |
+| `laura-johnson` | Design, UX, and front-end/editor-interface work (WYSIWYG, Layout Builder UI, tokens and Storybook). |
+| `chrissuquie` | Communications workstream: release emails, training emails, office hours, yalesites.yale.edu content. |
+
+Also offer **"leave it unassigned for now"** as a real option. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
+
+If the handle you want isn't one of these, pull the current list rather than guessing at spelling:
+
+```bash
+gh api repos/yalesites-org/YaleSites-Internal/assignees --jq '.[].login'
+```
+
+If the ticket belongs to someone who isn't on GitHub yet, assign it to the requester as a placeholder (see the workflow notes above) and say that's what you did.
+
+### Claude pickup (the `claude` label)
+
+The `claude` label is defined on the repo as *"tickets that are fully groomed and can be taken from a claude agent to be worked on asynchronously."* Applying it puts the ticket in the pool the dev team's Claude agent pulls work from, so it is an actual handoff, not a category tag.
+
+Always ask before applying it: *"Do you want to tag this `claude`, so the dev team's Claude agent can pick it up and work it asynchronously?"*
+
+Two things have to be true before it goes on:
+
+- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Size, and Type all present, and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
+
+On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
+
+Assignee and `claude` are independent: a ticket can be both assigned to a person and tagged for agent pickup, so ask both questions rather than treating one as the answer to the other.
+
+Once the values are confirmed, proceed with grooming.
 
 **Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Size to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
 
@@ -116,6 +154,17 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
 4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
 
 **Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
+
+### Writing the assignee and the `claude` label
+
+Neither of these is a Project v2 field, so neither needs `gh project item-edit`. Both live on the issue itself:
+
+```bash
+gh issue edit <number> --repo yalesites-org/YaleSites-Internal --add-assignee dblanken-yale
+gh issue edit <number> --repo yalesites-org/YaleSites-Internal --add-label claude
+```
+
+Both can also be set at creation time by passing `assignees` and `labels` to `mcp__github__create_issue`, or after the fact with `mcp__github__update_issue`. If you use `update_issue`, remember it replaces the whole label array: fetch the issue's current labels first and send the complete list, or you'll silently drop the ones already on it.
 
 For the full board reference — reading current values, the `project` scope requirement, which skill owns which lifecycle transition, and the known gaps — see `references/board-status.md`. **Only set the fields this skill is responsible for (the ones the user confirmed at creation/grooming time). Don't advance a ticket through the workflow as a side effect of grooming it.**
 
@@ -293,6 +342,8 @@ Choose one:
 
 Apply all relevant labels: `ai-engine` `feedback` `vendor-build` `accessibility-bug` `opac` (add others as applicable)
 
+`claude` is a workflow label, not a descriptive one. It only goes on when the user has explicitly confirmed it and the ticket clears the bar in "Claude pickup" above. Never add it as part of a routine "apply all relevant labels" sweep.
+
 ---
 
 ## Creating an Epic
@@ -417,6 +468,8 @@ Before submitting or updating an issue, check:
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
 - [ ] Relevant labels are applied
+- [ ] Assignee is set, or the user explicitly chose to leave it unassigned
+- [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
 
 For epics specifically, also run through the Epic Quality Bar above.
