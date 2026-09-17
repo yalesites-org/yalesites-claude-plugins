@@ -92,7 +92,7 @@ Run these across every open ticket. No bodies needed.
 
 ## Step 3: Deep checks on a bounded candidate set
 
-Only now fetch bodies, and only for tickets that failed a Step 2 check or look thin. **Cap this at about 40 tickets per run**, prioritizing tickets that are closest to being worked (`Ready For Work`, `To Do`) over ones buried in `Backlog`. Say in the report how many you examined and how many you skipped.
+Only now fetch bodies, and only for tickets that failed a Step 2 check or look thin. **Cap this at about 40 tickets per run**, prioritizing tickets that are closest to being worked (`To Do`) over ones buried in `Backlog`. Say in the report how many you examined and how many you skipped.
 
 ```bash
 gh issue view NNNN --repo yalesites-org/YaleSites-Internal --json number,title,body,labels
@@ -212,4 +212,4 @@ This skill is safe to run unattended because it's read-only. For a recurring Cow
 
 - Weekly or biweekly is enough. The backlog doesn't rot fast, and a daily report trains people to ignore it.
 - It holds no state between runs, so the same finding reappears until someone acts on it. That's intentional. If the repetition gets noisy, scope a run to tickets created or updated since a given date rather than trying to track what was already reported.
-- A good default scheduled scope is tickets in `Ready For Work` and `To Do`, which is where bad tickets actually cost the team time, rather than the whole backlog.
+- A good default scheduled scope is tickets in `To Do`, which is where bad tickets actually cost the team time, rather than the whole backlog.
