@@ -318,6 +318,30 @@ Views can be slow if misconfigured on large datasets:
 
 ---
 
+## Manage Content Admin Views
+
+Separate from the Views *blocks* editors place in the Layout Builder, each content type has a Manage screen under `/admin/content/manage-*` (Pages, Posts, Events, Profiles, Resources). Two v2.26 changes apply to all five.
+
+**CAS Protected column and filters.** Every Manage view now shows a CAS Protected column beside Published, and exposes filters for Tags, Audience, Custom Vocab, and that type's own category field. This makes login-restricted content auditable without opening each item.
+
+**Export to CSV.** Each Manage screen has an Export to CSV action at `/admin/content/manage-<type>/export`, requiring the `yalesites manage settings` permission. **The export honours the filters applied on screen**, so it exports the filtered set, not the whole content type.
+
+Column order:
+
+| Position | Column |
+|---|---|
+| 1 | Title |
+| 2 | Date column, Events only (Dates) and Resources only (Resource Publication Date) |
+| 3 | URL |
+| 4 | Published |
+| 5 | CAS Protected |
+| 6 | Tags, Audience, Custom Vocab |
+| 7 | Type-specific: Category (Page, Post), Event Category, Resource Category, Affiliation (Profile) |
+
+**Future-dated Posts (v2.26 fix):** Posts with a publish date in the future no longer appear in Post feeds or View blocks before that date. Posts dated today still show. Events are unaffected by this change.
+
+---
+
 ## Views Configuration Path on YaleSites
 
 All Views configuration for site editors and administrators happens in the Layout Builder:

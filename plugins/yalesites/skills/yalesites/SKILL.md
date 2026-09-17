@@ -231,6 +231,8 @@ Content Collections are a secondary navigation system for sites that have sectio
 
 **Display options:** The collection nav can be configured to appear in the header (below the main nav) or as a sidebar element, depending on the site's layout settings.
 
+**Menu link title (v2.26):** A page in a collection can be given its own menu link title, separate from the page title, so a long or technical page title doesn't have to be what appears in the collection nav.
+
 **Key distinction:** Content Collections are for grouping and cross-linking related pages — NOT the same as the main menu. A page can be in both the main menu and a Content Collection; they serve different purposes.
 
 ---

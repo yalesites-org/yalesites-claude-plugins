@@ -39,7 +39,7 @@ General department pages, about pages, and standard site sections.
 | Field Label | Required | Notes |
 |---|---|---|
 | **Title** | Yes | |
-| **Category** | No | Taxonomy (page_category vocabulary) |
+| **Category** | No | Taxonomy (page_category vocabulary). As of v2.26 the vocabulary ships with a description and six starter terms: Featured, About, Research, Academics, Contact, Landing Page. Before that the dropdown was empty on new sites. Site admins can still add their own terms. |
 | **Audience** | No | *(shared)* |
 | **Custom Vocab** | No | *(shared)* |
 | **Tags** | No | *(shared)* |
@@ -50,6 +50,8 @@ General department pages, about pages, and standard site sections.
 | *(Sidebar)* **External Source** | No | *(shared)* |
 | **URL alias** | No | *(shared)* |
 | **Metadata** | No | *(shared)* |
+
+**Metatag groups (v2.26):** Post and Resource were showing extra metatag groups in Manage Settings. Both now show Basic Tags plus AI Meta data only, matching Page.
 
 **Note:** "Collection Navigation Display" is a required field unique to Page — it determines whether the secondary/collection navigation renders inside the content area or in the site header.
 
