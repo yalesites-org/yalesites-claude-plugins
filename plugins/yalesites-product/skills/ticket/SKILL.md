@@ -185,12 +185,23 @@ Every issue needs a clear title, a TL;DR line, then these six fields, in this or
 
 ### How this reads on GitHub
 
-An issue is opened and skimmed by people across the team, most of them non-technical. Compose the body per `references/github-communication-format.md`:
+An issue is opened and skimmed by people across the team, most of them non-technical. Compose the body per two files in `references/`: `github-communication-format.md` for the structure, and `github-writing.md` for the words. Read both before drafting.
+
+`github-writing.md` is where the plain-language rules live: 20-word acceptance criteria, 25-word descriptive sentences, active voice, the word-swap table, and a 400-word budget on the visible layer of a ticket. The short version is that depth is free once it is collapsed, and the visible layer has to earn every word.
 
 - **First line of the body is a TL;DR** — one or two plain-language sentences saying what the work is and why it matters. No Drupal jargon. This is the part everyone actually reads.
 - **Keep visible:** the TL;DR, the Description, and the full Acceptance Criteria. Developers and QA work straight from the Acceptance Criteria, so it never gets collapsed.
 - **Collapse into a named `<details>` block** (for example `<summary><b>Background and analysis</b></summary>`): the Platform Fit Check write-up, the archetype and UX-research reasoning from Step 1b, implementation context pulled from the repos, and links to prior art. The *conclusions* that change the work still surface in the Description and Acceptance Criteria; the supporting analysis sits in the collapsed block.
 - One exception stays visible: an "already exists" or "conflicts with platform direction" flag from Step 3 (see below) goes as a short note directly under the TL;DR, not inside the collapsed block, because it gates whether the ticket should be scoped at all.
+- **Close with a `<!-- yalesites:agent -->` block** carrying the refs the next agent would otherwise re-derive: related issue and PR numbers, the epic or child links, and the platform-fit verdict as a flag. It is invisible on the rendered page. See the machine-only block section of `github-communication-format.md` for the rules, including what must never go in it.
+
+**Check the draft before posting:**
+
+```bash
+python3 scripts/check-github-text.py draft.md --surface ticket
+```
+
+It flags em dashes, over-length criteria, banned words, a missing or bloated TL;DR, `<details>` blocks that will not render, and anything unsafe in the machine block. Findings are candidates, not verdicts: fix what is real, and say so if you are overriding one.
 
 ---
 

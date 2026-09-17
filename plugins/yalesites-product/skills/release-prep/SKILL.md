@@ -63,7 +63,9 @@ Internal tasks (migrations, CI work, dependency updates) are omitted from user-f
 
 ### Format
 
-The release notes comment is read by the whole community. Per `references/github-communication-format.md` (in the `ticket` skill's `references/` directory, same `yalesites-product` plugin): lead with a TL;DR, keep the Featured Feature visible, and collapse the longer lists (New Features & Enhancements, Bug Fixes, PRs Included) into named `<details>` blocks so the top of the comment stays short.
+The release notes comment is read by the whole community, and it is the least technical audience we write for. Per `references/github-communication-format.md` (in the `ticket` skill's `references/` directory, same `yalesites-product` plugin): lead with a TL;DR, keep the Featured Feature visible, and collapse the longer lists (New Features & Enhancements, Bug Fixes, PRs Included) into named `<details>` blocks so the top of the comment stays short. Put the PR list as structured refs, the milestone, and the featured-feature issue in a closing `<!-- yalesites:agent -->` block as well, so a later release or sync pass can read them without parsing prose.
+
+Write it per `references/github-writing.md` in the same directory: plain language, active voice, an 80-word TL;DR, and a 500-word budget on the visible layer. Lead each item with what changed for the reader, not with what the team did. "Galleries now accept alt text" beats "we implemented an alt-text field on the gallery paragraph." Check the draft with `python3 scripts/check-github-text.py notes.md --surface release-notes`.
 
 ```
 ## YaleSites v[X.X] in Collaboration with [Partner]

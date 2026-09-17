@@ -4,6 +4,10 @@ See `github-communication-format.md` for the reasoning: the body leads with a TL
 the "Description of work" bullets and "Functional testing steps" visible, and pushes any
 granular change notes into a collapsed `Detailed changes` block.
 
+See `github-writing.md` for the words: active voice, simple tenses, no em dashes, the
+word-swap table, and 350 words as the budget for everything visible before a reviewer
+expands anything.
+
 See `preview-urls.md` for the testing steps: link a step's text to the exact multidev route
 or Storybook story it exercises, so the reviewer lands on the work instead of hunting for
 it. The URLs below carry real PR numbers only once the PRs exist and the skill

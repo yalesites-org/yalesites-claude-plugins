@@ -84,11 +84,15 @@ If a ticket in scope needs both (an edit to the direct ticket, and a separate co
 
 **Comments:** `mcp__github__add_issue_comment`, or `gh issue comment {NNN} --repo yalesites-org/YaleSites-Internal --body "..."`.
 
-**Format both per `references/github-communication-format.md`** (in the `ticket` skill's `references/` directory, same `yalesites-product` plugin):
+**Format both per `references/github-communication-format.md`, and write both per `references/github-writing.md`** (both in the `ticket` skill's `references/` directory, same `yalesites-product` plugin). The format file governs what is visible, collapsed, or machine-only. The writing file governs sentence length, active voice, and the word swaps. A sync comment is a `ticket`-surface artifact for budget purposes:
 
 - A **comment** opens with a one-line TL;DR of what changed or what is now accurate ("The role-gating criterion was dropped in review; this comment records that."). The before/after reasoning, the PR or decision trail, and cross-references go in a named `<details>` block below it.
 - An **edit** leaves the reconciled section reading cleanly, as if it had always said this. Don't wedge an explanatory aside into the section body. If the "why did this change" is worth preserving, add it as a short collapsed note at the end of the section or as a separate companion comment.
 - When keeping a ticket's TL;DR line accurate is itself part of the reconciliation (the summary at the top no longer matches the work), that counts as an edit.
+
+- The comparison itself (what was checked against what, and the PR or decision that triggered the sync) belongs in the `<!-- yalesites:agent -->` block at the bottom, not in the prose. The next sync pass reads it; a person does not need it.
+
+Run `python3 scripts/check-github-text.py draft.md --surface ticket` (script in the `ticket` skill's `scripts/` directory) before posting either one.
 
 **Parent epic updates** are a separate write from the child ticket's — don't fold an epic's `Scope`/`Child Tickets` correction into the same edit call as the child ticket's own update.
 

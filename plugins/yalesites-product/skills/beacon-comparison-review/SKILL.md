@@ -119,6 +119,13 @@ cutover, a model upgrade, holding at the status quo) rather than reading for int
 - Load the `michael-voice` skill when this is meant to be sent onward as-is (an email, a
   message to a director) — casual but professional, "we" not "I," lead with the point,
   no em dashes.
+- If this is going onto GitHub rather than into a document, follow
+  `references/github-writing.md` and `references/github-communication-format.md` (in the
+  `ticket` skill's `references/` directory, same plugin): an 80-word TL;DR, a 600-word
+  visible budget, the per-question detail in named `<details>` blocks, and the findings
+  as structured records (id, severity, location) in a closing `<!-- yalesites:agent -->`
+  block. Check it with
+  `python3 scripts/check-github-text.py summary.md --surface report`.
 - Point to the detailed themes for anyone who wants to go deeper, rather than omitting
   that layer because the summary stands alone.
 

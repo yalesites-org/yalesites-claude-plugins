@@ -32,6 +32,23 @@ description: When Claude should activate this skill (be specific).
 
 Run `bash scripts/validate-plugins.sh` from the repo root before opening a PR.
 
+## Shared Writing Standards
+
+If your plugin has a skill that posts to GitHub (an issue, a PR body, a review, a
+release note, a report), it must follow the standards in `/standards` at the repo root.
+
+Add the plugin to the `TARGETS` array in `scripts/sync-standards.sh`, pointing at the
+skill directory that hosts the shared files, then run:
+
+```bash
+bash scripts/sync-standards.sh
+```
+
+Never hand-edit the copies under `plugins/`. They are generated, and CI fails on drift.
+To change a rule, edit `/standards/github-writing.md` or
+`/standards/github-communication-format.md` and re-sync. A rule change is a `MINOR` bump
+for every plugin that carries a copy.
+
 ## Versioning
 
 Bump `version` in `plugin.json` with every PR:

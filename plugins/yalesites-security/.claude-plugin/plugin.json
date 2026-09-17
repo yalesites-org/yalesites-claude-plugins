@@ -1,6 +1,6 @@
 {
   "name": "yalesites-security",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Security tooling for YaleSites projects — currently supply-chain auditing (malicious-package detection via live OSV.dev and GitHub malware advisories), distinct from ordinary CVE scanning.",
   "author": {
     "name": "Yale ITS Digital Experiences",

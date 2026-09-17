@@ -34,6 +34,21 @@ The skill's logic is **general-purpose** — it works on any codebase, not just 
 - `curl` for the OSV.dev API (no authentication required)
 - The relevant ecosystem tooling for native audits (`npm`, `composer`, `pip`, etc.)
 
+## Writing standard
+
+When an audit report is posted to GitHub, it follows the shared YaleSites GitHub writing
+standard, bundled as `skills/supply-chain-audit/references/github-writing.md` and
+`github-communication-format.md`: an 80-word TL;DR, findings that need action visible and
+ordered by severity, package-by-package evidence in `<details>` blocks, and structured
+finding records in a closing `<!-- yalesites:agent -->` block.
+
+```bash
+python3 skills/supply-chain-audit/scripts/check-github-text.py report.md --surface report
+```
+
+Both reference files and the script are generated from `standards/` at the repo root.
+Edit the canonical copies there, then run `bash scripts/sync-standards.sh`.
+
 ## Maintainer
 
 Yale ITS Digital Experiences —

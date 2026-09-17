@@ -55,6 +55,26 @@ knowledge that the workflow skills reference:
 | `beacon-test-bank` | A full tiered test bank with guardrails, safety, and edge-case coverage |
 | `beacon-comparison-review` | Analyzing a Beacon AI Tester A/B comparison JSON export |
 
+## Writing standard
+
+Every skill here that posts to GitHub follows the shared YaleSites GitHub writing
+standard, bundled as `skills/ticket/references/github-writing.md` (words) and
+`github-communication-format.md` (structure). Tickets, sync comments, PR reviews, and
+release notes all lead with a short TL;DR, hold the visible layer to a word budget, push
+the depth into named `<details>` blocks, and close with an invisible
+`<!-- yalesites:agent -->` block for agent-to-agent payload.
+
+The sentence rules come from ASD-STE100 Simplified Technical English; the
+document-level test comes from ISO 24495-1 plain language. Verify a draft before posting:
+
+```bash
+python3 skills/ticket/scripts/check-github-text.py draft.md --surface ticket
+```
+
+Surfaces: `ticket`, `pr-body`, `pr-review`, `release-notes`, `report`. Both reference
+files and the script are generated from `standards/` at the repo root. Edit the canonical
+copies there, then run `bash scripts/sync-standards.sh`.
+
 ## Maintainer
 
 Yale ITS Digital Experiences —

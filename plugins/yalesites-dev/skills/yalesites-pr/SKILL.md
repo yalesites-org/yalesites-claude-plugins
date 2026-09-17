@@ -19,7 +19,7 @@ allowed-tools:
 
 # YaleSites PR
 
-Creates pull requests following YaleSites conventions. See references/pr-template.md for the full template, references/github-communication-format.md for how the body should read (TL;DR first, detail collapsed), and references/preview-urls.md for turning testing steps into links that land the reviewer on the change.
+Creates pull requests following YaleSites conventions. See references/pr-template.md for the full template, references/github-communication-format.md for how the body is structured (TL;DR first, detail collapsed, machine-only payload in an HTML comment), references/github-writing.md for the words themselves (sentence caps, word swaps, a 350-word budget on the visible layer), and references/preview-urls.md for turning testing steps into links that land the reviewer on the change.
 
 ## Steps
 
@@ -62,6 +62,14 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    For each repo, draft the full PR title and body using the template from references/pr-template.md, then **show the draft to the user and wait for explicit approval before running `gh pr create`**. Do not create any PR without confirmation.
 
    The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
+
+   Write the words per references/github-writing.md: plain sentences, active voice, no em dashes, and 350 words as the budget for everything a reviewer sees before expanding anything. The reader is a developer peer, so normal technical vocabulary is fine, but do not narrate the diff. The diff is already there.
+
+   Close the body with a `<!-- yalesites:agent -->` block holding the linked issue refs and any cross-repo companion branches. Check the draft before opening the PR:
+
+   ```bash
+   python3 scripts/check-github-text.py body.md --surface pr-body
+   ```
 
    **Write the testing steps as links** — a step that names a place should link to it, so the
    reviewer lands on the change instead of hunting for it. references/preview-urls.md has the

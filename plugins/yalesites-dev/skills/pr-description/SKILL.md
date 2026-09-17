@@ -51,6 +51,7 @@ When this command is invoked:
 3. **Fill in the template**:
    - **Preserve exact template structure** (headers, formatting, checkboxes)
    - **Add a `**TL;DR:**` line** immediately under the H2 title line, before the first template section: one or two sentences, plain language, what this PR does and why. This is the one thing a reviewer skimming the PR list will read. It is the only addition allowed on top of the template — see `../yalesites-pr/references/github-communication-format.md` for the full rationale.
+   - **Write every section per `../yalesites-pr/references/github-writing.md`**: active voice, simple tenses, no em dashes, the word-swap table, and 350 words as the budget for the visible layer. When a section runs past the budget, move the depth into a named `<details>` block rather than cutting the analysis. Verify with `python3 ../yalesites-pr/scripts/check-github-text.py body.md --surface pr-body`.
    - Replace ticket placeholder (`YSP-XXXX`, `XX`, etc.) with actual ticket number from branch
    - Replace "Title" placeholder with:
      - If GitHub issue was found: Use the title from `gh issue view`
