@@ -222,21 +222,55 @@ Ask the user directly if it isn't obvious from their feedback: is this ready to 
 
 Whichever way it goes, format the `body` per "How this reads on GitHub" above: TL;DR first, blocking items visible, everything else in named `<details>` blocks.
 
+Post the review with `gh`, not the GitHub connector. See "Why `gh`" below.
+
+**Always pass the body as a file on stdin, never as a `-b` string.** Review bodies contain
+backticks, `<details>` tags, and newlines. A double-quoted `-b` argument mangles the formatting
+and can trigger command substitution on the backticks. Use a quoted heredoc every time:
+
 **If approving:**
-- `mcp__github__create_pull_request_review` with `event: "APPROVE"` and the feedback (if any, approvals can be feedback-free) as `body`.
-- Update labels (see Step 8).
+
+```bash
+gh pr review NUMBER --repo yalesites-org/REPO --approve --body-file - <<'EOF'
+TL;DR: approving. One optional note about the empty state.
+...
+EOF
+```
+
+An approval can be feedback-free. In that case drop `--body-file` entirely rather than piping an
+empty body.
 
 **If requesting changes:**
-- `mcp__github__create_pull_request_review` with `event: "REQUEST_CHANGES"` and the actionable feedback from Step 4 as `body`.
-- Update labels (see Step 8).
+
+```bash
+gh pr review NUMBER --repo yalesites-org/REPO --request-changes --body-file - <<'EOF'
+TL;DR: requesting changes. Two blocking items, both about role gating.
+...
+EOF
+```
+
+`--request-changes` needs a body, so there is always something to pipe.
+
+Either way, update labels next (see Step 8).
+
+**Why `gh` and not the GitHub connector:** the connector's token has an intermittent write gap on
+these repos, a 403 "Permission Denied: Resource not accessible by personal access token," even
+though it reads fine. `gh` is authenticated with `repo` scope and `pr-prereview` already
+standardized on it for exactly this reason. Reads through the connector are fine. Writes go
+through `gh`.
+
+**Nobody can approve their own PR.** If the PR author is the person running this skill, `--approve`
+fails with "Can not approve your own pull request." Post the same body with `--comment` instead,
+tell the user the approval has to come from someone else, and still apply the Step 8 labels if
+that is what they decided.
 
 ## Step 7: @-mention the assigned developer
 
-Pull the assignee's GitHub login from `get_pull_request` (`assignee.login`, or `assignees[]` if more than one) and include `@login` in the comment body so they get notified. If there's no assignee set, mention this to the user rather than silently skipping the notification, an unassigned PR about to get review feedback is itself worth flagging.
+Pull the assignee's GitHub login from the `gh pr view` output in Step 1 (`assignees[].login`) and include `@login` in the comment body so they get notified. If there's no assignee set, mention this to the user rather than silently skipping the notification, an unassigned PR about to get review feedback is itself worth flagging.
 
 ## Step 8: Update labels
 
-`mcp__github__update_issue` takes a full replacement array for `labels`, **fetch the PR's current labels first** (from Step 1) and compute the new full list, don't just push the labels you're adding or you'll wipe out everything else on the PR (type labels, epic links, etc.).
+Labels go through `gh pr edit --add-label` / `--remove-label`, which are **incremental**: they touch only the labels you name and leave everything else on the PR (type labels, epic links, milestones) alone. There is no full-replacement array to get wrong here, so the old hazard of wiping a PR's labels by pushing a partial list does not exist.
 
 Rather than a simple remove-one/add-one swap, **reconcile the whole set of review-state labels** every time. A PR can arrive in an inconsistent state (e.g. still carrying `pass functional review` / `ready to merge` from an earlier pass that a fresh deep-dive now contradicts), so start by stripping *all* of these regardless of which are present, then add back only the ones that match the new outcome:
 
@@ -270,22 +304,42 @@ This matters in practice, a PR can look "ready to merge" on the label alone whil
 
 **Detecting a demo-only PR:** check the PR title (case-insensitive) for any of `MULTIDEV ONLY`, `DEMO ONLY`, `DO NOT MERGE`. These PRs aren't meant to ship, they're just for showing work on a multidev environment, so they get closed out instead of queued to merge.
 
-Apply the label update via `mcp__github__update_issue` with `owner`, `repo`, `issue_number` (the PR number, PRs share the issue numbering), and the recomputed `labels` array.
+Apply it in one call, passing each label as its own flag:
 
-## Step 9: Post it, and handle the permission gap
+```bash
+gh pr edit NUMBER --repo yalesites-org/REPO \
+  --remove-label "needs review" \
+  --add-label "pass functional review" \
+  --add-label "ready to merge"
+```
 
-Post the review from Step 6 and the label update from Step 8.
+Two `gh` behaviors to work with rather than around:
 
-**Known issue:** the GitHub connector's token has previously been unable to write (comment/review/label) on `yalesites-project` and other org repos, even though it can read fine, confirmed 403 "Permission Denied: Resource not accessible by personal access token." If `create_pull_request_review` or `update_issue` fails with a permission error, don't retry blindly. Instead:
+- **`--remove-label` should only name labels actually on the PR.** Step 1's `gh pr view` output
+  already tells you which are, so intersect the strip list above with what is really there
+  instead of passing all eight every time.
+- **`--add-label` fails on a label the repo does not define**, with `'X' not found`. That is a
+  feature: it is why picking `pass design review` for `yalesites-project`, or `ready to close`
+  for `component-library-twig`, errors loudly instead of silently creating a junk label on the
+  repo. Read the error as "wrong label for this repo," not as a transient failure to retry.
 
-1. Tell the user plainly that the write failed due to a token permission gap, and show them the drafted review body + label plan so nothing is lost.
-2. Walk them through creating a token with write access:
-   - Go to **GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → Generate new token**.
-   - Scope it to the relevant repo(s) (`yalesites-project`, `component-library-twig`, `atomic` as needed).
-   - Under **Repository permissions**, grant **Pull requests: Read and write** and **Issues: Read and write** (labels are an Issues permission even on a PR).
-   - Copy the generated token.
-   - In the app, go to the GitHub connector's settings and reconnect/update it with the new token (exact path may vary, look under Settings → Connectors → GitHub).
-3. Once reconnected, retry posting the same review and label update, don't make the user redo the analysis.
+## Step 9: Post it, and confirm it landed
+
+Post the review from Step 6 and the label update from Step 8, in that order.
+
+`gh` writes with the CLI's own credentials, so the GitHub connector's 403 write gap does not
+apply here. If a write does fail, read the error rather than retrying blindly:
+
+| Error | What it means | What to do |
+|---|---|---|
+| `gh: Not Found` or `HTTP 404` | Wrong repo for that PR number, and the number exists in more than one repo | Re-confirm the repo with the user, do not guess |
+| `Can not approve your own pull request` | The user authored it | Step 6's `--comment` fallback |
+| `'X' not found` on `--add-label` | That label is not defined in this repo | Step 8's per-repo tables, pick the right one |
+| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | `gh auth login`, needs `repo` scope, then retry |
+| Anything else | Unclear | Show the user the drafted body and label plan verbatim so nothing is lost, then ask |
+
+Whatever happens, **never make the user redo the analysis.** Keep the composed review body and
+the computed label set, and retry those exact artifacts once the cause is fixed.
 
 ## Step 9b: Check whether the linked ticket needs to catch up
 
@@ -305,7 +359,7 @@ After posting, report: a link to the review/comment, the final approval state, t
 
 - Multiple repos in scope means the same PR number can exist in more than one repo, always confirm which repo before acting if there's any doubt.
 - **Two or more PRs in one prompt means `references/batch-mode.md`**, not this file run in a loop. Running the steps above once per PR re-asks the same questions in series and, worse, invites a single blanket ruling at the end. Batch mode exists to collapse the reading and the testing while keeping the approve or request-changes call one explicit ruling per unit of work.
-- `update_issue`'s `labels` param replaces the entire label set, always start from the PR's current labels, not an empty list.
+- **All GitHub writes in this skill go through `gh`**, per Step 6. The connector's token has an intermittent 403 write gap on these repos while reading fine, which is a confusing failure to debug mid-review. Reads through the connector are fine. `gh pr edit`'s label flags are incremental, so unlike the old `update_issue` call there is no full label array to accidentally truncate.
 - This skill performs real, user-visible GitHub actions (a review, a notification, label changes). When in doubt about approve vs. request-changes, or about scope-creep questions, ask rather than assume.
 - The team's PR body format (e.g. `## [#1157 :: Title](url)`) is not a GitHub-recognized closing keyword (`Fixes #`, `Closes #`, etc.), so merged PRs do not auto-close their linked issue. Don't assume an issue is closed just because its PR merged, check or close it explicitly.
 - **This skill is the only approval gate.** `pr-prereview` can move a PR backward to `needs work` and back again, but it can never set a `pass` label, `ready to merge`, or `ready to close`, and it never submits a review event. If a PR arrives already carrying an approval label, that came from a human, so treat it as a real prior sign-off rather than something to walk back silently.

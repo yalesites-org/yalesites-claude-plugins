@@ -219,9 +219,10 @@ for `component-library-twig`. A unit spanning both repos needs both labels, each
 PR. Getting this wrong is batch mode's most likely mechanical error, so recompute the label set
 per PR from Step 8's tables rather than reusing the previous unit's.
 
-**Isolate posting failures.** If one unit hits the token permission gap in Step 9, report it,
-keep the drafted body and label plan, and continue the batch. Never abandon five posted reviews
-because the sixth failed to write.
+**Isolate posting failures.** If one unit's `gh` write fails, triage it against Step 9's error
+table, report it, keep the drafted body and computed label set, and continue the batch. Never
+abandon five posted reviews because the sixth failed to write. A `'X' not found` on a label is
+the one to watch for here: it means the label set got reused from a unit in a different repo.
 
 **Ticket sync once per ticket.** Step 9b runs per unit after its review posts. When several
 units in the batch hang off the same epic, hand `ticket-sync` all of them together so the epic
