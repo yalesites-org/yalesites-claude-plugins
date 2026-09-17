@@ -270,7 +270,9 @@ Pull the assignee's GitHub login from the `gh pr view` output in Step 1 (`assign
 
 ## Step 8: Update labels
 
-Labels go through `gh pr edit --add-label` / `--remove-label`, which are **incremental**: they touch only the labels you name and leave everything else on the PR (type labels, epic links, milestones) alone. There is no full-replacement array to get wrong here, so the old hazard of wiping a PR's labels by pushing a partial list does not exist.
+Labels go through `gh api ... -X PUT`, which **replaces the entire label set**. So **fetch the PR's current labels first** (Step 1 already did) and compute the new full list, don't just send the labels you're adding or you'll wipe out everything else on the PR (type labels, epic links, etc.).
+
+**Do not use `gh pr edit --add-label` / `--remove-label` here.** Removing and adding the same label in one call silently no-ops on that label: it comes back off the PR with no error. That is precisely this step's reconcile case, where a label like `pass functional review` is stripped with the rest of the review-state set and then added back for an approval, so the one label the approval depends on is the one that vanishes. Confirmed on `yalesites-project#1453`, 2026-08-12.
 
 Rather than a simple remove-one/add-one swap, **reconcile the whole set of review-state labels** every time. A PR can arrive in an inconsistent state (e.g. still carrying `pass functional review` / `ready to merge` from an earlier pass that a fresh deep-dive now contradicts), so start by stripping *all* of these regardless of which are present, then add back only the ones that match the new outcome:
 
@@ -304,24 +306,35 @@ This matters in practice, a PR can look "ready to merge" on the label alone whil
 
 **Detecting a demo-only PR:** check the PR title (case-insensitive) for any of `MULTIDEV ONLY`, `DEMO ONLY`, `DO NOT MERGE`. These PRs aren't meant to ship, they're just for showing work on a multidev environment, so they get closed out instead of queued to merge.
 
-Apply it in one call, passing each label as its own flag:
+Send the whole computed set, one `labels[]` flag per label, including every label you are
+keeping:
 
 ```bash
-gh pr edit NUMBER --repo yalesites-org/REPO \
-  --remove-label "needs review" \
-  --add-label "pass functional review" \
-  --add-label "ready to merge"
+gh api repos/yalesites-org/REPO/issues/NUMBER/labels -X PUT \
+  -f "labels[]=pass functional review" \
+  -f "labels[]=ready to merge" \
+  -f "labels[]=type: feature" \
+  -f "labels[]=epic: 1648"
 ```
 
-Two `gh` behaviors to work with rather than around:
+Anything absent from that list comes off the PR, which is the whole point for the review-state
+labels and a real hazard for everything else. There is no separate remove call.
 
-- **`--remove-label` should only name labels actually on the PR.** Step 1's `gh pr view` output
-  already tells you which are, so intersect the strip list above with what is really there
-  instead of passing all eight every time.
-- **`--add-label` fails on a label the repo does not define**, with `'X' not found`. That is a
-  feature: it is why picking `pass design review` for `yalesites-project`, or `ready to close`
-  for `component-library-twig`, errors loudly instead of silently creating a junk label on the
-  repo. Read the error as "wrong label for this repo," not as a transient failure to retry.
+Then **verify, don't assume.** Silent label failures are the reason this step is written this
+way:
+
+```bash
+gh pr view NUMBER --repo yalesites-org/REPO --json labels -q '.labels[].name'
+```
+
+If something is missing, re-send the corrected full set rather than patching with
+`gh pr edit --add-label`.
+
+One thing the `PUT` form will not catch for you: **it happily creates a label the repo does not
+define.** `gh pr edit --add-label` would have errored with `'X' not found`, but `PUT` just makes
+it. So the per-repo tables above are load-bearing here, not advisory: sending
+`pass design review` to `yalesites-project`, or `ready to close` to `component-library-twig`,
+silently litters a new label onto the repo instead of failing. Check the repo before sending.
 
 ## Step 9: Post it, and confirm it landed
 
@@ -334,7 +347,7 @@ apply here. If a write does fail, read the error rather than retrying blindly:
 |---|---|---|
 | `gh: Not Found` or `HTTP 404` | Wrong repo for that PR number, and the number exists in more than one repo | Re-confirm the repo with the user, do not guess |
 | `Can not approve your own pull request` | The user authored it | Step 6's `--comment` fallback |
-| `'X' not found` on `--add-label` | That label is not defined in this repo | Step 8's per-repo tables, pick the right one |
+| Label set comes back wrong from Step 8's verify | A label was sent that the repo does not define, or the computed set dropped something | Step 8's per-repo tables, then re-send the corrected full set |
 | `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | `gh auth login`, needs `repo` scope, then retry |
 | Anything else | Unclear | Show the user the drafted body and label plan verbatim so nothing is lost, then ask |
 
@@ -359,7 +372,8 @@ After posting, report: a link to the review/comment, the final approval state, t
 
 - Multiple repos in scope means the same PR number can exist in more than one repo, always confirm which repo before acting if there's any doubt.
 - **Two or more PRs in one prompt means `references/batch-mode.md`**, not this file run in a loop. Running the steps above once per PR re-asks the same questions in series and, worse, invites a single blanket ruling at the end. Batch mode exists to collapse the reading and the testing while keeping the approve or request-changes call one explicit ruling per unit of work.
-- **All GitHub writes in this skill go through `gh`**, per Step 6. The connector's token has an intermittent 403 write gap on these repos while reading fine, which is a confusing failure to debug mid-review. Reads through the connector are fine. `gh pr edit`'s label flags are incremental, so unlike the old `update_issue` call there is no full label array to accidentally truncate.
+- **All GitHub writes in this skill go through `gh`**, per Step 6. The connector's token has an intermittent 403 write gap on these repos while reading fine, which is a confusing failure to debug mid-review. Reads through the connector are fine.
+- Labels are a full-set `PUT` (Step 8), so always start from the PR's current labels, never an empty list. `gh pr edit --add-label/--remove-label` is not a safe substitute: removing and adding the same label in one call silently drops it.
 - This skill performs real, user-visible GitHub actions (a review, a notification, label changes). When in doubt about approve vs. request-changes, or about scope-creep questions, ask rather than assume.
 - The team's PR body format (e.g. `## [#1157 :: Title](url)`) is not a GitHub-recognized closing keyword (`Fixes #`, `Closes #`, etc.), so merged PRs do not auto-close their linked issue. Don't assume an issue is closed just because its PR merged, check or close it explicitly.
 - **This skill is the only approval gate.** `pr-prereview` can move a PR backward to `needs work` and back again, but it can never set a `pass` label, `ready to merge`, or `ready to close`, and it never submits a review event. If a PR arrives already carrying an approval label, that came from a human, so treat it as a real prior sign-off rather than something to walk back silently.

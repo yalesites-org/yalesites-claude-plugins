@@ -221,8 +221,12 @@ per PR from Step 8's tables rather than reusing the previous unit's.
 
 **Isolate posting failures.** If one unit's `gh` write fails, triage it against Step 9's error
 table, report it, keep the drafted body and computed label set, and continue the batch. Never
-abandon five posted reviews because the sixth failed to write. A `'X' not found` on a label is
-the one to watch for here: it means the label set got reused from a unit in a different repo.
+abandon five posted reviews because the sixth failed to write.
+
+**Verify every unit's labels before moving on.** Step 8's `PUT` will silently create a label the
+repo does not define, so a label set reused from a unit in a different repo does not error, it
+just lands wrong. In a six-unit batch that is the mistake most likely to go unnoticed, so run
+Step 8's verify query per PR rather than at the end.
 
 **Ticket sync once per ticket.** Step 9b runs per unit after its review posts. When several
 units in the batch hang off the same epic, hand `ticket-sync` all of them together so the epic
