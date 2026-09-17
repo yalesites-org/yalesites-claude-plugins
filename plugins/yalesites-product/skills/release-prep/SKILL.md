@@ -7,7 +7,18 @@ description: "End-to-end release prep workflow for YaleSites. Covers: drafting G
 
 ## Overview
 
-This skill runs the full release workflow. Each phase produces a distinct deliverable. Run them in order, or jump to a specific phase if the others are already done. Phases 1–6 run before the release; Phase 7 runs after it ships.
+This skill runs the full release workflow. Each phase produces a distinct deliverable. Jump to a specific phase if the others are already done.
+
+**The numbering is not the running order.** Phases are numbered by deliverable, but they hang off two events: the **first RC cut** and the **release going out**.
+
+| When | Phases |
+|---|---|
+| At the first RC cut | 1 (first draft), then 5 immediately |
+| During the QA period | 2, 3, 4, 6 |
+| Right before the release goes out | 1 again (refresh), then publish 2, 3, 4 |
+| After the release ships | 7 |
+
+Phase 5 in particular is **not** a late-stage phase. Testers need their steps the moment the RC is cut, so it runs right after the first pass of Phase 1. Running it in numeric order means the steps land after QA has already started.
 
 | Phase | Deliverable |
 |-------|------------|
@@ -34,6 +45,8 @@ Confirm the following (if not already established):
 ---
 
 ## Phase 1: Release Notes (GitHub Comment)
+
+**Run this phase at least twice.** The first pass, at the RC cut, produces the draft and unblocks Phase 5. The second pass, right before the release goes out, re-runs the same search to catch everything that landed during the QA period: bug fixes found in testing, late additions, and anything pulled from the release. Treat the first draft as provisional and diff it against the second pass rather than assuming it's still complete.
 
 ### Finding what's in the release
 
@@ -198,7 +211,9 @@ Save as `release-email-v[version]-draft.md` in the workspace folder.
 
 The Current Issues & Fixes page (https://yalesites.yale.edu/continuous-improvement/current-issues-fixes) is a living document that lists known bugs and recently deployed fixes.
 
-**Important:** yalesites.yale.edu is blocked from direct fetch in this environment. Paste the current page content in before drafting the update.
+**Read the live page directly** rather than asking for a paste; `https://yalesites.yale.edu/continuous-improvement/current-issues-fixes` fetches fine.
+
+**Check the "Last Updated" date against the release before trusting what you read.** A fetch can return a cached copy that is months out of date. This bit us on v2.26: a fetch returned the July 16 version of the page and was reported as "8 of 9 known issues are stale" when the page had in fact already been updated that morning. If the date is older than the release you're working on, re-fetch before drawing any conclusion, and say which date you saw.
 
 ### What changes in each release
 1. **Remove** any bugs from the "known issues" list that were fixed in this release
@@ -221,7 +236,7 @@ Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This
 
 ---
 
-## Phase 5: QA Testing — Release Testing Steps (Runs in Parallel with Phases 2–4)
+## Phase 5: QA Testing — Release Testing Steps (Run at the RC Cut)
 
 This phase prepares GitHub issues for QA testing by adding a **Release Testing Steps** section to any issue that lacks clear, actionable testing instructions. Testers use the issues in `yalesites-org/YaleSites-Internal` as their checklist — this phase makes sure every issue is ready for them.
 
@@ -239,7 +254,7 @@ gh project item-list 6 --owner yalesites-org --format json --limit 500
 
 Filter client-side for items whose Status is "Ready for Release (in dev)". Treat a mismatch between that list and the Phase 1 PR list as a signal to ask, not as license to update issues the PR list didn't cover — nothing currently sets this status automatically, so the board can lag reality. See the `ticket` skill's `references/board-status.md` for the full field reference.
 
-This phase can start as soon as the PR list from Phase 1 is confirmed, and runs in parallel with the communication phases.
+**Timing is the whole point of this phase.** Run it as soon as the first RC is cut, immediately after the first pass of Phase 1 confirms the PR list. Testers work the RC against these issues, so steps that arrive later than the RC are steps nobody used. If you reach this phase and QA is already underway, you are late: say so, and prioritise the issues still untested rather than working through the list in order.
 
 ### Step 1: Extract linked issues from PRs
 
@@ -588,7 +603,8 @@ All draft files saved to the workspace folder.
 
 ## Notes
 
-- Run Phases 1 → 2 → 3 → 4 in order; Phases 5 and 6 run in parallel starting after Phase 1
+- Order by event, not by number: Phase 1 then Phase 5 at the RC cut; Phases 2, 3, 4 and 6 through the QA period; Phase 1 again right before the release; Phase 7 after it ships
+- Phase 1 runs twice. The pre-release refresh is what catches fixes made during QA
 - Phase 7 runs after the release is out, not with the rest — it needs the RC merged to `master` before it can verify anything
 - If a release has no major new feature (e.g., a hotfix release), skip Phase 2
 - The Current Issues & Fixes update (Phase 4) is not always needed every release — confirm before starting
