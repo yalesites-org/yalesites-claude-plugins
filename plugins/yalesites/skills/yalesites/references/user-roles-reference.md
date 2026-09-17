@@ -62,6 +62,14 @@ On unpublished content, a sidebar appears (access via the "Tasks: Draft" button 
 
 ---
 
+## Dashboard Visibility (v2.26)
+
+The rebuilt Dashboard at `/admin/yalesites/dashboard` is access-aware rather than showing the same thing to everyone. **Recent Drafts only lists drafts the current user is allowed to see**, so two editors on the same site can see different panels. Don't treat the Dashboard as an authoritative list of everything in flight on a site when advising an editor, and don't assume an editor sees what a Site Administrator sees.
+
+Announcements on the Dashboard are published by Yale platform administrators and appear across all YaleSites. Site Administrators cannot publish them for their own site. `Dashboard Settings` at `/admin/yalesites/dashboard-settings` requires the `yalesites manage settings` permission.
+
+---
+
 ## Practical Implications for Common Scenarios
 
 **"Why can't I see the Publish button?"**

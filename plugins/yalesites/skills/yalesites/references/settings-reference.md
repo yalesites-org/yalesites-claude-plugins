@@ -156,6 +156,34 @@ Roles are assigned per-user in the People admin.
 | **403/404 pages** | Custom pages for access denied / not found errors |
 | **Comment settings** | YaleSites disables comments by default on all content types |
 | **Revision settings** | Content revisions are enabled; node edit history is retained |
+| **Image upload limit** | 20 MB platform-wide as of v2.26, with editor-facing help text pointing at compressing large photos |
+
+---
+
+## Dashboard (`/admin/yalesites/dashboard`)
+
+Rebuilt in v2.26. The editor landing page for a site, in an accessible two-column responsive layout.
+
+| Panel | Description |
+|---|---|
+| **Announcements** | Platform-wide notices published by Yale, shown across all YaleSites |
+| **Latest Edits** | Recently changed content |
+| **Recent Drafts** | Unpublished drafts, scoped to what the current user may see |
+| **Site Editors** | Who has editorial access to this site |
+| **Resources** | Existing panel, links to help and documentation |
+| **Platform Version** | Existing panel, the YaleSites version this site runs |
+
+Each panel respects the current user's access, so two editors on the same site can see different Recent Drafts. An unread announcement adds a badge to the Dashboard item in the admin menu.
+
+**Dashboard Settings** lives separately at `/admin/yalesites/dashboard-settings` and requires the `yalesites manage settings` permission.
+
+---
+
+## Search Settings
+
+Controls how site search filtering behaves.
+
+**Renamed in v2.26** from "Views Settings". The label changed for clarity; behavior did not change. Editors who learned the old name will not find it under Views Settings any more.
 
 ---
 
