@@ -496,6 +496,8 @@ gh api repos/yalesites-org/atomic/compare/v1.84.0...<mergeCommit> --jq '.status'
 gh api repos/yalesites-org/component-library-twig/compare/v1.85.0...<mergeCommit> --jq '.status'
 ```
 
+Read the status the same way in both directions: `behind` or `identical` means the merge commit is contained in that tag, so it shipped. `ahead` or `diverged` means it did not.
+
 Note the version skew is real and not a mistake: atomic 1.84.0 carries CLT 1.85.0. Never assume the two track each other, and never compare a CLT commit against an atomic tag.
 
 Locally, when the commit is present:
@@ -516,7 +518,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 
 | Bucket | Condition | Action |
 |---|---|---|
-| **A — Confirmed shipped** | `yalesites-project` PR merge commit is an ancestor of `master` | Eligible to move to `Done` |
+| **A — Confirmed shipped** | The ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to move to `Done` |
 | **B — Not shipped** | Merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave as-is; list them so the user knows the board was optimistic |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done`, flagged separately — these need a closer look than bucket A |
 | **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess |
@@ -555,13 +557,21 @@ gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" 
 
 `Done` is the exact option text — capitalization matters. `gh` needs the `project` scope, not just `read:project`.
 
-**Don't close the issues yourself.** Workflow `06-close-issue-when-done` is working: setting `Done` closes the issue for you. Closing manually in addition just adds noise.
+**Close each issue yourself, right after its status write.** Workflow `06-close-issue-when-done` looks like it should do this for you, but it does not, on two independent counts. It derives `const dryRun = '${{ github.event.inputs.dry_run }}' !== 'false'`, and on any non-`workflow_dispatch` event `inputs` is empty, so `'' !== 'false'` is `true` and every run logs `Mode: DRY RUN` before taking no action — the same inverted default as workflow `02`. Its triggers are also wrong for this board: `project_card: moved` is Projects v1 only, and a Projects v2 `Status` change fires neither it nor `issues: edited`.
+
+So the issue stays open unless you close it:
+
+```bash
+gh issue close <number> --repo yalesites-org/YaleSites-Internal
+```
+
+This matters past the one command. Step 7 will not let you close the milestone until it reads zero open, and on this phase's own calibration numbers that is ~110 issues that never close on their own.
 
 **On failure, stop.** Any error (auth, scope, item not on the board) means report what was written, what wasn't, and what the error was. Don't retry in a loop, and don't fall back to labels here — a partially-applied bulk status change is worse than none, and the user needs to know exactly where it stopped.
 
 ### Step 7: Carry the rest over, then close the milestone
 
-Moving bucket A to `Done` closes those issues, which leaves every non-shipped ticket still sitting on the milestone of a release it didn't make. Left alone that milestone stops being a truthful record of what shipped, which matters because Step 1 scopes the whole phase by milestone. The phase would corrode its own input.
+Closing bucket A out in Step 6 leaves every non-shipped ticket still sitting on the milestone of a release it didn't make. Left alone that milestone stops being a truthful record of what shipped, which matters because Step 1 scopes the whole phase by milestone. The phase would corrode its own input.
 
 **Every past release milestone ends at zero open issues.** Check this before deciding you're done:
 
@@ -596,20 +606,18 @@ gh api -X PATCH repos/yalesites-org/YaleSites-Internal/milestones/<number> -f st
 
 If anything is still open, do not close it. A closed milestone holding open issues is the failure mode this step exists to prevent, and it already exists on the board (the `Drupal AI Migration` milestone is closed with 35 open issues).
 
----
-
 ### Step 8: Scope the straggler check, and hand off the rest
 
 This phase's straggler check is **release-scoped**: items whose code shipped in this release but whose board status didn't follow. That's it.
 
-Broader backlog problems — tickets with no acceptance criteria, missing board fields, native-type vs. type-label conflicts, tickets stale for months with no PR at all — belong to the `backlog-hygiene` skill, which audits the whole backlog read-only. Don't re-implement those checks here. If the reconciliation surfaces a pile of them, say so and point at that skill.
+Broader backlog problems — tickets with no acceptance criteria, missing board fields, native-type vs. type-label conflicts, tickets stale for months with no PR at all — belong to a planned `backlog-hygiene` skill, which audits the whole backlog read-only. It is not released yet, so don't re-implement those checks here and don't send the user off to invoke it. If the reconciliation surfaces a pile of them, list them in the report and say they're out of this phase's scope.
 
 ### Step 9: Report back
 
-- How many items moved to `Done`, and how many were left alone
+- How many items moved to `Done` and were closed, and how many were left alone
 - How many carried to the next milestone, how many had their milestone cleared, and whether the milestone was closed
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
-- Whether workflow `02-pr-status-monitor` is still dormant — if this phase keeps having to do its job by hand, that's the fix worth ticketing
+- Whether workflows `02-pr-status-monitor` and `06-close-issue-when-done` are still dormant — if this phase keeps doing both their jobs by hand, that's one ticket about the shared inverted dry-run default, not two
 
 ### What a real run looks like
 
@@ -617,12 +625,14 @@ The first run of this phase, against v2.26.0 (milestone `09-16-26 Feature Releas
 
 | Bucket | Count |
 |---|---|
-| A — confirmed shipped, eligible for `Done` | 109 |
+| A — confirmed shipped, eligible for `Done` | 110 |
 | B — board said released, code not in `master` | 4 |
 | C — shipped but open in another status | 8 |
-| D — undetermined | 2 |
+| D — undetermined | 1 |
 | Shipped, already closed, never on the board | 10 |
 | In the milestone but not release-ready | 13 |
+
+These rows are a calibration snapshot, not an exhaustive partition of the milestone — they cover 146 of the 187 issues. The remaining 41 fell outside the buckets (no board item, or already reconciled in an earlier release). If your own run doesn't add up either, that's expected; don't hunt for a mis-bucketed ticket on arithmetic alone.
 
 Three of the four bucket-B items were children of the same epic (#1616 Section Color), all sitting on the `1616-section-color-parity` branch while the board showed them as released. That clustering is the tell: when several bucket-B items share a branch, the epic is mid-flight and its children's board status ran ahead of the code. Check for that pattern before reporting them as four separate problems.
 
@@ -653,4 +663,4 @@ All draft files saved to the workspace folder.
 - Issues live in `yalesites-org/YaleSites-Internal`; PRs live in `yalesites-org/yalesites-project` — don't mix them up when making API calls
 - Phase 6 edits the skill's own reference files — this keeps the knowledge base self-maintaining across releases
 - Phase 7 is the only phase that writes to the YaleSites Board, and it never writes without explicit approval — board mechanics and field options live in the `ticket` skill's `references/board-status.md`
-- Broad backlog quality problems are the `backlog-hygiene` skill's job, not Phase 7's — Phase 7 only reconciles status against what shipped
+- Broad backlog quality problems are out of Phase 7's scope and belong to the planned `backlog-hygiene` skill, which isn't released yet — Phase 7 only reconciles status against what shipped
