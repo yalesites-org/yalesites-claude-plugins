@@ -1,6 +1,7 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer."
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'."
+argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue]"
 ---
 
 # YaleSites PR Feedback Skill
@@ -17,6 +18,15 @@ So the order of work is: load the brief, spot-check it, walk the user through te
 **Issues live in:** `yalesites-org/YaleSites-Internal` (PRs link to them in the body, usually as a `#XXXX` reference or full URL)
 
 Don't guess at a repo. If the user gives a bare PR number without one, ask which repo it's in, or check the URL if they pasted one.
+
+**Reviewing more than one PR?** Read `references/batch-mode.md` before starting, and follow it
+instead of running the steps below once per PR. It applies whenever the user names two or more
+PRs in one prompt, or scopes the ask to the queue as a whole ("review everything in needs
+review", "what's in my queue"). It fans the brief-loading and spot-checking out to one subagent
+per unit of work, assembles a single testing sitting grouped by environment, and batches the
+held product calls. What it deliberately does not batch is the approve or request-changes call:
+that stays one explicit ruling per unit of work, because a blanket approval posted across six
+PRs under the user's account is the worst thing this skill can do.
 
 ---
 
@@ -294,6 +304,7 @@ After posting, report: a link to the review/comment, the final approval state, t
 ## Notes
 
 - Multiple repos in scope means the same PR number can exist in more than one repo, always confirm which repo before acting if there's any doubt.
+- **Two or more PRs in one prompt means `references/batch-mode.md`**, not this file run in a loop. Running the steps above once per PR re-asks the same questions in series and, worse, invites a single blanket ruling at the end. Batch mode exists to collapse the reading and the testing while keeping the approve or request-changes call one explicit ruling per unit of work.
 - `update_issue`'s `labels` param replaces the entire label set, always start from the PR's current labels, not an empty list.
 - This skill performs real, user-visible GitHub actions (a review, a notification, label changes). When in doubt about approve vs. request-changes, or about scope-creep questions, ask rather than assume.
 - The team's PR body format (e.g. `## [#1157 :: Title](url)`) is not a GitHub-recognized closing keyword (`Fixes #`, `Closes #`, etc.), so merged PRs do not auto-close their linked issue. Don't assume an issue is closed just because its PR merged, check or close it explicitly.
