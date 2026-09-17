@@ -14,6 +14,19 @@ All blocks available in the YaleSites Layout Builder, with their **verified Drup
 
 ---
 
+## Block Actions in the Layout Builder
+
+Available from a placed block's contextual menu, separate from the block's own fields.
+
+| Action | What it does |
+|---|---|
+| **Clone** | Added in v2.26. Duplicates a block in place, including nested paragraph sub-items. The copy lands directly after the original with all settings intact. |
+| **Make non-reusable** | Added in v2.26. Converts a reusable block into a standalone block *for that placement only*. The original reusable block, and every other page using it, is untouched. Editing the detached copy no longer affects anywhere else. |
+
+The Clone action here is not the same as **Clone this Draft** in the moderation sidebar, which copies a whole node.
+
+---
+
 ## Banner Area Blocks
 
 Only one banner block can be placed at a time in the Banner region.
@@ -38,6 +51,7 @@ The largest, most prominent banner. Full-width with a background image or video 
 | **Banner Overlay PNG** | Optional PNG image overlay (appears over the background) |
 | **Link** | Primary CTA — URL + link text |
 | **Link Two** | Secondary CTA — URL + link text |
+| **Banner Width** | Select: Contained *(default)* / Full Width. Added in v2.26. Full Width only differs from Contained above 2400px (a maximized 2560px or 4K window); on typical screens they look identical. The Layout Builder preview always shows a difference because of the editing frame, so don't judge it there. |
 | **Padding Options** | See above |
 
 ---
@@ -58,6 +72,7 @@ A prominent banner designed for calls to action. Supports two CTAs and a configu
 | **Layout** | Select: Bottom / Left / Right — position of text/CTA over the image |
 | **Heading Level** | Select: H1 (page title hidden) / H2 (page title shown) |
 | **Overlay background image** | Optional additional overlay image |
+| **Banner Width** | Select: Contained *(default)* / Full Width. Added in v2.26. Full Width only differs from Contained above 2400px (a maximized 2560px or 4K window); on typical screens they look identical. The Layout Builder preview always shows a difference because of the editing frame, so don't judge it there. |
 | **Padding Options** | See above |
 
 ---
@@ -72,6 +87,7 @@ A simpler banner — primarily image-driven with minimal content controls.
 | **Image** | Image or background video |
 | **Image Caption** | Rich text caption |
 | **Media Size** | Select: Tall / Short |
+| **Banner Width** | Select: Contained *(default)* / Full Width. Added in v2.26. Full Width only differs from Contained above 2400px (a maximized 2560px or 4K window); on typical screens they look identical. The Layout Builder preview always shows a difference because of the editing frame, so don't judge it there. |
 | **Padding Options** | See above |
 
 ---
@@ -104,6 +120,8 @@ A basic rich-text content block. The Drupal field for the body text is labeled *
 | **Text Style Variation** | Select: Default / Emphasized |
 | **Padding Options** | See above |
 
+**Math notation (v2.26):** Editors can write LaTeX-style math directly in the Content field, for example `\(E=mc^2\)`, and it renders as properly typeset, accessible notation. The supporting library loads only on pages that actually contain math, so it costs nothing elsewhere.
+
 ---
 
 ### ✅ Accordion
@@ -120,9 +138,9 @@ Collapsible content sections. Each accordion item has its own heading and body. 
 
 ---
 
-### ✅ Inline Message
+### ✅ In-Line Message
 
-An informational or marketing callout that appears inline within the content flow.
+An informational or marketing callout that appears inline within the content flow. The block type label is **In-Line Message**, with hyphen.
 
 | Drupal Field Label | Notes |
 |---|---|
@@ -130,6 +148,7 @@ An informational or marketing callout that appears inline within the content flo
 | **Heading** | Block heading |
 | **Content** | Rich text body |
 | **Link** | CTA link — URL + link text |
+| **Icon** | Select. Added in v2.26 — previously the icon was fixed. Draws from the same icon set as Facts and Figures. Defaults to the info circle; choose "- None -" for a text-only message. Icons are decorative, so they should reinforce the text rather than carry meaning on their own. |
 | **Theme** | Color swatch picker |
 | **Padding Options** | See above |
 
@@ -303,6 +322,20 @@ An embedded video block (YouTube, Vimeo, or other oEmbed-supported platforms).
 
 ---
 
+### ✅ Audio Player
+
+An accessible audio player for a single audio file. Added in v2.26. Audio previously had to be worked around through the Video or Embed block.
+
+| Drupal Field Label | Notes |
+|---|---|
+| **Administrative label** | Internal block title |
+| **Audio file** | Required. Audio media entity via the Media Library. Accepts `mp3`, `wav`, `aac`, up to 20 MB. |
+| **Audio label** | Optional text shown above the player. Defaults to "Listen to this content". |
+
+Flat form, no tabs. Unlike most blocks it has **no Theme and no Padding Options** field.
+
+---
+
 ### ⚠️ Embed
 
 An iframe embed block for third-party tools — forms, maps, calendars, audio players. *Field labels unverified, but the workflow is confirmed.*
@@ -314,6 +347,8 @@ An iframe embed block for third-party tools — forms, maps, calendars, audio pl
 **Accessibility note:** Bluesky, Instagram, and Localist embeds render as `blockquote`/`script` markup rather than an `<iframe>`, so they bypass `embed-wrapper.html.twig` — the one place that currently sets a title attribute for iframe-based embeds. These non-iframe embed types need their own accessible-title handling; don't assume the standard Embed block's title-attribute behavior applies to them. (Tracked in yalesites-org/YaleSites-Internal#1349.)
 
 **Datawrapper embeds:** Accessibility here is creator-dependent, not automatic — alt text/descriptions must be set manually by whoever builds the chart or map in Datawrapper (its auto-generated fallback description is weaker for maps than for line/scatter charts). When advising on a Datawrapper embed, tell editors to set custom alt text in Datawrapper before publishing rather than relying on the default.
+
+**SoundCloud:** As of v2.26 the Embed block accepts SoundCloud **playlist** URLs, not just individual tracks. For a single self-hosted audio file, use the Audio Player block instead.
 
 **For guidance on supported embed types:** https://yalesites.yale.edu/community/requests/supporting-embedded-content-on-the-yalesites-platform
 
@@ -331,6 +366,8 @@ An interactive image grid that opens images in a lightbox/modal when clicked.
 | **Gallery Component Title** | Heading above the gallery grid |
 | **Images** | Paragraph sub-items — each is an image with caption |
 | **Padding Options** | See above |
+
+As of v2.26, image uploads are capped at **20 MB** platform-wide, and gallery thumbnails and lightbox images load lazily at sized derivatives rather than loading full-size originals up front. Editors uploading large photos should compress them first.
 
 ---
 
