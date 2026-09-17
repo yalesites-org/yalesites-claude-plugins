@@ -28,7 +28,7 @@ Phase 5 in particular is **not** a late-stage phase. Testers need their steps th
 | 4. Current Issues & Fixes | Updated version of the yalesites.yale.edu issues page |
 | 5. QA Testing Steps | Release Testing Steps added to GitHub issues |
 | 6. Knowledge Base Sync | Updated yalesites skill reference files reflecting platform changes |
-| 7. Post-Release Reconciliation | Board cleaned up after the release ships — shipped tickets moved to Done |
+| 7. Post-Release Reconciliation | Board cleaned up after the release ships — shipped tickets moved to Done, the rest carried over, milestone closed |
 
 ---
 
@@ -559,15 +559,55 @@ gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" 
 
 **On failure, stop.** Any error (auth, scope, item not on the board) means report what was written, what wasn't, and what the error was. Don't retry in a loop, and don't fall back to labels here — a partially-applied bulk status change is worse than none, and the user needs to know exactly where it stopped.
 
-### Step 7: Scope the straggler check, and hand off the rest
+### Step 7: Carry the rest over, then close the milestone
+
+Moving bucket A to `Done` closes those issues, which leaves every non-shipped ticket still sitting on the milestone of a release it didn't make. Left alone that milestone stops being a truthful record of what shipped, which matters because Step 1 scopes the whole phase by milestone. The phase would corrode its own input.
+
+**Every past release milestone ends at zero open issues.** Check this before deciding you're done:
+
+```bash
+gh api repos/yalesites-org/YaleSites-Internal/milestones --paginate -X GET -f state=all -f per_page=100 \
+  --jq '.[] | select(.title|test("Release")) | "\(.title)\topen=\(.open_issues)\tclosed=\(.closed_issues)\tstate=\(.state)"'
+```
+
+Split what remains by board status, because the two groups make different claims:
+
+| Remaining status | Action | Why |
+|---|---|---|
+| `Ready for Release (in dev)`, `In review`, `In progress` | Move to the next release milestone | Actively in flight, so it lands in the next release |
+| `To Do`, `Backlog`, `Blocked` | **Clear the milestone** | Never started. Carrying them forward asserts they're committed to the next release, which is a bigger claim than the board supports |
+| No board item | Ask | Nothing to reason from |
+
+```bash
+# in flight -> next release
+gh issue edit NNNN --repo yalesites-org/YaleSites-Internal --milestone "12-08-26 Feature Release"
+
+# not started -> no milestone, back to the unpromised backlog
+gh issue edit NNNN --repo yalesites-org/YaleSites-Internal --remove-milestone
+```
+
+Same rule as the status writes: **report the split, get approval per group, then write.** Do not carry tickets forward silently. A ticket quietly appearing in the next release is how a release plan grows without anyone deciding it should.
+
+Once the milestone reads zero open, close it:
+
+```bash
+gh api -X PATCH repos/yalesites-org/YaleSites-Internal/milestones/<number> -f state=closed
+```
+
+If anything is still open, do not close it. A closed milestone holding open issues is the failure mode this step exists to prevent, and it already exists on the board (the `Drupal AI Migration` milestone is closed with 35 open issues).
+
+---
+
+### Step 8: Scope the straggler check, and hand off the rest
 
 This phase's straggler check is **release-scoped**: items whose code shipped in this release but whose board status didn't follow. That's it.
 
 Broader backlog problems — tickets with no acceptance criteria, missing board fields, native-type vs. type-label conflicts, tickets stale for months with no PR at all — belong to the `backlog-hygiene` skill, which audits the whole backlog read-only. Don't re-implement those checks here. If the reconciliation surfaces a pile of them, say so and point at that skill.
 
-### Step 8: Report back
+### Step 9: Report back
 
 - How many items moved to `Done`, and how many were left alone
+- How many carried to the next milestone, how many had their milestone cleared, and whether the milestone was closed
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
 - Whether workflow `02-pr-status-monitor` is still dormant — if this phase keeps having to do its job by hand, that's the fix worth ticketing
 
