@@ -13,7 +13,8 @@ team with:
   existing ones with correct format, acceptance criteria, priority, size,
   type, and labels
 - **PR feedback** — reviewing a pull request against its linked issue and
-  posting approve/request-changes feedback directly to GitHub
+  posting approve/request-changes feedback directly to GitHub, one PR at a
+  time or several in one batched pass
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
@@ -47,7 +48,7 @@ knowledge that the workflow skills reference:
 |---|---|
 | `release-prep` | Preparing a YaleSites release |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
-| `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request |
+| `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
