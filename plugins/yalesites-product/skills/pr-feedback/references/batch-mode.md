@@ -205,6 +205,10 @@ notes per PR. Their own read is a first-class input here exactly as it is in sin
 
 ## Step B5: Rule on each unit, then post it
 
+**Run Step 6's write-path preflight once for the whole batch**, not per unit. `gh auth status`
+does not change between units, and on the connector fallback path the user needs to hear once
+that writes may 403 and that you will confirm each one, rather than six times.
+
 Walk the units one at a time. For each:
 
 1. Present the assembled feedback per `SKILL.md` Step 4, blocking separated from optional.

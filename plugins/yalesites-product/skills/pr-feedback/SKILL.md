@@ -222,7 +222,31 @@ Ask the user directly if it isn't obvious from their feedback: is this ready to 
 
 Whichever way it goes, format the `body` per "How this reads on GitHub" above: TL;DR first, blocking items visible, everything else in named `<details>` blocks.
 
-Post the review with `gh`, not the GitHub connector. See "Why `gh`" below.
+### Preflight: pick the write path once
+
+Everything posted in Steps 6, 8, and 9 goes through the same path, so decide it here rather than
+per call:
+
+```bash
+gh auth status
+```
+
+| Result | Path |
+|---|---|
+| Logged in, scopes include `repo` | **Use `gh`.** The normal path, and everything below assumes it. |
+| `gh` not found, not logged in, or no `repo` scope | **Fall back to the GitHub connector**, using the alternate form given in each step. |
+
+**Never try the connector first**, and never use it as a retry after a `gh` failure. `gh` is the
+default whenever it is there. The fallback exists for one reason: someone who set Claude up from
+the team wiki, which walks through connecting the GitHub *connector* and promises no terminal is
+needed, should still be able to post a review. It is not a hedge against `gh` erroring, which
+Step 9 triages instead.
+
+**On the fallback path, say so and verify.** Tell the user you are posting through the connector
+because `gh` is not set up, and that its token has an intermittent 403 write gap on these repos,
+so they should expect you to confirm the review actually landed. Then actually confirm it, per
+Step 9. A silently unposted review is the specific failure this whole arrangement exists to
+avoid.
 
 **Always pass the body as a file on stdin, never as a `-b` string.** Review bodies contain
 backticks, `<details>` tags, and newlines. A double-quoted `-b` argument mangles the formatting
@@ -250,6 +274,10 @@ EOF
 ```
 
 `--request-changes` needs a body, so there is always something to pipe.
+
+**Connector fallback:** `mcp__github__create_pull_request_review` with
+`event: "APPROVE"` or `event: "REQUEST_CHANGES"` and the same composed body. The body text is
+identical on either path, so compose it once before choosing.
 
 Either way, update labels next (see Step 8).
 
@@ -330,8 +358,13 @@ gh pr view NUMBER --repo yalesites-org/REPO --json labels -q '.labels[].name'
 If something is missing, re-send the corrected full set rather than patching with
 `gh pr edit --add-label`.
 
-One thing the `PUT` form will not catch for you: **it happily creates a label the repo does not
-define.** `gh pr edit --add-label` would have errored with `'X' not found`, but `PUT` just makes
+**Connector fallback:** `mcp__github__update_issue` with `owner`, `repo`, `issue_number` (the PR
+number, PRs share the issue numbering), and the same recomputed `labels` array. That call is also
+a full replacement, so the computed set is identical on either path and none of the reconcile
+logic above changes. Verify afterwards either way.
+
+One thing neither full-replace form will catch for you: **both happily create a label the repo
+does not define.** `gh pr edit --add-label` would have errored with `'X' not found`, but `PUT` just makes
 it. So the per-repo tables above are load-bearing here, not advisory: sending
 `pass design review` to `yalesites-project`, or `ready to close` to `component-library-twig`,
 silently litters a new label onto the repo instead of failing. Check the repo before sending.
@@ -348,8 +381,19 @@ apply here. If a write does fail, read the error rather than retrying blindly:
 | `gh: Not Found` or `HTTP 404` | Wrong repo for that PR number, and the number exists in more than one repo | Re-confirm the repo with the user, do not guess |
 | `Can not approve your own pull request` | The user authored it | Step 6's `--comment` fallback |
 | Label set comes back wrong from Step 8's verify | A label was sent that the repo does not define, or the computed set dropped something | Step 8's per-repo tables, then re-send the corrected full set |
-| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | `gh auth login`, needs `repo` scope, then retry |
+| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | Switch to the connector fallback for this review, per Step 6's preflight. Offer `gh auth login` with `repo` scope as the durable fix, but do not block the review on it |
+| `403 Resource not accessible by personal access token` | You are on the connector fallback and hit its write gap | Do not retry. Show the user the drafted body and computed label set verbatim, and tell them `gh auth login` with `repo` scope clears this permanently |
 | Anything else | Unclear | Show the user the drafted body and label plan verbatim so nothing is lost, then ask |
+
+**On the connector fallback path, confirm the review landed before reporting success**, because
+this is the path with a history of silent write failures:
+
+```bash
+gh pr view NUMBER --repo yalesites-org/REPO --json reviews -q '.reviews[-1].state'
+```
+
+If `gh` is missing entirely, read it back with `mcp__github__get_pull_request_reviews` instead.
+Either way, do not tell the user a review posted until something confirms it did.
 
 Whatever happens, **never make the user redo the analysis.** Keep the composed review body and
 the computed label set, and retry those exact artifacts once the cause is fixed.
@@ -372,7 +416,7 @@ After posting, report: a link to the review/comment, the final approval state, t
 
 - Multiple repos in scope means the same PR number can exist in more than one repo, always confirm which repo before acting if there's any doubt.
 - **Two or more PRs in one prompt means `references/batch-mode.md`**, not this file run in a loop. Running the steps above once per PR re-asks the same questions in series and, worse, invites a single blanket ruling at the end. Batch mode exists to collapse the reading and the testing while keeping the approve or request-changes call one explicit ruling per unit of work.
-- **All GitHub writes in this skill go through `gh`**, per Step 6. The connector's token has an intermittent 403 write gap on these repos while reading fine, which is a confusing failure to debug mid-review. Reads through the connector are fine.
+- **GitHub writes prefer `gh`**, per Step 6's preflight, because the connector's token has an intermittent 403 write gap on these repos while reading fine. The connector stays a documented fallback for anyone who set Claude up from the team wiki and has no terminal tooling, and on that path the review must be read back and confirmed rather than assumed. Reads through the connector are fine on either path.
 - Labels are a full-set `PUT` (Step 8), so always start from the PR's current labels, never an empty list. `gh pr edit --add-label/--remove-label` is not a safe substitute: removing and adding the same label in one call silently drops it.
 - This skill performs real, user-visible GitHub actions (a review, a notification, label changes). When in doubt about approve vs. request-changes, or about scope-creep questions, ask rather than assume.
 - The team's PR body format (e.g. `## [#1157 :: Title](url)`) is not a GitHub-recognized closing keyword (`Fixes #`, `Closes #`, etc.), so merged PRs do not auto-close their linked issue. Don't assume an issue is closed just because its PR merged, check or close it explicitly.
