@@ -205,6 +205,10 @@ notes per PR. Their own read is a first-class input here exactly as it is in sin
 
 ## Step B5: Rule on each unit, then post it
 
+**Run Step 6's write-path preflight once for the whole batch**, not per unit. `gh auth status`
+does not change between units, and on the connector fallback path the user needs to hear once
+that writes may 403 and that you will confirm each one, rather than six times.
+
 Walk the units one at a time. For each:
 
 1. Present the assembled feedback per `SKILL.md` Step 4, blocking separated from optional.
@@ -219,9 +223,14 @@ for `component-library-twig`. A unit spanning both repos needs both labels, each
 PR. Getting this wrong is batch mode's most likely mechanical error, so recompute the label set
 per PR from Step 8's tables rather than reusing the previous unit's.
 
-**Isolate posting failures.** If one unit hits the token permission gap in Step 9, report it,
-keep the drafted body and label plan, and continue the batch. Never abandon five posted reviews
-because the sixth failed to write.
+**Isolate posting failures.** If one unit's `gh` write fails, triage it against Step 9's error
+table, report it, keep the drafted body and computed label set, and continue the batch. Never
+abandon five posted reviews because the sixth failed to write.
+
+**Verify every unit's labels before moving on.** Step 8's `PUT` will silently create a label the
+repo does not define, so a label set reused from a unit in a different repo does not error, it
+just lands wrong. In a six-unit batch that is the mistake most likely to go unnoticed, so run
+Step 8's verify query per PR rather than at the end.
 
 **Ticket sync once per ticket.** Step 9b runs per unit after its review posts. When several
 units in the batch hang off the same epic, hand `ticket-sync` all of them together so the epic
