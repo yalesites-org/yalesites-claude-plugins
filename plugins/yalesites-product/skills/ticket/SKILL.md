@@ -51,7 +51,16 @@ Search these when you need implementation context, but always write the issue de
 
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool. Batch them: one `AskUserQuestion` call carrying a question per unanswered field is much less tedious than six separate round trips.
+Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
+
+**Batch them, but mind the caps.** `AskUserQuestion` allows at most **4 questions per call** and at most **4 options per question**. Both are hard validation, so a call asking six questions is rejected outright and the user sees nothing. Six unanswered fields therefore go in two calls:
+
+1. **Board fields:** Status, Priority, Size, Milestone.
+2. **Routing:** Assignee, and the `claude` label.
+
+Two calls instead of six round trips. Drop whatever the user already answered, and if four or fewer are left, ask in one call.
+
+The option cap bites just as easily: Status has eight valid values, Size has five, and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
 
 Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
 
@@ -72,7 +81,7 @@ Valid options, exactly as configured on the YaleSites Board, in board order. **M
 
 `Ready For Work` and `To Do` are both pre-start states and are easy to confuse. `Ready For Work` means queued as up-next; `To Do` means cleared for someone to pick up now. If the user hasn't said which they mean and the distinction matters, ask rather than guessing.
 
-If not specified, ask: *"What status should this ticket be set to on the project board?"*
+If not specified, ask: *"What status should this ticket be set to on the project board?"* Eight valid values against a 4-option cap, so offer the four that actually fit the ticket's shape, usually `Backlog`, `Ready For Work`, `To Do`, and whichever in-flight state applies. **Other** covers the rest.
 
 If the board's options ever change, re-check them rather than trusting this list:
 
@@ -90,11 +99,13 @@ If not specified, ask: *"What priority should this be — Hotfix, High, Medium, 
 
 Valid options: `XS` · `S` · `M` · `L` · `XL`
 
-If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"*
+If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"* Five values against a 4-option cap, so offer the four that bracket your own estimate and let **Other** carry the fifth.
 
 ### Milestone
 
-Every ticket should land in a milestone. Ask which one, and **lead with the next upcoming feature release** as the recommended answer: the open milestone whose title follows the `MM-DD-YY Feature Release` pattern and whose due date is the soonest one still ahead of today.
+Every ticket should land in a milestone. Ask which one, and **lead with the next upcoming feature release** as the recommended answer: the open milestone whose title is a dated release and whose due date is the soonest one still ahead of today.
+
+"Dated release" means `MM-DD-YY <anything> Release`, not `MM-DD-YY Feature Release` specifically. Non-feature releases use the same shape, as `07-07-26 Drupal 10.6 Release` does, and matching only on "Feature" would skip it and schedule an upgrade ticket a release late. Match on the leading date and the trailing `Release` instead. (Milestone #1 is `11-24-2025 Feature Release`, with a four-digit year. It is closed and in the past, so it cannot win this sort, but allow for both year formats if you ever reuse the pattern for a broader sweep.)
 
 Read the live list rather than working from memory, because the dates move and releases close:
 
@@ -124,7 +135,9 @@ For an **epic**, the milestone is a scoping decision rather than a routine field
 
 Always ask whether the ticket should go to someone, rather than creating it unassigned by default. An unassigned ticket is easy to lose in the backlog.
 
-Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
+Ask: *"Who should this be assigned to?"*
+
+**Offer at most four options**, per the cap above: the three handles most likely for this ticket's shape, chosen with the routing habits below, plus **"leave it unassigned for now."** The table is routing reference, not the option list. **Other** covers anyone else, and the `gh api` fallback below covers spelling.
 
 | Handle | Who | Usually gets |
 |--------|-----|--------------|
@@ -144,7 +157,7 @@ Three routing habits worth keeping:
 - **Upgrade and pipeline work has its own owner.** If a ticket is a Drupal core or contrib major-version upgrade, a PHP version bump, or a change to CI, build, or deploy tooling, suggest `vinmassaro` rather than routing it to general development.
 - **A ticket that came in through ServiceNow usually stays with whoever filed it.** `Feature Request:` and `Bug:` tickets often originate with Chris or Rachel working the support queue. If the user is grooming one of theirs, keep them on it rather than reassigning, since they hold the reporter context and will be the one closing the loop with the requester.
 
-Also offer **"leave it unassigned for now"** as a real option. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
+Keep **"leave it unassigned for now"** as one of the four. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
 
 If the handle you want isn't one of these, pull the current list rather than guessing at spelling:
 
