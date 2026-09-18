@@ -500,13 +500,18 @@ Read the status the same way in both directions: `behind` or `identical` means t
 
 Note the version skew is real and not a mistake: atomic 1.84.0 carries CLT 1.85.0. Never assume the two track each other, and never compare a CLT commit against an atomic tag.
 
-Locally, when the commit is present:
+Locally, read all three exit codes. `--is-ancestor` returns `0` for shipped, `1` for genuinely not shipped, and `128` when the object isn't in the clone at all. A bare `&& echo shipped || echo not-shipped` collapses `128` into `1` and reports a shipped-but-unfetched commit as not shipped, which is the one mistake this phase exists to avoid:
 
 ```bash
-git merge-base --is-ancestor <mergeCommit> origin/master && echo shipped || echo not-shipped
+git merge-base --is-ancestor <mergeCommit> origin/master
+case $? in
+  0) echo shipped ;;
+  1) echo not-shipped ;;
+  *) echo unknown-locally ;;   # 128: SHA not in this clone, fall through to the compare API
+esac
 ```
 
-When the SHA isn't in the local clone (common for commits that only ever lived on a feature or epic branch), use the compare API — `behind` or `identical` means shipped, `ahead` or `diverged` means not:
+A missing SHA is common here, because commits that only ever lived on a feature or epic branch are exactly the population this phase reconciles. On `unknown-locally`, either fetch the commit or ask the compare API — `behind` or `identical` means shipped, `ahead` or `diverged` means not:
 
 ```bash
 gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq '.status'
@@ -522,6 +527,8 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | **B — Not shipped** | Merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave as-is; list them so the user knows the board was optimistic |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done`, flagged separately — these need a closer look than bucket A |
 | **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess |
+
+**`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
 **Epic parents stay out of bucket A.** An epic with shipped children is not done until every child ships. Check for the `epic` label and hold those back for explicit confirmation, listing which children shipped and which didn't.
 
