@@ -52,6 +52,14 @@ validate_plugin() {
   fi
 }
 
+echo "Checking standards sync..."
+if bash "$(dirname "$0")/sync-standards.sh" --check; then
+  :
+else
+  ERRORS=$((ERRORS + 1))
+fi
+echo ""
+
 plugin_count=0
 for base_dir in plugins external_plugins; do
   [[ -d "$base_dir" ]] || continue

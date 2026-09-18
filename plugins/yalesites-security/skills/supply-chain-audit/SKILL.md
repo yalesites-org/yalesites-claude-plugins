@@ -162,6 +162,12 @@ Flag any that look suspicious for the user to verify.
 
 Read `references/report-template.md` for the full report structure. Lead with the most urgent findings. Keep the report honest about supply chain attacks vs regular CVEs — conflating them dilutes urgency. If everything is clean, say so clearly.
 
+When the report is posted to GitHub, follow `references/github-communication-format.md` and `references/github-writing.md`: an 80-word TL;DR, findings that need action visible and ordered by severity, a 600-word budget on the visible layer, and the package-by-package evidence in named `<details>` blocks. Put the findings as structured records (id, severity, location) in a closing `<!-- yalesites:agent -->` block so a later audit can diff against this one. Never put an advisory ID, a token, or a private hostname in that block that is not already safe to publish. Check it with:
+
+```bash
+python3 scripts/check-github-text.py report.md --surface report
+```
+
 ---
 
 ## Important context to communicate

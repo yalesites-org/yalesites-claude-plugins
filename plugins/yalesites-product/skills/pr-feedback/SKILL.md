@@ -178,12 +178,21 @@ Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this m
 
 ### How this reads on GitHub
 
-The review body is read by a person first. Compose it per `references/github-communication-format.md` (in the `ticket` skill's `references/` directory, in this same `yalesites-product` plugin):
+The review body is read by a person first. Compose it per `../ticket/references/github-communication-format.md` and write it per `../ticket/references/github-writing.md`:
 
 - **Open with a TL;DR line**, the outcome in one or two sentences. "Approving. One optional note about the empty state." / "Requesting changes: two blocking items, both about role gating."
 - **Keep visible:** the TL;DR, and on a request-changes review the numbered list of blocking items (one line each, what to change, which file).
 - **Collapse into `<details>` blocks with named summaries:** the per-item detail (file/line references, why it matters, how to fix), the optional/nice-to-have items, "what I checked" notes, and the visreg-coverage and documentation follow-up discussion from Step 5. Group them, two to four blocks, not one per point.
+- **Close with a `<!-- yalesites:agent -->` block** holding the acceptance-criteria coverage map from the brief, what this pass checked, and the file/line index. That payload is what the next agent would otherwise re-derive from the diff, and no person needs to read it. Never put the approve/request-changes call or a blocking item in there: if it changes what someone does, it stays visible.
 - The same TL;DR-first shape applies to the Step 3 clarifying-question comment if it goes to GitHub rather than staying in chat.
+
+**On the words.** `github-writing.md` caps a review's visible layer at 250 words, the tightest of any surface, because a reviewer's verdict is the whole point and everything else is support. It also carries the one exception that matters here: a review is argument, not procedure, so the 20-word sentence cap and the one-instruction rule are relaxed for rationale, and only inside a collapsed block. The word swaps, active voice, and the no-em-dash rule still apply everywhere.
+
+Check the draft body before posting:
+
+```bash
+python3 ../ticket/scripts/check-github-text.py review.md --surface pr-review
+```
 
 ## Step 5: Offer the follow-up tickets the brief already found
 

@@ -47,6 +47,25 @@ this marketplace for the richest results).
 
 ## Notes
 
+## Writing standard
+
+The PR-writing skills here follow the shared YaleSites GitHub writing standard, bundled
+as `skills/yalesites-pr/references/github-writing.md` (words) and
+`github-communication-format.md` (structure). Every artifact leads with a short TL;DR,
+keeps the visible layer inside a word budget, collapses the depth into `<details>` blocks,
+and closes with an invisible `<!-- yalesites:agent -->` block for agent-to-agent payload.
+
+Verify a draft before posting:
+
+```bash
+python3 skills/yalesites-pr/scripts/check-github-text.py body.md --surface pr-body
+```
+
+Both reference files and the script are generated from `standards/` at the repo root.
+Edit the canonical copies there, then run `bash scripts/sync-standards.sh`.
+
+## Design notes
+
 - **Read-only by default where it matters:** the skills draft and show you content
   (issues, PR bodies) before anything is created on GitHub.
 - The four repos and the board (GitHub Projects v2, project 6) are treated as fixed

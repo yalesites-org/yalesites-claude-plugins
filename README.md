@@ -43,6 +43,26 @@ Open Claude Code and run:
   `@yalesites-org/claude-core-team` before merge
 - **`/external_plugins`** — Community plugins (not yet open for submissions)
 
+## Shared writing standards
+
+`/standards` holds the canonical writing rules every skill that posts to GitHub follows:
+
+| File | Governs |
+|---|---|
+| `github-communication-format.md` | Structure: what is visible, what collapses into `<details>`, what goes in the invisible `<!-- yalesites:agent -->` machine block |
+| `github-writing.md` | Words: ASD-STE100 sentence rules, plain-language word swaps, and a visible-layer word budget per surface |
+| `check-github-text.py` | Mechanical check of a draft against both |
+
+Claude Code plugins cannot read each other's files, so each consuming plugin carries its
+own copy under its host skill's `references/` and `scripts/`. **Those copies are
+generated. Do not edit them.** Edit `/standards`, then:
+
+```bash
+bash scripts/sync-standards.sh
+```
+
+`scripts/validate-plugins.sh` (and therefore CI) fails if any copy has drifted.
+
 ## Contributing
 
 See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the plugin contract,
