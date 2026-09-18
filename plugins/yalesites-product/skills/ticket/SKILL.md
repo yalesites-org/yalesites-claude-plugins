@@ -138,9 +138,10 @@ Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
 | `rachel-is-at-yale` | Rachel | Same shape as Chris: support intake off the ServiceNow queue, so a lot of feature requests and bug reports, plus mailing list and support-page work. |
 | `miketullo95` | Mike Tullo, Product Manager | PM-owned tickets, release coordination, ticket grooming follow-ups. |
 
-Two routing habits worth keeping:
+Three routing habits worth keeping:
 
 - **Accessibility is easy to leave unrouted.** If a ticket carries an accessibility acceptance criterion or the `accessibility-bug` label and nobody is named, suggest `ntay90`.
+- **Upgrade and pipeline work has its own owner.** If a ticket is a Drupal core or contrib major-version upgrade, a PHP version bump, or a change to CI, build, or deploy tooling, suggest `vinmassaro` rather than routing it to general development.
 - **A ticket that came in through ServiceNow usually stays with whoever filed it.** `Feature Request:` and `Bug:` tickets often originate with Chris or Rachel working the support queue. If the user is grooming one of theirs, keep them on it rather than reassigning, since they hold the reporter context and will be the one closing the loop with the requester.
 
 Also offer **"leave it unassigned for now"** as a real option. That is a legitimate answer while grooming a backlog, and it is better than parking the ticket on someone who isn't going to do it.
