@@ -10,14 +10,16 @@ against standards/github-writing.md and standards/github-communication-format.md
 The central idea: only the VISIBLE layer is budgeted. Text inside <details>
 blocks is exempt from length rules, because a person chose to open it. Text
 inside the <!-- yalesites:agent --> block is exempt from prose rules entirely,
-because no person ever sees it.
+because no person ever sees it. Code fences, inline code spans, and HTML
+comments are exempt from the whole-document scans, so a draft that quotes the
+format spec is never flagged for violating it.
 
 Usage:
     python3 check-github-text.py draft.md --surface ticket
     python3 check-github-text.py draft.md --surface pr-review --json
 
 Surfaces: ticket, pr-body, pr-review, release-notes, report
-Exit codes: 0 clean, 1 issues found, 2 bad invocation.
+Exit codes: 0 clean, 1 issues found, 2 bad invocation or unreadable input.
 """
 
 import argparse
@@ -69,9 +71,29 @@ AGENT_BLOCK = re.compile(r"<!--\s*yalesites:agent\b.*?-->", re.S)
 DETAILS_BLOCK = re.compile(r"<details\b.*?</details>", re.S | re.I)
 ANY_COMMENT = re.compile(r"<!--.*?-->", re.S)
 
+# Regions a whole-document scan must not flag: the author cannot rewrite a
+# command, a code sample, or the machine block without changing what it means.
+EXEMPT = (
+    ANY_COMMENT,
+    re.compile(r"```.*?```", re.S),
+    re.compile(r"~~~.*?~~~", re.S),
+    re.compile(r"`[^`\n]+`"),
+)
+
 
 def line_of(text, index):
     return text[:index].count("\n") + 1
+
+
+def mask_exempt(text):
+    """Blank out code and comments, keeping every offset and line break."""
+    out = list(text)
+    for pattern in EXEMPT:
+        for m in pattern.finditer(text):
+            for i in range(m.start(), m.end()):
+                if out[i] != "\n":
+                    out[i] = " "
+    return "".join(out)
 
 
 def split_layers(text):
@@ -96,21 +118,42 @@ def strip_markdown(text):
     return text
 
 
+LIST_ITEM = re.compile(r"^([-*+]\s+|\d+[.)]\s+)")
+
+
 def prose_lines(section):
+    """Yield prose units with hard wraps undone.
+
+    A sentence broken over several lines has to be rejoined before it can be
+    measured, or the sentence caps never fire on anything drafted at a fixed
+    column width. A blank line, a heading, a table row, or a new list marker
+    starts a new unit; anything else continues the one in progress.
+    """
     out = []
+    current = []
     in_code = False
+
+    def flush():
+        if current:
+            out.append(" ".join(current))
+            current.clear()
+
     for raw in section.split("\n"):
         line = raw.strip()
-        if line.startswith("```"):
+        if line.startswith("```") or line.startswith("~~~"):
             in_code = not in_code
+            flush()
             continue
-        if in_code or not line:
+        if in_code:
             continue
-        if line.startswith("#") or line.startswith("|"):
+        if not line or line.startswith("#") or line.startswith("|") or set(line) <= set("-*= "):
+            flush()
             continue
-        if set(line) <= set("-*= "):
-            continue
-        out.append(re.sub(r"^[-*+]\s+|^\d+\.\s+", "", line))
+        if LIST_ITEM.match(line):
+            flush()
+            line = LIST_ITEM.sub("", line)
+        current.append(line)
+    flush()
     return out
 
 
@@ -124,7 +167,12 @@ def is_procedural(sentence):
 
 
 def check(path, surface):
-    text = open(path, encoding="utf-8").read()
+    try:
+        with open(path, encoding="utf-8") as fh:
+            text = fh.read()
+    except OSError as err:
+        print(f"cannot read {path}: {err}", file=sys.stderr)
+        sys.exit(2)
     tldr_cap, visible_cap = SURFACES[surface]
     issues = []
 
@@ -132,29 +180,33 @@ def check(path, surface):
         issues.append({"kind": kind, "line": line, "detail": detail})
 
     # --- Whole-document structural checks -------------------------------
-    for m in re.finditer("—", text):
+    # Every whole-document scan runs on the masked copy, so a draft that quotes
+    # the format spec is never flagged for violating it.
+    masked = mask_exempt(text)
+
+    for m in re.finditer("—", masked):
         add("em_dash", line_of(text, m.start()),
             "Em dash found. Rewrite with a comma, period, colon, or parentheses.")
 
-    for m in re.finditer(r"<details\b", text, re.I):
-        rest = text[m.end():]
+    for m in re.finditer(r"<details\b", masked, re.I):
+        rest = masked[m.end():]
         close = rest.lower().find("</details>")
         nested = rest.lower().find("<details")
         if nested != -1 and (close == -1 or nested < close):
             add("nested_details", line_of(text, m.start()),
                 "Nested <details>. Flatten to one level.")
 
-    for m in re.finditer(r"</summary>(?!\s*\n\s*\n)", text, re.I):
+    for m in re.finditer(r"</summary>(?!\s*\n\s*\n)", masked, re.I):
         add("details_blank_line", line_of(text, m.start()),
             "Needs a blank line after </summary> or GitHub will not render the Markdown.")
 
-    for m in re.finditer(r"(?<!\n\n)\s*</details>", text, re.I):
-        if not re.search(r"\n\s*\n\s*</details>", text[max(0, m.start() - 4): m.end()]):
+    for m in re.finditer(r"(?<!\n\n)\s*</details>", masked, re.I):
+        if not re.search(r"\n\s*\n\s*</details>", masked[max(0, m.start() - 4): m.end()]):
             add("details_blank_line", line_of(text, m.start()),
                 "Needs a blank line before </details> or GitHub will not render the Markdown.")
 
     for m in re.finditer(r"<summary>\s*(?:<b>)?\s*(details|more|info|notes)\s*(?:</b>)?\s*</summary>",
-                         text, re.I):
+                         masked, re.I):
         add("vague_summary", line_of(text, m.start()),
             f'"{m.group(1)}" does not say what is inside. Name the content.')
 
@@ -166,7 +218,7 @@ def check(path, surface):
         if tail:
             add("agent_block_position", line_of(text, text.rindex(agent)),
                 "The yalesites:agent block must be last in the body.")
-        body = agent.split("\n", 1)[1].rsplit("-->", 1)[0] if "\n" in agent else ""
+        body = re.sub(r"^\s*yalesites:agent\b", "", agent[4:-3])
         if not body.strip():
             add("agent_block_empty", line_of(text, text.rindex(agent)),
                 "Empty yalesites:agent block. Leave it out instead.")
@@ -217,7 +269,7 @@ def check(path, surface):
                     f"{n} words ({'procedural' if proc else 'descriptive'}, limit {limit}): {s[:90]}")
 
     # --- Word swaps, visible and collapsed (not the machine block) -------
-    low = (clean_visible + "\n" + strip_markdown(collapsed)).lower()
+    low = re.sub(r"\s+", " ", clean_visible + " " + strip_markdown(collapsed)).lower()
     for word, better in BANNED.items():
         for _ in re.finditer(r"\b" + re.escape(word) + r"\b", low):
             add("banned_word", 0, f'"{word}" -> "{better}"')

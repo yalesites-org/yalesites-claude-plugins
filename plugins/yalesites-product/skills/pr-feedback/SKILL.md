@@ -178,7 +178,7 @@ Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this m
 
 ### How this reads on GitHub
 
-The review body is read by a person first. Compose it per `references/github-communication-format.md` and write it per `references/github-writing.md` (both in the `ticket` skill's `references/` directory, in this same `yalesites-product` plugin):
+The review body is read by a person first. Compose it per `../ticket/references/github-communication-format.md` and write it per `../ticket/references/github-writing.md`:
 
 - **Open with a TL;DR line**, the outcome in one or two sentences. "Approving. One optional note about the empty state." / "Requesting changes: two blocking items, both about role gating."
 - **Keep visible:** the TL;DR, and on a request-changes review the numbered list of blocking items (one line each, what to change, which file).
@@ -191,10 +191,8 @@ The review body is read by a person first. Compose it per `references/github-com
 Check the draft body before posting:
 
 ```bash
-python3 scripts/check-github-text.py review.md --surface pr-review
+python3 ../ticket/scripts/check-github-text.py review.md --surface pr-review
 ```
-
-The script lives in the `ticket` skill's `scripts/` directory in this plugin.
 
 ## Step 5: Offer the follow-up tickets the brief already found
 
