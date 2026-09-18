@@ -129,6 +129,7 @@ Ask: *"Who should this be assigned to?"* Offer the common assignees as options:
 | Handle | Who | Usually gets |
 |--------|-----|--------------|
 | `dblanken-yale` | David Blankenship, lead developer (Yale) | Development work. The default for anything that needs code written. |
+| `vinmassaro` | Vincent Massaro, senior developer (Yale) | CI/CD and Drupal version upgrades: build and deploy pipelines, Pantheon workflow, core and contrib major-version updates. |
 | `laura-johnson` | Laura Johnson, Four Kitchens | Development work. Four Kitchens is our outside dev partner, so weigh in-house capacity before routing here by default. |
 | `atiddei` | April | UX work: flows, interface design, research-driven changes. |
 | `ntay90` | Nick Taylor | Accessibility. Anything needing WCAG 2.1 AA validation or an a11y review. |
