@@ -409,17 +409,19 @@ gh pr list --repo yalesites-org/yalesites-project --base master --state merged -
 
 Confirm with the user which of these is *the* release being reconciled, and note its merge timestamp. Anything merged to `develop` after that timestamp is in the *next* release and must not be touched.
 
-**Scope the run by milestone.** Milestones in `YaleSites-Internal` map to releases (`09-16-26 Feature Release` is v2.26.0), which is far more tractable than reconciling the whole `Ready for Release (in dev)` column at once. Treat the milestone as a good but not perfect source of truth — it's set by hand, so a ticket can be in the wrong one.
+**Scope the run by milestone.** Milestones in `YaleSites-Internal` map to releases (`09-17-26 Feature Release` is v2.26.0), which is far more tractable than reconciling the whole `Ready for Release (in dev)` column at once. Treat the milestone as a good but not perfect source of truth — it's set by hand, so a ticket can be in the wrong one.
 
 ```bash
 gh api repos/yalesites-org/YaleSites-Internal/milestones --paginate -X GET -f state=all -f per_page=100 \
   --jq '.[] | "\(.number)\t\(.title)\topen=\(.open_issues) closed=\(.closed_issues)\tdue=\(.due_on)"'
 
-gh issue list --repo yalesites-org/YaleSites-Internal --milestone "09-16-26 Feature Release" \
+gh issue list --repo yalesites-org/YaleSites-Internal --milestone "09-17-26 Feature Release" \
   --state all --limit 300 --json number,title,state,labels,issueType > milestone.json
 ```
 
 Because the milestone can be wrong in either direction, the buckets in Step 5 still decide the outcome. A ticket in the milestone whose code isn't in `master` does not move, and a ticket outside the milestone whose code *is* in `master` is still worth reporting.
+
+**Milestone scoping has one structural blind spot: tickets with no milestone at all.** They can never appear in a milestone-scoped run, so a purely milestone-scoped Phase 7 skips them every release, forever. This is not hypothetical. After the v2.26.0 run closed its milestone cleanly at zero open, 22 open tickets were still sitting in `Ready for Release (in dev)` with no milestone, 10 of them shipped children of a single parent. Step 8 sweeps for these, and it is not optional.
 
 Then make sure the local checkout can answer ancestry questions. The `yalesites-project` clone usually tracks `develop` only, so `master` may not exist as a remote-tracking ref:
 
@@ -430,8 +432,18 @@ git fetch origin master:refs/remotes/origin/master develop:refs/remotes/origin/d
 ### Step 2: Pull the board
 
 ```bash
-gh project item-list 6 --owner yalesites-org --format json --limit 600 > board.json
+gh project item-list 6 --owner yalesites-org --format json --limit 1200 > board.json
+jq -r '.items | length' board.json
 jq -r '.items | group_by(.status)[] | "\(.[0].status // "(none)"): \(length)"' board.json
+```
+
+**Set the limit well above the real item count and check what you got.** `gh` truncates silently at `--limit`, with no warning. The board was 641 items in September 2026 and grows every release, so a stale `--limit 600` drops the overflow without telling you. Print the length and confirm it is under the limit before trusting anything downstream.
+
+**Capture each item's node `id` while you are here.** Step 6 needs it, and re-deriving it later costs a second full board pull:
+
+```bash
+jq -r '.items[] | select(.content.repository=="yalesites-org/YaleSites-Internal")
+  | "\(.content.number)\t\(.id)"' board.json > itemids.tsv
 ```
 
 Print the status distribution first and show it to the user. If `Ready for Release (in dev)` is in the hundreds, say so up front and ask whether to reconcile everything or only the items tied to this release — a 200-item confirmation list is not reviewable.
@@ -444,6 +456,15 @@ jq -r '.items[] | select(.status=="Ready for Release (in dev)")
 ```
 
 ### Step 3: Build the PR index in bulk
+
+**Budget the GraphQL calls before you start, because the reads are what break this phase, not the writes.** `gh pr list`, `gh issue list` and `gh project item-list` all go through GraphQL and are expensive in proportion to how many records they return. Three `gh pr list` pulls plus two full board pulls is enough to exhaust the hourly GraphQL quota on its own, and once it is gone every mutation in Step 6 fails too.
+
+Two things make this worse than it sounds:
+
+- **`gh api rate_limit` under-reports it.** When the quota is blown, `graphql` can still read `5000/5000 remaining` while every call returns `API rate limit exceeded`. Do not pace against that number, because it is not telling you the truth.
+- **It clears on the hour, not in seconds.** This is not a short abuse-detection cooldown you can retry past. Check `core`'s `reset_in` for the real hour boundary, since both windows share it.
+
+So: do every bulk read **once**, write the JSON to disk, and join from the files. Never re-pull a list you already have. If you need a single item later, query that one item rather than re-listing the board.
 
 Do **not** search per issue. One search per item across 150+ items is slow and rate-limited. Pull merged PRs once per repo and join locally:
 
@@ -532,7 +553,17 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
-**Epic parents stay out of bucket A.** An epic with shipped children is not done until every child ships. Check for the `epic` label and hold those back for explicit confirmation, listing which children shipped and which didn't.
+**Parents of any kind stay out of bucket A.** A parent with shipped children is not done until every child ships. Hold those back for explicit confirmation, listing which children shipped and which didn't.
+
+**Do not key this check on the `epic` label.** Plenty of parents don't carry it. YaleSites-Internal #1396 is typed `Task`, has no `epic` label, and has 11 sub-issues; a label-only guard waved it straight into bucket A and closed it while its children stayed open. Check for actual sub-issues instead:
+
+```bash
+gh api graphql -f query='query($n:Int!){repository(owner:"yalesites-org",name:"YaleSites-Internal"){
+  issue(number:$n){subIssues(first:50){totalCount nodes{number state}}}}}' -F n=NNNN \
+  --jq '.data.repository.issue.subIssues | "\(.totalCount) sub-issues, \([.nodes[]|select(.state=="OPEN")]|length) still open"'
+```
+
+Any non-zero open-child count means the parent is not bucket A, whatever its label says.
 
 ### Step 6: Report, then confirm, then write
 
@@ -558,23 +589,43 @@ Show the user a report before touching anything:
 
 **Wait for explicit approval.** Ask per bucket, not per item, but do not write anything before the user says so. Buckets A and C get separate approvals — C is where a wrong move is most likely, because something kept those tickets out of `Ready for Release (in dev)` in the first place.
 
-Then write approved items one at a time, reading current status first so the board's activity feed stays meaningful:
+**Do not use `gh project item-edit --url` for a bulk run.** It resolves the item by paginating the entire board on every single call, so at 600+ items it is enormously expensive and will trip the GraphQL limit within the first few writes. It is fine for one-off use in the `ticket` skill; it is the wrong tool here.
+
+Write the field directly instead, using the node ids you captured in Step 2. One cheap mutation per item, no lookup:
 
 ```bash
-gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "Done"
+PROJ=PVT_kwDOA_XQ-s4A-PeJ
+FIELD=PVTSSF_lADOA_XQ-s4A-PeJzgxtHE8   # Status
+DONE=98236657                          # the "Done" option
+
+MUT='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(
+  input:{projectId:$p,itemId:$i,fieldId:$f,value:{singleSelectOptionId:$o}}){projectV2Item{id}}}'
+
+gh api graphql -f query="$MUT" -f p=$PROJ -f i=<item-id> -f f=$FIELD -f o=$DONE
 ```
 
-`Done` is the exact option text — capitalization matters. `gh` needs the `project` scope, not just `read:project`.
-
-**Close each issue yourself, right after its status write.** Workflow `06-close-issue-when-done` looks like it should do this for you, but it does not, on two independent counts. It derives `const dryRun = '${{ github.event.inputs.dry_run }}' !== 'false'`, and on any non-`workflow_dispatch` event `inputs` is empty, so `'' !== 'false'` is `true` and every run logs `Mode: DRY RUN` before taking no action — the same inverted default as workflow `02`. Its triggers are also wrong for this board: `project_card: moved` is Projects v1 only, and a Projects v2 `Status` change fires neither it nor `issues: edited`.
-
-So the issue stays open unless you close it:
+Re-read the ids rather than trusting those literals if a mutation 404s:
 
 ```bash
-gh issue close <number> --repo yalesites-org/YaleSites-Internal
+gh api graphql -f query='{organization(login:"yalesites-org"){projectV2(number:6){id
+  field(name:"Status"){... on ProjectV2SingleSelectField{id options{id name}}}}}}'
 ```
 
-This matters past the one command. Step 7 will not let you close the milestone until it reads zero open, and on this phase's own calibration numbers that is ~110 issues that never close on their own.
+**Use `-f`, not `-F`, for the option id.** `-F` type-coerces its value, so a numeric-looking option id like `98236657` is sent as an integer and the mutation fails with `Variable $o of type String! was provided invalid value`. `-f` sends it as the string the schema wants.
+
+**Pace the writes and make the runner resumable.** Projects v2 mutations trip a secondary rate limit well before the documented quota. Space them roughly 3 seconds apart, back off for several minutes on a throttle rather than retrying tight, and record each completed issue to a log file so an interrupted run picks up exactly where it stopped instead of re-writing from the top.
+
+**You do not need to close the issues yourself.** The board's built-in Projects v2 auto-close workflow is enabled and closes an issue within seconds of its Status being set to `Done`. Verified by controlled test: setting #190 to `Done` through the API, with no close call made, closed it on its own.
+
+This is worth stating plainly because an earlier version of this skill said the opposite and budgeted ~110 manual `gh issue close` calls per run, which is pure waste. The dormant workflow that misled it, `06-close-issue-when-done`, is a *different* mechanism: a custom Actions workflow that has never fired. Its triggers are wrong for this board (`project_card: moved` is Projects v1 only, and a Projects v2 `Status` change fires neither it nor `issues: edited`), and it shares the inverted dry-run default described in Step 9. The built-in Projects workflow makes it redundant regardless. Tracked in YaleSites-Internal #1753.
+
+Verify rather than assume, since this depends on a board setting someone could turn off:
+
+```bash
+gh api repos/yalesites-org/YaleSites-Internal/milestones/<n> --jq '"open=\(.open_issues)"'
+```
+
+If issues are not closing on their own, fall back to `gh issue close <number> --repo yalesites-org/YaleSites-Internal` per item and say so in the report.
 
 **On failure, stop.** Any error (auth, scope, item not on the board) means report what was written, what wasn't, and what the error was. Don't retry in a loop, and don't fall back to labels here — a partially-applied bulk status change is worse than none, and the user needs to know exactly where it stopped.
 
@@ -615,9 +666,29 @@ gh api -X PATCH repos/yalesites-org/YaleSites-Internal/milestones/<number> -f st
 
 If anything is still open, do not close it. A closed milestone holding open issues is the failure mode this step exists to prevent, and it already exists on the board (the `Drupal AI Migration` milestone is closed with 35 open issues).
 
-### Step 8: Scope the straggler check, and hand off the rest
+### Step 8: Sweep the unmilestoned, then scope the straggler check
 
-This phase's straggler check is **release-scoped**: items whose code shipped in this release but whose board status didn't follow. That's it.
+**First, sweep the tickets no milestone can reach.** Closing the milestone at zero open does not mean the release is reconciled, because unmilestoned work was never in scope to begin with. Run this after Step 7, every time:
+
+```bash
+gh project item-list 6 --owner yalesites-org --format json --limit 1200 > board.json
+jq -r '.items[] | select(.status=="Ready for Release (in dev)")
+  | select(.content.repository=="yalesites-org/YaleSites-Internal")
+  | .content.number' board.json |
+while read n; do
+  ms=$(gh api repos/yalesites-org/YaleSites-Internal/issues/$n --jq '[.milestone.title // "NONE", .state] | @tsv')
+  case "$ms" in NONE*open*) echo "$n unmilestoned+open" ;; esac
+done
+```
+
+Anything it finds goes through the same Step 4 verification as everything else. Do not move it on board status alone, and do not assume it belongs to the release you just shipped. Report it as its own group, since these tickets are usually orphaned rather than merely late.
+
+Two patterns to expect, both seen in the v2.26.0 run:
+
+- **Sub-issues that never inherited their parent's milestone.** #1396 was in the release milestone; all 11 of its children had none. Verify the children independently, because a shipped parent does not mean every child shipped: 10 of those 11 were in `master` and the 11th was not.
+- **Work tracked outside the release cadence entirely**, like vendor builds and tooling spikes. These usually want their milestone left alone. Ask rather than assigning one.
+
+**Second, keep the straggler check release-scoped**: items whose code shipped in this release but whose board status didn't follow. That's it.
 
 Broader backlog problems — tickets with no acceptance criteria, missing board fields, native-type vs. type-label conflicts, tickets stale for months with no PR at all — belong to a planned `backlog-hygiene` skill, which audits the whole backlog read-only. It is not released yet, so don't re-implement those checks here and don't send the user off to invoke it. If the reconciliation surfaces a pile of them, list them in the report and say they're out of this phase's scope.
 
@@ -626,24 +697,34 @@ Broader backlog problems — tickets with no acceptance criteria, missing board 
 - How many items moved to `Done` and were closed, and how many were left alone
 - How many carried to the next milestone, how many had their milestone cleared, and whether the milestone was closed
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
-- Whether workflows `02-pr-status-monitor` and `06-close-issue-when-done` are still dormant — if this phase keeps doing both their jobs by hand, that's one ticket about the shared inverted dry-run default, not two
+- How many unmilestoned tickets the Step 8 sweep turned up, since a growing number there means tickets are being created outside the release cadence
+- Whether workflow `02-pr-status-monitor` is still dormant. It is tracked in YaleSites-Internal #1753 (the shared inverted dry-run default) and #1385 (building its replacement), so report the state rather than filing anything new. Workflow `06-close-issue-when-done` is dormant *and* redundant, since the built-in Projects auto-close already does its job; #1753 covers deleting it
 
 ### What a real run looks like
 
-The first run of this phase, against v2.26.0 (milestone `09-16-26 Feature Release`, 187 issues), to calibrate what to expect:
+The first real run of this phase, against v2.26.0 (milestone `09-17-26 Feature Release`, 190 issues), to calibrate what to expect:
 
 | Bucket | Count |
 |---|---|
-| A — confirmed shipped, eligible for `Done` | 110 |
-| B — board said released, code not in `master` | 4 |
-| C — shipped but open in another status | 8 |
-| D — undetermined | 1 |
-| Shipped, already closed, never on the board | 10 |
-| In the milestone but not release-ready | 13 |
+| A, confirmed shipped, eligible for `Done` | 111 |
+| B, board said released, code not in `master` | 5 |
+| C, shipped but open in another status | 5 |
+| D, undetermined | 13 |
+| Already closed and shipped, never on the board | 10 |
+| In the milestone but not release-ready | 3 |
 
-These rows are a calibration snapshot, not an exhaustive partition of the milestone — they cover 146 of the 187 issues. The remaining 41 fell outside the buckets (no board item, or already reconciled in an earlier release). If your own run doesn't add up either, that's expected; don't hunt for a mis-bucketed ticket on arithmetic alone.
+Those buckets resolved into 114 moved to `Done` (bucket A plus the 3 genuinely stale stragglers) and 38 milestone edits: 5 to a hotfix milestone, 21 carried to the next release, 12 cleared back to no milestone. The milestone then closed at 154 closed, 0 open.
 
-Three of the four bucket-B items were children of the same epic (#1616 Section Color), all sitting on the `1616-section-color-parity` branch while the board showed them as released. That clustering is the tell: when several bucket-B items share a branch, the epic is mid-flight and its children's board status ran ahead of the code. Check for that pattern before reporting them as four separate problems.
+Then the Step 8 sweep found **22 more** open tickets in `Ready for Release (in dev)` with no milestone, which the milestone-scoped run could never have seen. Ten were shipped children of #1396. Budget for that sweep; it is not a rounding error.
+
+Four numbers worth carrying into the next run:
+
+- **Bucket D is mostly noise.** 10 of its 13 were already closed and simply never on the board. Separate those out before presenting, or you hand the user a 13-item decision list where only 3 need a decision.
+- **Bucket C is smaller than it looks, and half of it should not move.** Of 5 shipped-but-stuck items, 2 had open PRs still outstanding and were correctly in flight. "Shipped" at the commit level does not mean the ticket is done.
+- **Bucket B clusters.** 4 of 5 were epic-branch work and 3 shared one branch. Report the branch, not five separate problems.
+- **One bucket-A item was only resolvable by reading a PR's closing comment.** #1496's own PR was closed unmerged; a sibling PR fixed it and the developer said so in a comment. Neither ancestry nor title matching would have found that.
+
+Expect the whole run to take well over an hour of wall clock, most of it waiting on GraphQL rate limits rather than doing work.
 
 ---
 
