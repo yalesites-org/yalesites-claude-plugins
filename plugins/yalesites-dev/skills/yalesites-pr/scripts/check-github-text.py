@@ -71,24 +71,25 @@ AGENT_BLOCK = re.compile(r"<!--\s*yalesites:agent\b.*?-->", re.S)
 DETAILS_BLOCK = re.compile(r"<details\b.*?</details>", re.S | re.I)
 ANY_COMMENT = re.compile(r"<!--.*?-->", re.S)
 
-# Regions a whole-document scan must not flag: the author cannot rewrite a
-# command, a code sample, or the machine block without changing what it means.
-EXEMPT = (
-    ANY_COMMENT,
+# Regions the author cannot rewrite without changing what they mean. A command,
+# a code sample, or a quoted <details> is markup the draft talks about, not
+# markup the draft uses, so no check may read it as the real thing.
+CODE = (
     re.compile(r"```.*?```", re.S),
     re.compile(r"~~~.*?~~~", re.S),
     re.compile(r"`[^`\n]+`"),
 )
+EXEMPT = CODE + (ANY_COMMENT,)
 
 
 def line_of(text, index):
     return text[:index].count("\n") + 1
 
 
-def mask_exempt(text):
-    """Blank out code and comments, keeping every offset and line break."""
+def blank_out(text, patterns):
+    """Overwrite every match with spaces, keeping offsets and line breaks."""
     out = list(text)
-    for pattern in EXEMPT:
+    for pattern in patterns:
         for m in pattern.finditer(text):
             for i in range(m.start(), m.end()):
                 if out[i] != "\n":
@@ -96,18 +97,46 @@ def mask_exempt(text):
     return "".join(out)
 
 
-def split_layers(text):
-    """Return (visible, collapsed, agent_block_or_None), each as text."""
-    agent = None
-    m = AGENT_BLOCK.search(text)
-    if m:
-        agent = m.group(0)
-        text = text[: m.start()] + text[m.end():]
+def mask_code(text):
+    return blank_out(text, CODE)
 
-    collapsed = "\n".join(b.group(0) for b in DETAILS_BLOCK.finditer(text))
-    visible = DETAILS_BLOCK.sub(" ", text)
-    visible = ANY_COMMENT.sub(" ", visible)
-    return visible, collapsed, agent
+
+def mask_exempt(text):
+    return blank_out(text, EXEMPT)
+
+
+def split_layers(text):
+    """Return (visible, collapsed, agent_block_or_None, agent_start).
+
+    Blocks are located in a code-masked copy, so a draft that quotes a
+    <details> block or a yalesites:agent block never has the quotation
+    mistaken for a real layer. Offsets survive the mask, so the content
+    itself is still sliced out of the original text.
+    """
+    masked = mask_code(text)
+
+    agent = None
+    agent_start = None
+    m = AGENT_BLOCK.search(masked)
+    if m:
+        agent = text[m.start():m.end()]
+        agent_start = m.start()
+        text = text[: m.start()] + text[m.end():]
+        masked = masked[: m.start()] + masked[m.end():]
+
+    spans = [(b.start(), b.end()) for b in DETAILS_BLOCK.finditer(masked)]
+    collapsed = "\n".join(text[s:e] for s, e in spans)
+
+    parts = []
+    last = 0
+    for s, e in spans:
+        parts.append(text[last:s])
+        parts.append(" ")
+        last = e
+    parts.append(text[last:])
+    visible = ANY_COMMENT.sub(" ", "".join(parts))
+
+    return visible, collapsed, agent, agent_start
 
 
 def strip_markdown(text):
@@ -210,17 +239,17 @@ def check(path, surface):
         add("vague_summary", line_of(text, m.start()),
             f'"{m.group(1)}" does not say what is inside. Name the content.')
 
-    visible, collapsed, agent = split_layers(text)
+    visible, collapsed, agent, agent_start = split_layers(text)
 
     # --- Machine-only block ---------------------------------------------
     if agent is not None:
-        tail = text[text.rindex(agent) + len(agent):].strip()
+        tail = mask_exempt(text)[agent_start + len(agent):].strip()
         if tail:
-            add("agent_block_position", line_of(text, text.rindex(agent)),
+            add("agent_block_position", line_of(text, agent_start),
                 "The yalesites:agent block must be last in the body.")
         body = re.sub(r"^\s*yalesites:agent\b", "", agent[4:-3])
         if not body.strip():
-            add("agent_block_empty", line_of(text, text.rindex(agent)),
+            add("agent_block_empty", line_of(text, agent_start),
                 "Empty yalesites:agent block. Leave it out instead.")
         for key in re.findall(r"^\s*([A-Za-z_][\w-]*):", body, re.M):
             if key != key.lower() or "-" in key:
@@ -230,7 +259,7 @@ def check(path, surface):
             add("agent_block_secret", 0,
                 f'"{hit.group(1)}" in the machine block. Secrets never go here.')
 
-    if len(AGENT_BLOCK.findall(text)) > 1:
+    if len(AGENT_BLOCK.findall(masked)) > 1:
         add("agent_block_duplicate", 0,
             "More than one yalesites:agent block. Keep exactly one, at the bottom.")
 
