@@ -95,6 +95,8 @@ Valid options: `Hotfix` · `High` · `Medium` · `Low`
 
 If not specified, ask: *"What priority should this be — Hotfix, High, Medium, or Low?"*
 
+If the answer is Hotfix, the title needs the `Hotfix:` prefix stacked in front of its type prefix. See "Title" below.
+
 ### Size
 
 Valid options: `XS` · `S` · `M` · `L` · `XL`
@@ -319,6 +321,7 @@ When grooming an existing stub ticket, check the title along with the other fiel
 
 | Prefix | When to use |
 |--------|-------------|
+| `Hotfix:` | A ticket set to **Hotfix** priority. Unlike the others, this one stacks in front of the type prefix rather than replacing it, so a hotfix bug reads `Hotfix: Bug: <what's broken>`. See the stacking note below the table. |
 | `RC:` | A bug found during release-candidate testing, before the release ships. Use when the prompt says something like "make an RC ticket" or references RC/QA testing. (Occasionally numbered — `RC2:`, `RC3:` — for issues found in a later regression pass on the same release.) |
 | `Epic:` | The parent ticket for a multi-ticket initiative. See "Creating an Epic" below. |
 | `Bug:` | A defect found outside of RC testing (reported by an editor, caught in normal use, etc.). |
@@ -332,6 +335,8 @@ When grooming an existing stub ticket, check the title along with the other fiel
 | `Migration Tool:` | Work on content migration tooling (CSV import/export, etc.). |
 | `Community Spotlight:` | A specific Community Spotlight content ticket. |
 | `YS-Email:` | YaleSites training or release email tickets. |
+
+**`Hotfix:` stacks; the rest don't.** Every other prefix in the table is one-per-ticket. `Hotfix:` is the exception: it goes in front of whatever prefix the ticket already earned, so you get `Hotfix: Bug: ...` or `Hotfix: View: ...`. This matters because Priority is a Projects v2 field, which means it doesn't appear in search results, notification emails, or most board views. The title prefix is the only place the urgency is visible to someone skimming. Whenever Priority comes back as Hotfix, prepend it. Reference examples: YaleSites-Internal #1729, #1730, #1732, #1381.
 
 **Epic child tickets** follow a related but distinct pattern: they're prefixed with a short form of their epic's name rather than one of the prefixes above, so they group together visually in the backlog (e.g., `Views Block Rework: Authoring Form UX/UI Audit`, `Publications: Teaser Display`, `Wave 3: Interactive molecules`). When scoping child tickets for a new epic, pick one short, consistent name and apply it to every child ticket — see "Creating an Epic" below.
 
@@ -368,7 +373,7 @@ Choose one based on user and platform impact:
 
 | Priority | When to use |
 |----------|-------------|
-| **Hotfix** | Critical issue breaking core functionality or accessibility. Immediate deployment required. |
+| **Hotfix** | Critical issue breaking core functionality or accessibility. Immediate deployment required. Also prepend the `Hotfix:` title prefix (see "Title" above). |
 | **High** | Significantly impacts user experience or blocks key workflows. Soonest milestone priority. |
 | **Medium** | Improves platform usability or addresses moderate user pain points. |
 | **Low** | Nice-to-have enhancement with minimal user impact. Future consideration. |
@@ -525,6 +530,7 @@ This applies to an established ticket with real history — comments, linked PRs
 Before submitting or updating an issue, check:
 
 - [ ] Title clearly states the specific work, and uses a matching prefix if one applies
+- [ ] If Priority is Hotfix, the title carries the `Hotfix:` prefix in front of its type prefix
 - [ ] Body opens with a TL;DR line: one or two plain-language sentences, no jargon
 - [ ] Platform-fit and archetype analysis is in a collapsed **Background and analysis** block, not inline above the Description (an "already exists" / "conflicts" flag excepted — that stays visible under the TL;DR)
 - [ ] Description is jargon-free and makes sense to a non-developer
