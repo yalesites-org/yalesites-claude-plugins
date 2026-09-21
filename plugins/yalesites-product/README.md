@@ -22,6 +22,10 @@ team with:
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
+- **Web content** — drafting and revising pages for yalesites.yale.edu
+  (user guides, resource pages, release documentation), researched from the
+  merged code and written in ASD-STE100 Simplified Technical English, with the
+  Layout Builder blocks and config decisions handed over alongside the copy
 - **UX research** — the six current user archetypes, top pain points, delights,
   and platform usage data from the 2026 YaleSites UX Report for informing
   product decisions
@@ -56,6 +60,7 @@ knowledge that the workflow skills reference:
 | `reviewer-profile` | Setting up or changing how `pr-feedback` is scoped to you (invoke directly with `/reviewer-profile`) |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
+| `yalesites-web-content` | Writing or revising a page that will live on yalesites.yale.edu |
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
 | `beacon-test-bank` | A full tiered test bank with guardrails, safety, and edge-case coverage |
 | `beacon-comparison-review` | Analyzing a Beacon AI Tester A/B comparison JSON export |
