@@ -22,7 +22,7 @@ team with:
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
-- **Web content** — drafting and revising pages for yalesites.yale.edu
+- **Web content**: drafting and revising pages for yalesites.yale.edu
   (user guides, resource pages, release documentation), researched from the
   merged code and written in ASD-STE100 Simplified Technical English, with the
   Layout Builder blocks and config decisions handed over alongside the copy
