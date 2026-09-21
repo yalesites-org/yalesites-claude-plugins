@@ -134,6 +134,11 @@ it." Exact lists for `node.page.default`
 | `ys_layout_three_column_33_33_33` / all | `button_link`, `divider`, `embed`, `image`, `link_grid`, `pull_quote`, `text`, `video` (8) |
 | `ys_layout_page_meta` / all | `page_meta_block` only |
 
+Office Hours (`yalesites-org/yalesites-project#1477`, still open) is absent on
+purpose: it adds `office_hours` to the three-column, both 70/30 regions, and the
+50/50 allow-lists. Count from `develop`, not a feature branch, or an unmerged
+component looks like it already ships.
+
 Consequences worth checking before promising a layout:
 
 - **Banner components are banner-only.** They cannot go in a content section.
