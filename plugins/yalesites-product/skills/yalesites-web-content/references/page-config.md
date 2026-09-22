@@ -57,4 +57,4 @@ When those two conflict, say so and let the user choose rather than picking sile
 
 ## Publishing
 
-Drafts are built unpublished and published when the release ships. Unpublished pages need a CAS login with editor permissions or above, so `web_fetch` on one returns an empty body. That is expected, not an error. Verify from the local draft file instead.
+Drafts are built unpublished and published when the release ships. Unpublished pages need a CAS login with editor permissions or above, so `WebFetch` on one returns an empty body. That is expected, not an error. Verify from the local draft file instead.

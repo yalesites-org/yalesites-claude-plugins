@@ -69,6 +69,6 @@ STE predates web UI, so a few adaptations:
 
 ## Checking your work
 
-Run `scripts/check_draft.py`. Sentence-length violations are easy to miss by eye, especially in bullets, where a long parenthetical can push you past 20 words without the line looking long.
+Run `check-github-text.py --surface page-draft`. Sentence-length violations are easy to miss by eye, especially in bullets, where a long parenthetical can push you past 20 words without the line looking long.
 
 The script flags candidates, not verdicts. A 22-word descriptive sentence is fine. A 22-word instruction is not.

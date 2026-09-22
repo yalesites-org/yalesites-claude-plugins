@@ -1,6 +1,6 @@
 # The shape of yalesites.yale.edu
 
-There is no crawl tool here. `mcp__workspace__web_fetch` (or an equivalent) loads one page at a time. Don't describe the site's contents as if you'd surveyed all of it; you've only seen what you fetched.
+There is no crawl tool here. `WebFetch` loads one page at a time. Don't describe the site's contents as if you'd surveyed all of it; you've only seen what you fetched.
 
 What makes this manageable: YaleSites renders its full top-level navigation in the markup of every single page. Fetching any one published page, even one unrelated to your task, gives you the current primary nav for free. Use that instead of guessing at section names, and re-fetch periodically since this list will drift.
 

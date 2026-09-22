@@ -8,7 +8,11 @@ The ticket usually lives in `yalesites-org/YaleSites-Internal` and names the PR 
 
 Read the PR body for the shape of the work and the functional testing steps. Those steps are a good inventory of user-visible behavior. Treat them as a map, then confirm each claim in the code.
 
-`get_pull_request_files` on a large PR will exceed the token limit. It saves to a file you can then grep, which is usually faster than paging through the diff. Grep the saved file for `"filename":` to get the file list, then fetch the interesting files directly with `get_file_contents`.
+Get the file list before the diff. `get_pull_request_files` returns the changed
+paths for a PR, and reading the interesting ones with `get_file_contents` costs
+far less than paging through a large diff. If the file list itself is too big to
+return, fall back to `gh pr view <number> --repo yalesites-org/yalesites-project
+--json files`, which you can pipe through `jq` or save and grep.
 
 ## Where things live
 

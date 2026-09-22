@@ -15,7 +15,7 @@ The end goal is a page the user can actually build in Drupal, not just prose. Th
 2. Research the feature from the merged code, not the ticket summary
 3. Read a sibling page to match house style
 4. Draft, using the required deliverable structure, and suggest blocks
-5. Run `scripts/check_draft.py` and fix what it finds
+5. Run the draft through `check-github-text.py --surface page-draft` and fix what it finds
 6. Report deviations from the ticket's acceptance criteria, and ask rather than guess wherever something is genuinely unclear
 
 ---
@@ -56,7 +56,7 @@ Read `references/researching-features.md` for the YaleSites repo layout and conc
 
 ## Step 3: Match the sibling pages
 
-Fetch one existing page in the same section before drafting. It shows you the heading depth, how much hand-holding the house style uses, and how features get named. `mcp__workspace__web_fetch` works on published pages.
+Fetch one existing page in the same section before drafting. It shows you the heading depth, how much hand-holding the house style uses, and how features get named. `WebFetch` works on published pages.
 
 Unpublished pages return an empty body, because unpublished content on yalesites.yale.edu sits behind CAS and needs an editor login. An empty result means "not published yet," not "broken." Verify against the local draft file instead, or ask the user to paste what they see.
 
@@ -151,7 +151,7 @@ Practical consequences:
 - Say what a section is *for*, not just what it shows. "Use this to find work you did not finish" beats "Shows unpublished content."
 - When a setting has a consequence the reader would not predict, state it. A toggle that quietly stops release announcements deserves a sentence saying so, and a recommendation.
 - End internal-only or no-action sections with an explicit "no action is necessary on your site," so a nervous reader stops worrying.
-- If a `ux-research` skill is available, read it before making calls about depth and tone.
+- If the `yalesites-ux-research` skill is available, read it before making calls about depth and tone.
 
 ### Links
 
@@ -177,10 +177,12 @@ Screenshots usually come later, during release testing on a stable environment. 
 ## Step 5: Check the draft mechanically
 
 ```bash
-python3 scripts/check_draft.py <path-to-draft.md>
+python3 ../ticket/scripts/check-github-text.py <path-to-draft.md> --surface page-draft
 ```
 
 It flags em dashes, over-length sentences, absolute internal URLs, banned words, and teaser length. Eyeballing these is unreliable and the script is faster. Fix what it reports before handing over, and mention anything you deliberately left.
+
+This is the same checker the ticket and PR skills use, on a `page-draft` surface. It lives in the `ticket` skill because a plugin ships one copy of the shared standards and every other skill in the plugin calls it from there. Only the `## Page copy` section is held to the prose rules, so the config block and your handoff notes can use normal working English.
 
 ## Step 6: Reconcile with the ticket, and ask rather than guess
 
@@ -193,6 +195,6 @@ If the user agrees to deviate from a ticket, offer to update the AC. Rewrite it 
 ## Related skills
 
 - `yalesites-release-prep` — its Feature Documentation phase should hand off to this skill for the actual drafting
-- `yalesites-ticket-grooming` — for writing the ticket, rather than the page
-- `ux-research` — the archetypes referenced above
+- `ticket` — for writing the ticket, rather than the page
+- `yalesites-ux-research` — the archetypes referenced above
 - `yalesites` (platform reference) — `blocks-reference.md` and `views-reference.md` for suggesting Layout Builder components
