@@ -14,11 +14,19 @@ because no person ever sees it. Code fences, inline code spans, and HTML
 comments are exempt from the whole-document scans, so a draft that quotes the
 format spec is never flagged for violating it.
 
+The page-draft surface is the exception to all of that. A draft for a page on
+yalesites.yale.edu is not a GitHub artifact: it has no TL;DR, no <details>
+layering, and no visible-word budget. It carries its own structure instead, so
+it gets its own structural checks (teaser, required sections, site-relative
+links) and its prose rules apply to the "## Page copy" section alone, leaving
+the config block and handoff notes in normal working English.
+
 Usage:
     python3 check-github-text.py draft.md --surface ticket
     python3 check-github-text.py draft.md --surface pr-review --json
+    python3 check-github-text.py draft.md --surface page-draft
 
-Surfaces: ticket, pr-body, pr-review, release-notes, report
+Surfaces: ticket, pr-body, pr-review, release-notes, report, page-draft
 Exit codes: 0 clean, 1 issues found, 2 bad invocation or unreadable input.
 """
 
@@ -39,6 +47,11 @@ SURFACES = {
     "report": (80, 600),
 }
 
+# Page drafts budget nothing, so they carry no caps. Kept out of SURFACES so
+# the GitHub checks can key off that dict and skip them without a special case.
+PAGE_SURFACES = ("page-draft",)
+ALL_SURFACES = sorted(tuple(SURFACES) + PAGE_SURFACES)
+
 BANNED = {
     "utilize": "use", "utilizes": "uses", "utilizing": "using",
     "leverage": "use", "leverages": "uses", "leveraging": "using",
@@ -51,7 +64,9 @@ BANNED = {
     "endeavor": "try", "aforementioned": "this", "in the event that": "if",
     "pursuant to": "under", "herein": "here", "modify": "change",
     "indicate": "show", "sufficient": "enough", "permit": "let",
-    "permits": "lets", "require": "need", "via": "with, by",
+    "permits": "lets", "require": "need", "requires": "needs",
+    "requiring": "needing", "modifies": "changes", "modifying": "changing",
+    "indicates": "shows", "indicating": "showing", "via": "with, by",
     "multiple": "many", "robust": "(cut it)",
     "circle back": "follow up", "touch base": "check in",
     "move the needle": "make a difference", "synergy": "(cut it)",
@@ -66,6 +81,22 @@ IMPERATIVES = (
     "find", "make", "read", "see", "include", "apply", "change", "confirm",
     "verify", "navigate", "upload", "publish", "run", "install", "update",
 )
+
+# Page-draft structure. The teaser runs to the next blank line rather than the
+# next newline: a teaser hard-wrapped at a fixed column width has to be rejoined
+# before its length means anything, or the 160-character ceiling never fires and
+# the stated count is compared against one line of a longer string.
+TEASER = re.compile(r"\*\*Teaser text[^*]*\*\*\s*\n+(.+?)(?:\n\s*\n|\Z)", re.S)
+STATED_COUNT = re.compile(r"\((\d+)\s*characters?\)")
+ABSOLUTE_INTERNAL = re.compile(r"\]\((https?://(?:www\.)?yalesites\.yale\.edu[^)]*)\)")
+REQUIRED_SECTIONS = ("## Title", "## Config considerations")
+PAGE_COPY = "## Page copy"
+PAGE_COPY_STOPS = ("\n## Notes for the editor", "\n## Notes")
+
+# Screenshot markers are instructions to the editor, not page copy. They are
+# dropped before the markdown is stripped, because stripping deletes the very
+# asterisks that identify them.
+SCREENSHOT_MARKER = re.compile(r"^\*?\[SCREENSHOT\b|^\*Alt text\b", re.I)
 
 AGENT_BLOCK = re.compile(r"<!--\s*yalesites:agent\b.*?-->", re.S)
 DETAILS_BLOCK = re.compile(r"<details\b.*?</details>", re.S | re.I)
@@ -150,13 +181,18 @@ def strip_markdown(text):
 LIST_ITEM = re.compile(r"^([-*+]\s+|\d+[.)]\s+)")
 
 
-def prose_lines(section):
+def prose_lines(section, drop=None):
     """Yield prose units with hard wraps undone.
 
     A sentence broken over several lines has to be rejoined before it can be
     measured, or the sentence caps never fire on anything drafted at a fixed
     column width. A blank line, a heading, a table row, or a new list marker
     starts a new unit; anything else continues the one in progress.
+
+    `drop` is an optional predicate run on each raw line. A line it matches is
+    discarded and ends the unit in progress. Callers that need to recognise a
+    line by its markdown must pass the section unstripped and use this, since
+    stripping removes the markers they would match on.
     """
     out = []
     current = []
@@ -178,6 +214,9 @@ def prose_lines(section):
         if not line or line.startswith("#") or line.startswith("|") or set(line) <= set("-*= "):
             flush()
             continue
+        if drop is not None and drop(line):
+            flush()
+            continue
         if LIST_ITEM.match(line):
             flush()
             line = LIST_ITEM.sub("", line)
@@ -195,6 +234,69 @@ def is_procedural(sentence):
     return bool(first) and first[0].lower() in IMPERATIVES
 
 
+def page_copy_section(text):
+    """The "## Page copy" section, or the whole draft if there is no heading.
+
+    Everything outside it (the config block, handoff notes) is working English
+    for one reader and is not held to the page's prose rules.
+    """
+    if PAGE_COPY not in text:
+        return text
+    section = text.split(PAGE_COPY, 1)[1]
+    for stop in PAGE_COPY_STOPS:
+        if stop in section:
+            return section.split(stop, 1)[0]
+    return section
+
+
+def check_page_draft(text, masked, add):
+    """Structural checks for a yalesites.yale.edu page draft."""
+    for m in ABSOLUTE_INTERNAL.finditer(masked):
+        path_only = re.sub(r"^https?://(?:www\.)?yalesites\.yale\.edu", "", m.group(1)) or "/"
+        add("absolute_internal_link", line_of(text, m.start()),
+            f"Use the site-relative path instead: {path_only}")
+
+    teaser = TEASER.search(masked)
+    if not teaser:
+        add("teaser_missing", 0,
+            "No '**Teaser text (N characters):**' block found. Every page draft needs one.")
+    else:
+        line = line_of(text, teaser.start())
+        body = re.sub(r"\s+", " ", text[teaser.start(1):teaser.end(1)]).strip()
+        n = len(body)
+        if n > 160:
+            add("teaser_too_long", line,
+                f"Teaser is {n} characters. Target ~150, ceiling 160.")
+        stated = STATED_COUNT.search(teaser.group(0))
+        if stated and int(stated.group(1)) != n:
+            add("teaser_count_wrong", line,
+                f"Draft says {stated.group(1)} characters, actual is {n}.")
+
+    for heading in REQUIRED_SECTIONS:
+        if heading not in masked:
+            add("section_missing", 0, f"Draft is missing a '{heading}' section.")
+
+    # Prose rules, page copy only. prose_lines runs on the unstripped section so
+    # the screenshot markers are still recognisable; each unit is stripped after.
+    section = mask_exempt(page_copy_section(text))
+    units = [strip_markdown(u) for u in
+             prose_lines(section, drop=SCREENSHOT_MARKER.search)]
+
+    for unit in units:
+        for s in sentences(unit):
+            n = len(s.split())
+            proc = is_procedural(s)
+            limit = PROC_LIMIT if proc else DESC_LIMIT
+            if n > limit:
+                add("long_sentence", 0,
+                    f"{n} words ({'procedural' if proc else 'descriptive'}, limit {limit}): {s[:90]}")
+
+    low = " ".join(units).lower()
+    for word, better in BANNED.items():
+        for _ in re.finditer(r"\b" + re.escape(word) + r"\b", low):
+            add("banned_word", 0, f'"{word}" -> "{better}"')
+
+
 def check(path, surface):
     try:
         with open(path, encoding="utf-8") as fh:
@@ -202,7 +304,6 @@ def check(path, surface):
     except OSError as err:
         print(f"cannot read {path}: {err}", file=sys.stderr)
         sys.exit(2)
-    tldr_cap, visible_cap = SURFACES[surface]
     issues = []
 
     def add(kind, line, detail):
@@ -216,6 +317,13 @@ def check(path, surface):
     for m in re.finditer("—", masked):
         add("em_dash", line_of(text, m.start()),
             "Em dash found. Rewrite with a comma, period, colon, or parentheses.")
+
+    # A page draft shares the em-dash rule and nothing below it.
+    if surface in PAGE_SURFACES:
+        check_page_draft(text, masked, add)
+        return issues
+
+    tldr_cap, visible_cap = SURFACES[surface]
 
     for m in re.finditer(r"<details\b", masked, re.I):
         rest = masked[m.end():]
@@ -307,7 +415,9 @@ def check(path, surface):
 
 
 ORDER = [
-    "em_dash", "tldr_missing", "tldr_too_long", "visible_too_long",
+    "em_dash", "section_missing", "teaser_missing", "teaser_too_long",
+    "teaser_count_wrong", "absolute_internal_link",
+    "tldr_missing", "tldr_too_long", "visible_too_long",
     "no_collapsed_layer", "details_blank_line", "nested_details",
     "vague_summary", "agent_block_position", "agent_block_duplicate",
     "agent_block_empty", "agent_block_key", "agent_block_secret",
@@ -318,7 +428,7 @@ ORDER = [
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("path")
-    ap.add_argument("--surface", required=True, choices=sorted(SURFACES))
+    ap.add_argument("--surface", required=True, choices=ALL_SURFACES)
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
@@ -347,8 +457,12 @@ def main():
         print()
 
     print("Long sentences and banned words are candidates, not verdicts.")
-    print("A 22-word descriptive sentence can be fine. A 22-word acceptance criterion is not.")
-    print("Only the visible layer is budgeted. Collapsed depth is free.")
+    if args.surface in PAGE_SURFACES:
+        print("A 22-word descriptive sentence can be fine. A 22-word instruction is not.")
+        print("Only the '## Page copy' section is held to the prose rules.")
+    else:
+        print("A 22-word descriptive sentence can be fine. A 22-word acceptance criterion is not.")
+        print("Only the visible layer is budgeted. Collapsed depth is free.")
     return 1
 
 
