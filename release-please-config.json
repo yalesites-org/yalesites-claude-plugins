@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "bootstrap-sha": "c8544be7de0e10e81a79b46c5eeac2a3baa85773",
+  "release-type": "simple",
+  "include-component-in-tag": true,
+  "changelog-sections": [
+    { "type": "feat", "section": "Features" },
+    { "type": "fix", "section": "Bug Fixes" },
+    { "type": "docs", "section": "Documentation" },
+    { "type": "refactor", "section": "Refactoring" },
+    { "type": "chore", "section": "Miscellaneous", "hidden": true },
+    { "type": "ci", "section": "CI", "hidden": true },
+    { "type": "test", "section": "Tests", "hidden": true }
+  ],
+  "extra-files": [
+    { "type": "json", "path": ".claude-plugin/plugin.json", "jsonpath": "$.version" }
+  ],
+  "packages": {
+    "plugins/yalesites": { "package-name": "yalesites" },
+    "plugins/yalesites-dev": { "package-name": "yalesites-dev" },
+    "plugins/yalesites-product": { "package-name": "yalesites-product" },
+    "plugins/yalesites-security": { "package-name": "yalesites-security" }
+  }
+}
