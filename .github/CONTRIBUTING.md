@@ -69,8 +69,12 @@ PR merges still make one bump: the largest one wins. Merging the release PR writ
 new versions and tags each plugin, e.g. `yalesites-dev-v0.7.0`.
 
 PR titles must be Conventional Commits too. CI checks this, because a squash merge uses
-the title as the commit message. With a merge commit or a rebase, the individual commit
-messages count instead.
+the title as the commit message. A rebase merge uses the individual commit messages.
+
+Prefer squash or rebase. With "Create a merge commit", release-please skips any commit
+dated before the last release, so a branch that started before the last release gets no
+bump. It walks history newest-first and stops at the last release commit, and a merge
+commit keeps the branch's original commit dates.
 
 Adding a plugin? Add it to `packages` in `release-please-config.json` and give it a
 starting version in `.release-please-manifest.json`.
