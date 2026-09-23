@@ -4,7 +4,7 @@
 
 ## Why this exists
 
-Step 1 of this skill (orienting within the site, checking for overlap before drafting something new) previously meant fetching hub pages one at a time and hoping the relevant existing page turned up in the nav. That's slow, and it misses anything that's reachable only through a tag filter rather than a menu link, which turns out to be most of the site: block reference pages, training webinars, Localist event-management guides, and release note posts are all real, real content, but none of them sit in the static nav tree.
+Step 1 of this skill (orienting within the site, checking for overlap before drafting something new) previously meant fetching hub pages one at a time and hoping the relevant existing page turned up in the nav. That's slow, and it misses anything that's reachable only through a tag filter rather than a menu link, which turns out to be most of the site: block reference pages, training webinars, Localist event-management guides, and release note posts are all real content, but none of them sit in the static nav tree.
 
 Grepping this file first is faster and more complete than a round of fetches, for the specific question "does something like this already exist, and if so where."
 
@@ -36,4 +36,6 @@ This is a snapshot of titles, URLs, and taxonomy metadata. It says nothing about
 
 When something in this file is load-bearing for the draft, meaning a claim the reader will act on, verify it by fetching the live page rather than trusting the row.
 
-**This file will go stale.** If you regenerate it from a fresher export, replace `content-inventory.csv` in place and update the "exported" date in this file and in the CSV's own header comment area (or just note the new date here, since CSV doesn't support comments cleanly). If a while has passed and no fresher export is available, say so plainly when relying on it rather than presenting a two-year-old inventory as current.
+**This file will go stale.** The YaleSites product team owns the refresh. Re-export it at least once per feature release, and after any large docs push or nav restructure. To refresh, replace `content-inventory.csv` in place and update the row counts and the "exported" date at the top of this file. This file is the only place the date lives, since the CSV has no header area for it.
+
+If the snapshot is old and no fresher export is available, say so plainly when relying on it rather than presenting a stale inventory as current.

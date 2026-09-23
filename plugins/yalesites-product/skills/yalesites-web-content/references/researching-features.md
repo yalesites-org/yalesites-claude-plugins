@@ -38,17 +38,17 @@ web/profiles/custom/yalesites_profile/
 
 ## What each file answers
 
-**`*.routing.yml`** — the path, the page title, and the `_permission` requirement. This is where you learn what it takes to reach a page.
+**`*.routing.yml`:** the path, the page title, and the `_permission` requirement. This is where you learn what it takes to reach a page.
 
-**`user.role.*.yml`** — the permission list for a role. To answer "can a site admin see this?", find the route's permission, then grep for it in `user.role.site_admin.yml`. Most YaleSites admin pages sit behind `yalesites manage settings`, which **site administrators hold**. Do not assume an `/admin/yalesites/*` path is internal-only.
+**`user.role.*.yml`:** the permission list for a role. To answer "can a site admin see this?", find the route's permission, then grep for it in `user.role.site_admin.yml`. Most YaleSites admin pages sit behind `yalesites manage settings`, which **site administrators hold**. Do not assume an `/admin/yalesites/*` path is internal-only.
 
-**Form classes (`src/Form/*.php`)** — `buildForm()` gives you exact field labels, `#description` help text, `#default_value`, `#min`/`#max`, and `#states` visibility conditions. An `#access` callback on a fieldset is how individual sections get gated to a role; check whether the gate is on the whole route or only on one fieldset, because that changes what a site admin actually sees.
+**Form classes (`src/Form/*.php`):** `buildForm()` gives you exact field labels, `#description` help text, `#default_value`, `#min`/`#max`, and `#states` visibility conditions. An `#access` callback on a fieldset is how individual sections get gated to a role; check whether the gate is on the whole route or only on one fieldset, because that changes what a site admin actually sees.
 
-**Views config (`views.view.*.yml`)** — for any table or list. Grep for `label:` to get column headings in order, `items_per_page` for the row limit, `content:` under `empty:` for the empty-state text, `sorts:` for default ordering, and `filters:` for what's included (e.g. `status: '1'` means published only). `path:` under `alter:` tells you where a linked title goes.
+**Views config (`views.view.*.yml`):** for any table or list. Grep for `label:` to get column headings in order, `items_per_page` for the row limit, `content:` under `empty:` for the empty-state text, `sorts:` for default ordering, and `filters:` for what's included (e.g. `status: '1'` means published only). `path:` under `alter:` tells you where a linked title goes.
 
-**Twig templates** — section headings in reading order, and `{% if %}` guards showing what disappears when a setting is off.
+**Twig templates:** section headings in reading order, and `{% if %}` guards showing what disappears when a setting is off.
 
-**`config/install/*.yml`** — the values a fresh site ships with.
+**`config/install/*.yml`:** the values a fresh site ships with.
 
 ## The permission trace, worked
 

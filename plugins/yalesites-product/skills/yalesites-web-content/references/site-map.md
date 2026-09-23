@@ -19,9 +19,9 @@ What makes this manageable: YaleSites renders its full top-level navigation in t
 
 The User Guide (`/explore-resources/user-guide`) has its own left-hand nav, distinct from the top-level one, built with a mechanism called Content Collections (see `/secondary-navigation-with-content-collections`). As of August 2026 it has these sections and children:
 
-- **Building Your Site** — Content Types, Manage Settings, Edit Layout and Content, Create Powerful Page Sections, Building with Blocks, Sitewide Settings, Secondary Navigation with Content Collections, Working with Images in YaleSites
-- **Managing Site Content** — Building Your Menu, Editorial Workflow, Google Tag Manager, Media Library, Using Taxonomy and Vocabulary
-- **Creating Accessible Content** — Accessibility with Editoria11y
+- **Building Your Site**: Content Types, Manage Settings, Edit Layout and Content, Create Powerful Page Sections, Building with Blocks, Sitewide Settings, Secondary Navigation with Content Collections, Working with Images in YaleSites
+- **Managing Site Content**: Building Your Menu, Editorial Workflow, Google Tag Manager, Media Library, Using Taxonomy and Vocabulary
+- **Creating Accessible Content**: Accessibility with Editoria11y
 - **Term Glossary**
 - **Go-Live Checklist**
 
@@ -40,9 +40,9 @@ If you find something close, surface it and ask which way to go rather than deci
 
 Content on yalesites.yale.edu regularly links out to a small set of other Yale domains. Know these so you don't mistake them for YaleSites pages or apply the relative-link rule to them by mistake:
 
-- `usability.yale.edu` — Usability & Web Accessibility, including Siteimprove documentation
-- `cybersecurity.yale.edu` — Yale data classification guidance
-- `legacy.yalesites.yale.edu` — the old Drupal 7 platform
-- `privacy.yale.edu` — Yale's privacy statement
+- `usability.yale.edu`: Usability & Web Accessibility, including Siteimprove documentation
+- `cybersecurity.yale.edu`: Yale data classification guidance
+- `legacy.yalesites.yale.edu`: the old Drupal 7 platform
+- `privacy.yale.edu`: Yale's privacy statement
 
 These stay absolute. Only links to yalesites.yale.edu itself should be relative.

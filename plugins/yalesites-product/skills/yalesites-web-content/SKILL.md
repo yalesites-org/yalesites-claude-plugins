@@ -1,6 +1,6 @@
 ---
 name: yalesites-web-content
-description: "Draft web content for the YaleSites website (yalesites.yale.edu) — user guide pages, resource pages, release documentation, and knowledge base updates. Use this skill whenever the task is to write, draft, revise, or update a page that will live on yalesites.yale.edu, including when the request only names a GitHub ticket like 'draft the page for #1471', names a feature to document, or says something like 'we need a user guide page for X', 'write up the new dashboard for the site', or 'add documentation for this release'. Also use it when reviewing existing YaleSites page copy for style, reading level, or link hygiene. This skill covers researching the feature from merged code before writing, the required Title / Teaser / Config considerations block, ASD-STE100 Simplified Technical English, suggesting Layout Builder blocks, and YaleSites link and reuse conventions."
+description: "Draft web content for the YaleSites website (yalesites.yale.edu): user guide pages, resource pages, release documentation, and knowledge base updates. Use this skill whenever the task is to write, draft, revise, or update a page that will live on yalesites.yale.edu, including when the request only names a GitHub ticket like 'draft the page for #1471', names a feature to document, or says something like 'we need a user guide page for X', 'write up the new dashboard for the site', or 'add documentation for this release'. Also use it when reviewing existing YaleSites page copy for style, reading level, or link hygiene. This skill covers researching the feature from merged code before writing, the required Title / Teaser / Config considerations block, ASD-STE100 Simplified Technical English, suggesting Layout Builder blocks, and YaleSites link and reuse conventions."
 ---
 
 # YaleSites Web Content
@@ -22,7 +22,7 @@ The end goal is a page the user can actually build in Drupal, not just prose. Th
 
 ## Step 1: Orient within the site
 
-This skill cannot crawl yalesites.yale.edu, and it shouldn't need to for the common case. `references/content-inventory.csv` is a bundled snapshot of every page and post on the site (199 rows as of 2026-08-05), with a derived section, nav status, and content cluster for each one. **Check it before fetching anything.** Search it for the topic or feature you're about to write about; it's faster than a round of live fetches and it covers content that never shows up in a hub page's visible nav, like block reference pages and training webinars that are only reachable through tag filters. Read `references/content-inventory.md` for the column definitions and what the file can't tell you.
+This skill cannot crawl yalesites.yale.edu, and it shouldn't need to for the common case. `references/content-inventory.csv` is a bundled snapshot of every page and post on the site, with a derived section, nav status, and content cluster for each one. **Check it before fetching anything.** Search it for the topic or feature you're about to write about; it's faster than a round of live fetches and it covers content that never shows up in a hub page's visible nav, like block reference pages and training webinars that are only reachable through tag filters. Read `references/content-inventory.md` for the export date, the column definitions, and what the file can't tell you.
 
 The inventory is a snapshot, not a live source. It's a starting point for "does this already exist and where," not a citable source for what a page currently says or whether a feature still works the way it did when the export was taken. If it's the only thing available and clearly old, say so rather than presenting it as current.
 
@@ -80,7 +80,8 @@ The user builds these pages in Drupal themselves. Body copy alone leaves them re
 ## Teaser
 **Teaser text (N characters):**
 [~150 characters, hard ceiling 160]
-Feeds the hub card, the meta description, and search results.
+
+<!-- The teaser feeds the hub card, the meta description, and search results. -->
 
 ## Config considerations
 - **Content type:**
@@ -108,7 +109,7 @@ See `references/page-config.md` for the User Guide's real nav structure and what
 
 ### Suggest Layout Builder blocks
 
-Pages aren't typed as raw HTML. The user assembles them from Layout Builder blocks and, for dynamic listings, Views. Look for a skill named `yalesites` (or similar) with `references/blocks-reference.md` and `references/views-reference.md` — those files hold the verified, current field labels for every block on the platform. If that skill is available, read them and use them.
+Pages aren't typed as raw HTML. The user assembles them from Layout Builder blocks and, for dynamic listings, Views. Look for a skill named `yalesites` (or similar) with `references/blocks-reference.md` and `references/views-reference.md`. Those files hold the verified, current field labels for every block on the platform. If that skill is available, read them and use them.
 
 As you draft, note which block fits each section rather than leaving the user to work it out:
 
@@ -138,7 +139,7 @@ Body copy follows **ASD-STE100 Simplified Technical English**. The rules that ca
 - Keep noun stacks to three words or fewer.
 - Say what to do rather than what not to do.
 
-STE reads a little flat to a marketer. That is the point. The reader is often anxious about breaking their site, and short literal sentences are easier to trust. `references/ste-rules.md` has the word-swap table and the fuller rule set.
+STE reads a little flat to a marketer. That is the point. The reader is often anxious about breaking their site, and short literal sentences are easier to trust. `references/ste-rules.md` covers the page-specific rules and points to the shared YaleSites writing standard for the full rule set and the word-swap table.
 
 **No em dashes, ever.** Use a comma, a period, a colon, parentheses, or restructure the sentence. If the user has a personal writing-voice skill installed, apply it on top of STE. Otherwise, default to "we" for the YaleSites team rather than "I," and avoid corporate filler (leverage, utilize, circle back, synergy).
 
@@ -151,7 +152,7 @@ Practical consequences:
 - Say what a section is *for*, not just what it shows. "Use this to find work you did not finish" beats "Shows unpublished content."
 - When a setting has a consequence the reader would not predict, state it. A toggle that quietly stops release announcements deserves a sentence saying so, and a recommendation.
 - End internal-only or no-action sections with an explicit "no action is necessary on your site," so a nervous reader stops worrying.
-- If the `yalesites-ux-research` skill is available, read it before making calls about depth and tone.
+- If the `ux-research` skill is available, read it before making calls about depth and tone.
 
 ### Links
 
@@ -180,9 +181,9 @@ Screenshots usually come later, during release testing on a stable environment. 
 python3 ../ticket/scripts/check-github-text.py <path-to-draft.md> --surface page-draft
 ```
 
-It flags em dashes, over-length sentences, absolute internal URLs, banned words, and teaser length. Eyeballing these is unreliable and the script is faster. Fix what it reports before handing over, and mention anything you deliberately left.
+It flags em dashes, over-length sentences, absolute internal URLs, banned words, a missing or over-length teaser, a teaser whose stated character count is wrong, and missing required sections (`## Title`, `## Config considerations`, `## Page copy`). Eyeballing these is unreliable and the script is faster. Fix what it reports before handing over, and mention anything you deliberately left.
 
-This is the same checker the ticket and PR skills use, on a `page-draft` surface. It lives in the `ticket` skill because a plugin ships one copy of the shared standards and every other skill in the plugin calls it from there. Only the `## Page copy` section is held to the prose rules, so the config block and your handoff notes can use normal working English.
+This is the same checker the ticket and PR skills use, on a `page-draft` surface. It lives in the `ticket` skill because a plugin ships one copy of the shared standards and every other skill in the plugin calls it from there. The sentence-length and banned-word rules apply to `## Page copy` only, so the config block and your handoff notes can use normal working English. The em-dash rule applies to the whole draft.
 
 ## Step 6: Reconcile with the ticket, and ask rather than guess
 
@@ -194,7 +195,7 @@ If the user agrees to deviate from a ticket, offer to update the AC. Rewrite it 
 
 ## Related skills
 
-- `yalesites-release-prep` — its Feature Documentation phase should hand off to this skill for the actual drafting
-- `ticket` — for writing the ticket, rather than the page
-- `yalesites-ux-research` — the archetypes referenced above
-- `yalesites` (platform reference) — `blocks-reference.md` and `views-reference.md` for suggesting Layout Builder components
+- `release-prep`: its Feature Documentation phase should hand off to this skill for the actual drafting
+- `ticket`: for writing the ticket, rather than the page
+- `ux-research`: the archetypes referenced above
+- `yalesites` (platform reference): `blocks-reference.md` and `views-reference.md` for suggesting Layout Builder components

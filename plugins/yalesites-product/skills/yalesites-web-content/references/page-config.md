@@ -4,21 +4,21 @@ The user builds these pages themselves in the Drupal WYSIWYG. The config block i
 
 ## The config fields
 
-**Content type** — Page, for nearly all user guide and resource content.
+**Content type:** Page, for nearly all user guide and resource content.
 
-**Parent item** — sets the breadcrumb and the left nav position. Name the specific section landing page, not the top-level User Guide. This is the field most likely to be wrong, so check it against the real nav below rather than guessing from the URL.
+**Parent item:** sets the breadcrumb and the left nav position. Name the specific section landing page, not the top-level User Guide. This is the field most likely to be wrong, so check it against the real nav in `site-map.md` rather than guessing from the URL.
 
-**Content Collections** — the mechanism behind the User Guide's left-hand navigation. A page needs this enabled to appear in the section nav. See `/secondary-navigation-with-content-collections` for how it works.
+**Content Collections:** the mechanism behind the User Guide's left-hand navigation. A page needs this enabled to appear in the section nav. See `/secondary-navigation-with-content-collections` for how it works.
 
-**URL alias** — User Guide pages are inconsistent here. Some sit at the root (`/editorial-workflow`, `/media-library-0`, `/using-taxonomy-and-vocabulary`), others use a full path (`/explore-resources/user-guide/building-your-site/content-types`). Match the closest sibling rather than imposing a scheme. Note that `/media-library-0` carries a Drupal dedupe suffix, so an alias you want may already be taken.
+**URL alias:** User Guide pages are inconsistent here. Some sit at the root (`/editorial-workflow`, `/media-library-0`, `/using-taxonomy-and-vocabulary`), others use a full path (`/explore-resources/user-guide/building-your-site/content-types`). Match the closest sibling rather than imposing a scheme. Note that `/media-library-0` carries a Drupal dedupe suffix, so an alias you want may already be taken.
 
-**Nav order** — say where it lands relative to its siblings.
+**Nav order:** say where it lands relative to its siblings.
 
-**Hub card** — section landing pages show cards for their children. A new page usually needs one adding, with the teaser text and an illustration. The existing cards use undraw illustrations stored in `/sites/default/files`.
+**Hub card:** section landing pages show cards for their children. A new page usually needs one adding, with the teaser text and an illustration. The existing cards use undraw illustrations stored in `/sites/default/files`.
 
-**Teaser image** — also serves as the og:image for social and chat previews.
+**Teaser image:** also serves as the og:image for social and chat previews.
 
-**Cross-links** — related pages that should link to the new one. Worth doing in the same pass, since it's easy to add a page nothing points at.
+**Cross-links:** related pages that should link to the new one. Worth doing in the same pass, since it's easy to add a page nothing points at.
 
 ## The teaser
 
@@ -34,15 +34,9 @@ Note that these live teasers predate the STE convention and don't follow it. Mat
 
 ## User Guide structure
 
-As of August 2026:
+The current User Guide sections and their children are listed in `site-map.md`, under "Inside Resource Library: the User Guide." Check the parent item against that list.
 
-- **Building Your Site** — Content Types, Manage Settings, Edit Layout and Content, Create Powerful Page Sections, Building with Blocks, Sitewide Settings, Secondary Navigation with Content Collections, Working with Images in YaleSites
-- **Managing Site Content** — Building Your Menu, Editorial Workflow, Google Tag Manager, Media Library, Using Taxonomy and Vocabulary
-- **Creating Accessible Content** — Accessibility with Editoria11y
-- **Term Glossary**
-- **Go-Live Checklist**
-
-Verify this before relying on it. Fetch `/managing-site-content` or any published User Guide page; the full left nav renders in the markup on every one of them, so a single fetch gives you the current tree.
+Verify it before relying on it. Fetch `/managing-site-content` or any published User Guide page; the full left nav renders in the markup on every one of them, so a single fetch gives you the current tree.
 
 ## Naming a new page
 
