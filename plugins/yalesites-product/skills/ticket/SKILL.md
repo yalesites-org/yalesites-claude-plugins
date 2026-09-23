@@ -60,7 +60,7 @@ Before doing any grooming or drafting work on a **single ticket**, check whether
 
 Two calls instead of six round trips. Drop whatever the user already answered, and if four or fewer are left, ask in one call.
 
-The option cap bites just as easily: Status has eight valid values, Size has five, and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
+The option cap bites just as easily: Status has six valid values, Size has five, and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
 
 Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
 
@@ -71,17 +71,15 @@ Valid options, exactly as configured on the YaleSites Board, in board order. **M
 | Status | Meaning |
 |--------|---------|
 | `Backlog` | This item hasn't been started |
-| `Ready For Work` | Work that is up next |
 | `To Do` | This is ready to be picked up |
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Ready for Release (in dev)` | This work is done, but has not been released yet |
-| `Done` | This has been completed |
+| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
 
-`Ready For Work` and `To Do` are both pre-start states and are easy to confuse. `Ready For Work` means queued as up-next; `To Do` means cleared for someone to pick up now. If the user hasn't said which they mean and the distinction matters, ask rather than guessing.
+`Done` does not mean closed. A ticket moves to `Done` when its work merges, and stays open until `release-prep` Phase 7 confirms the release shipped and closes it. Milestones, not a board status, say which release the work ships in.
 
-If not specified, ask: *"What status should this ticket be set to on the project board?"* Eight valid values against a 4-option cap, so offer the four that actually fit the ticket's shape, usually `Backlog`, `Ready For Work`, `To Do`, and whichever in-flight state applies. **Other** covers the rest.
+If not specified, ask: *"What status should this ticket be set to on the project board?"* Six valid values against a 4-option cap, so offer the four that actually fit the ticket's shape, usually `Backlog`, `To Do`, and whichever in-flight state applies. **Other** covers the rest.
 
 If the board's options ever change, re-check them rather than trusting this list:
 
@@ -200,11 +198,11 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
 2. Make sure the issue is on the board (a no-op if it's already there): `gh project item-add 6 --owner yalesites-org --url <issue-url>`
 3. Set each field by name — no need to look up field or option IDs:
    ```bash
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "Ready For Work"
+   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "To Do"
    gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
    gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
    ```
-   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`, `Ready for Release (in dev)`).
+   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`).
 4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
 
 **Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
@@ -363,7 +361,7 @@ A single bulleted list of everything required to close the issue. Cover all rele
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over.
 
-**Documentation tickets for features that haven't shipped yet:** these can still be marked `Ready For Work` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships.
+**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships.
 
 ---
 

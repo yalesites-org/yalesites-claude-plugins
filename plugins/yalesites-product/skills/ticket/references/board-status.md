@@ -30,18 +30,15 @@ In board order. **Capitalization matters:** `--value` is matched against the con
 | Status | Meaning |
 |--------|---------|
 | `Backlog` | This item hasn't been started |
-| `Ready For Work` | Work that is up next |
 | `To Do` | This is ready to be picked up |
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Ready for Release (in dev)` | This work is done, but has not been released yet |
-| `Done` | This has been completed |
+| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
 
-Two easily-confused pairs:
+**`Done` is not closed.** A ticket moves to `Done` when its work merges. It stays open, and visible on the Board view, until `release-prep` Phase 7 confirms the release shipped and closes it. The milestone says which release that is.
 
-- **`Ready For Work` vs `To Do`.** Both are pre-start. `Ready For Work` means queued as up-next; `To Do` means cleared for someone to pick up now. If the distinction matters and the user hasn't said which, ask.
-- **`Ready for Release (in dev)` vs `Done`.** Work merged to `develop` but not yet shipped is `Ready for Release (in dev)`. It only becomes `Done` once released.
+**Retired statuses.** `Ready for Release (in dev)` was retired on 2026-09-23 (YaleSites-Internal#1778), because milestones now mark the release. `Ready For Work` is not a board status either. It survives only as a catch-all *milestone* name. Setting either as a Status fails.
 
 There is **no `Forming` status.** Older skill text listed one. If you see `forming` referenced, it is a label or an informal signal, not a board Status.
 
@@ -131,9 +128,11 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 | Work starts → `In progress` | Dev picks up the ticket | *(nothing)* | **Genuine gap** |
 | PR opened → `In review` | PR(s) created for the issue | `yalesites-pr` skill | Working |
 | PR reviewed | Approve or request changes | `pr-feedback` skill | Labels only, board untouched by design |
-| Merged to `develop` → `Ready for Release (in dev)` | PR merges | Workflow `02-pr-status-monitor` | **Built but dormant** |
-| Merged to `master` → `Done` | RC released | Workflow `02-pr-status-monitor` | **Built but dormant** |
-| Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | Working |
+| PR merged → PR's own card to `Done` | PR merges | Board workflow "Pull request merged" | Working. Moves the PR card only, not the linked ticket |
+| Merged to `develop` → ticket to `Done` | PR merges | Workflow `02-pr-status-monitor` | **Built but dormant** (see YaleSites-Internal#1385) |
+| Release ships → ticket closed | Release merged to `master` | `release-prep` Phase 7 | Working |
+| Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | **Dormant** (see `release-prep` Phase 7). Must stay that way |
+| Status set to `Done` → issue closed | Board change | Board workflow "Auto-close issue" | **Off by design** since 2026-09-23. Turning it on closes tickets before they ship |
 | Trigger label → board field | Label applied | Workflow `07-label-to-project-fields` | Working |
 
 **Workflow 02 is written correctly but has never fired on real work.** It last ran 2026-01-06. Two independent causes, either fatal on its own:
@@ -143,7 +142,9 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 
 Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for the same reasons.
 
-**Practical consequence:** treat `Ready for Release (in dev)` and `Done` as **not reliably set** until workflow 02 is fixed. This is why `release-prep` infers release-readiness from the confirmed PR list rather than querying board Status.
+**Practical consequence:** treat `Done` as **not reliably set** until workflow 02 is fixed, since tickets reach it by hand. This is why `release-prep` infers release-readiness from the confirmed PR list rather than querying board Status.
+
+**Closing a ticket at merge time undoes the model.** A closed ticket drops off the Board view, which filters on `state:open`, before its release ships. Leave merged tickets open in `Done` and let Phase 7 close them.
 
 **Do not invent transitions.** If a skill's own instructions don't tell you to move a ticket, don't move it. Changing board state out from under a developer is worse than a stale board.
 
