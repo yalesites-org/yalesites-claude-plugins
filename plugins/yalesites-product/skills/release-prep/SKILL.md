@@ -1,6 +1,6 @@
 ---
 name: yalesites-release-prep
-description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, syncing the YaleSites knowledge base with any platform changes introduced in the release, and reconciling the YaleSites Board after the release ships — verifying what actually made it into master, moving confirmed-shipped tickets from 'Ready for Release (in dev)' to 'Done', and catching tickets left stuck in In progress or In review. Use when it's time to plan or prepare for a release, and again after a release goes out to clean up the board."
+description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, syncing the YaleSites knowledge base with any platform changes introduced in the release, and reconciling the YaleSites Board after the release ships — verifying what actually made it into master, closing confirmed-shipped tickets that sit open in 'Done', and catching tickets left stuck in In progress or In review. Use when it's time to plan or prepare for a release, and again after a release goes out to clean up the board."
 ---
 
 # YaleSites Release Prep Skill
@@ -28,7 +28,7 @@ Phase 5 in particular is **not** a late-stage phase. Testers need their steps th
 | 4. Current Issues & Fixes | Updated version of the yalesites.yale.edu issues page |
 | 5. QA Testing Steps | Release Testing Steps added to GitHub issues |
 | 6. Knowledge Base Sync | Updated yalesites skill reference files reflecting platform changes |
-| 7. Post-Release Reconciliation | Board cleaned up after the release ships — shipped tickets moved to Done, the rest carried over, milestone closed |
+| 7. Post-Release Reconciliation | Board cleaned up after the release ships: shipped tickets closed, the rest carried over, milestone closed |
 
 ---
 
@@ -242,19 +242,19 @@ Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This
 
 This phase prepares GitHub issues for QA testing by adding a **Release Testing Steps** section to any issue that lacks clear, actionable testing instructions. Testers use the issues in `yalesites-org/YaleSites-Internal` as their checklist — this phase makes sure every issue is ready for them.
 
-Only issues with a GitHub Project status of **"Ready for Release (in dev)"** should be updated.
+Only open issues on this release's milestone with a GitHub Project status of **"Done"** should be updated. `Done` means merged to `develop` (or a hotfix merged to `master`), and the ticket stays open until Phase 7 closes it after the release ships. The "Ready for Release (in dev)" status was retired on 2026-09-23 (YaleSites-Internal#1778).
 
-**Important — the status isn't in the REST API.** GitHub Project status fields (including "Ready for Release (in dev)") live on the Project board and are only reachable via GraphQL, so the GitHub MCP tools (`get_issue`, `search_issues`, `list_issues`) can't see or filter on them.
+**Important — the status isn't in the REST API.** GitHub Project status fields (including "Done") live on the Project board and are only reachable via GraphQL, so the GitHub MCP tools (`get_issue`, `search_issues`, `list_issues`) can't see or filter on them.
 
-The **PR list from Phase 1 remains the source of truth.** Issues linked from those PRs should correspond to the ones marked "Ready for Release (in dev)". If there's any doubt, confirm before updating an issue.
+The **PR list from Phase 1 remains the source of truth.** Issues linked from those PRs should correspond to the open `Done` issues on the milestone. If there's any doubt, confirm before updating an issue.
 
 Where `gh` is available, you can read the board directly as a cross-check rather than relying on the PR list alone:
 
 ```bash
-gh project item-list 6 --owner yalesites-org --format json --limit 500
+gh project item-list 6 --owner yalesites-org --format json --limit 2000
 ```
 
-Filter client-side for items whose Status is "Ready for Release (in dev)". Treat a mismatch between that list and the Phase 1 PR list as a signal to ask, not as license to update issues the PR list didn't cover — nothing currently sets this status automatically, so the board can lag reality. See the `ticket` skill's `references/board-status.md` for the full field reference.
+Filter client-side for items whose Status is "Done", then keep only the open issues on the release milestone (`gh issue list --milestone "<milestone>" --state open`). `item-list` does not return an issue's open or closed state, so the milestone list supplies it. The board's **Release Testing** view shows a close match, minus anything labeled `non-testable`. Keep `--limit` above the board's item count, or the list is silently cut off. Treat a mismatch between that list and the Phase 1 PR list as a signal to ask, not as license to update issues the PR list didn't cover — nothing currently moves tickets to `Done` automatically, so the board can lag reality. See the `ticket` skill's `references/board-status.md` for the full field reference.
 
 **Timing is the whole point of this phase.** Run it as soon as the first RC is cut, immediately after the first pass of Phase 1 confirms the PR list. Testers work the RC against these issues, so steps that arrive later than the RC are steps nobody used. If you reach this phase and QA is already underway, you are late: say so, and prioritise the issues still untested rather than working through the list in order.
 
@@ -389,13 +389,13 @@ After processing all PRs, report a summary:
 
 Every other phase points forward at a release. This one runs **after** the RC is out, and it answers three questions:
 
-1. Did the work marked `Ready for Release (in dev)` actually ship?
-2. Which of those can move to `Done`?
+1. Did the work sitting open in `Done` on this milestone actually ship?
+2. Which of those tickets can close?
 3. What got left behind in `In progress` / `In review` / `Blocked` that should have moved?
 
-**Why this phase exists.** The `Ready for Release (in dev)` → `Done` transition was supposed to be automatic. Workflow `02-pr-status-monitor` in `YaleSites-Internal` was built for it and has never fired on real work (wrong repo for the trigger, plus an inverted dry-run default — see the `ticket` skill's `references/board-status.md`). So the board accumulates shipped work indefinitely. Expect the first run to find a backlog spanning many releases, not just the one that shipped.
+**Why this phase exists.** `Done` means merged, not released. A ticket moves to `Done` when its work merges to `develop`, and it stays open on purpose: the board's "Auto-close issue" workflow is off, and the Board view shows only open tickets. So the open `Done` column is the list of work waiting on a release. This phase is the only thing that closes those tickets, once the release is out. The `Ready for Release (in dev)` status did this job before 2026-09-23 and is retired (YaleSites-Internal#1778). Milestones now say which release a ticket ships in.
 
-**Hard rule: never move an item to `Done` on the strength of its board status alone.** The status is the thing we don't trust — that's the whole reason for the phase. Every move must be backed by a merge commit verified to be an ancestor of `master`.
+**Hard rule: never close a ticket on the strength of its board status alone.** `Done` is set by hand today, so it can run ahead of the code. Every close must be backed by a merge commit verified to be an ancestor of `master`.
 
 ### Step 1: Establish what actually shipped
 
@@ -409,7 +409,7 @@ gh pr list --repo yalesites-org/yalesites-project --base master --state merged -
 
 Confirm with the user which of these is *the* release being reconciled, and note its merge timestamp. Anything merged to `develop` after that timestamp is in the *next* release and must not be touched.
 
-**Scope the run by milestone.** Milestones in `YaleSites-Internal` map to releases (`09-17-26 Feature Release` is v2.26.0), which is far more tractable than reconciling the whole `Ready for Release (in dev)` column at once. Treat the milestone as a good but not perfect source of truth — it's set by hand, so a ticket can be in the wrong one.
+**Scope the run by milestone.** Milestones in `YaleSites-Internal` map to releases (`09-17-26 Feature Release` is v2.26.0), which is far more tractable than reconciling the whole `Done` column at once. Treat the milestone as a good but not perfect source of truth — it's set by hand, so a ticket can be in the wrong one.
 
 ```bash
 gh api repos/yalesites-org/YaleSites-Internal/milestones --paginate -X GET -f state=all -f per_page=100 \
@@ -419,9 +419,9 @@ gh issue list --repo yalesites-org/YaleSites-Internal --milestone "09-17-26 Feat
   --state all --limit 300 --json number,title,state,labels,issueType > milestone.json
 ```
 
-Because the milestone can be wrong in either direction, the buckets in Step 5 still decide the outcome. A ticket in the milestone whose code isn't in `master` does not move, and a ticket outside the milestone whose code *is* in `master` is still worth reporting.
+Because the milestone can be wrong in either direction, the buckets in Step 5 still decide the outcome. A ticket in the milestone whose code isn't in `master` does not close, and a ticket outside the milestone whose code *is* in `master` is still worth reporting.
 
-**Milestone scoping has one structural blind spot: tickets with no milestone at all.** They can never appear in a milestone-scoped run, so a purely milestone-scoped Phase 7 skips them every release, forever. This is not hypothetical. After the v2.26.0 run closed its milestone cleanly at zero open, 22 open tickets were still sitting in `Ready for Release (in dev)` with no milestone, 10 of them shipped children of a single parent. Step 8 sweeps for these, and it is not optional.
+**Milestone scoping has one structural blind spot: tickets with no milestone at all.** They can never appear in a milestone-scoped run, so a purely milestone-scoped Phase 7 skips them every release, forever. This is not hypothetical. After the v2.26.0 run closed its milestone cleanly at zero open, 22 open tickets were still sitting in `Ready for Release (in dev)` (today, open `Done`) with no milestone, 10 of them shipped children of a single parent. Step 8 sweeps for these, and it is not optional.
 
 Then make sure the local checkout can answer ancestry questions. The `yalesites-project` clone usually tracks `develop` only, so `master` may not exist as a remote-tracking ref:
 
@@ -432,27 +432,30 @@ git fetch origin master:refs/remotes/origin/master develop:refs/remotes/origin/d
 ### Step 2: Pull the board
 
 ```bash
-gh project item-list 6 --owner yalesites-org --format json --limit 1200 > board.json
+gh project item-list 6 --owner yalesites-org --format json --limit 2000 > board.json
 jq -r '.items | length' board.json
 jq -r '.items | group_by(.status)[] | "\(.[0].status // "(none)"): \(length)"' board.json
 ```
 
-**Set the limit well above the real item count and check what you got.** `gh` truncates silently at `--limit`, with no warning. The board was 641 items in September 2026 and grows every release, so a stale `--limit 600` drops the overflow without telling you. Print the length and confirm it is under the limit before trusting anything downstream.
+**Set the limit well above the real item count and check what you got.** `gh` truncates silently at `--limit`, with no warning. The board was 667 items in September 2026 and grows every release, so a stale limit drops the overflow without telling you. Print the length and confirm it is under the limit before trusting anything downstream.
 
-**Capture each item's node `id` while you are here.** Step 6 needs it, and re-deriving it later costs a second full board pull:
+**Capture each item's node `id` while you are here.** Step 6 needs it for bucket C, and re-deriving it later costs a second full board pull:
 
 ```bash
 jq -r '.items[] | select(.content.repository=="yalesites-org/YaleSites-Internal")
   | "\(.content.number)\t\(.id)"' board.json > itemids.tsv
 ```
 
-Print the status distribution first and show it to the user. If `Ready for Release (in dev)` is in the hundreds, say so up front and ask whether to reconcile everything or only the items tied to this release — a 200-item confirmation list is not reviewable.
+Print the status distribution first and show it to the user. `Done` holds closed tickets from every past release too, so the count alone means little. The working set is the open `Done` tickets on this milestone. If that is in the hundreds, say so up front — a 200-item confirmation list is not reviewable.
 
 Each item carries everything needed for the join, no second lookup required:
 
+`item-list` does not return an issue's open or closed state, so join the board against `milestone.json` from Step 1:
+
 ```bash
-jq -r '.items[] | select(.status=="Ready for Release (in dev)")
-  | "\(.content.number)\t\(.content.repository)\t\(.title)"' board.json
+jq -r '.items[] | select(.status=="Done") | .content.number' board.json | sort -u > done.txt
+jq -r '.[] | select(.state=="OPEN") | .number' milestone.json | sort -u > open.txt
+comm -12 done.txt open.txt   # open Done tickets on this milestone: the working set
 ```
 
 ### Step 3: Build the PR index in bulk
@@ -540,15 +543,15 @@ A missing SHA is common here, because commits that only ever lived on a feature 
 gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq '.status'
 ```
 
-**Merging is not shipping.** A PR can be `MERGED` and still be nowhere near production, because it merged into an epic or staging branch rather than `develop`. Real example: `yalesites-project#1508` is merged, its ticket #1518 sat in `Ready for Release (in dev)`, and its merge commit is `diverged` from `master` — it went into `1616-section-color-parity` and is waiting on the epic PR. Always check `baseRefName` alongside ancestry, and treat a non-`develop`/non-`master` base as not shipped no matter what the board says.
+**Merging is not shipping.** A PR can be `MERGED` and still be nowhere near production, because it merged into an epic or staging branch rather than `develop`. Real example: `yalesites-project#1508` is merged, its ticket #1518 sat on the board as merged-but-unreleased, and its merge commit is `diverged` from `master` — it went into `1616-section-color-parity` and is waiting on the epic PR. Always check `baseRefName` alongside ancestry, and treat a non-`develop`/non-`master` base as not shipped no matter what the board says.
 
 ### Step 5: Bucket the results
 
 | Bucket | Condition | Action |
 |---|---|---|
-| **A — Confirmed shipped** | The ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to move to `Done` |
-| **B — Not shipped** | Merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave as-is; list them so the user knows the board was optimistic |
-| **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done`, flagged separately — these need a closer look than bucket A |
+| **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
+| **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open. If the PR only reached an epic or feature branch, `Done` is premature: propose moving it back to `In review` |
+| **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
 | **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess |
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
@@ -572,12 +575,12 @@ Show the user a report before touching anything:
 ```
 ## Post-release reconciliation — v[X.X.X]
 
-**TL;DR:** [N] confirmed shipped and ready to move to Done, [N] not actually shipped, [N] stragglers, [N] need your call.
+**TL;DR:** [N] confirmed shipped and ready to close, [N] not actually shipped, [N] stragglers, [N] need your call.
 
-### Confirmed shipped → move to Done ([N])
+### Confirmed shipped → close ([N])
 - #NNNN [title] — yalesites-project#PPPP, in master as of [date]
 
-### On the board as released, but not shipped ([N])
+### Open in Done, but not shipped ([N])
 - #NNNN [title] — PR merged into [branch], not in master
 
 ### Stragglers — shipped but still show [status] ([N])
@@ -587,7 +590,9 @@ Show the user a report before touching anything:
 - #NNNN [title] — [why it couldn't be determined]
 ```
 
-**Wait for explicit approval.** Ask per bucket, not per item, but do not write anything before the user says so. Buckets A and C get separate approvals — C is where a wrong move is most likely, because something kept those tickets out of `Ready for Release (in dev)` in the first place.
+**Wait for explicit approval.** Ask per bucket, not per item, but do not write anything before the user says so. Buckets A and C get separate approvals — C is where a wrong move is most likely, because something kept those tickets out of `Done` in the first place.
+
+Then write approved items one at a time. Bucket A tickets are already `Done`, so they only need closing. Bucket C tickets need the status write first. Read current status before writing, so the board's activity feed stays meaningful.
 
 **Do not use `gh project item-edit --url` for a bulk run.** It resolves the item by paginating the entire board on every single call, so at 600+ items it is enormously expensive and will trip the GraphQL limit within the first few writes. It is fine for one-off use in the `ticket` skill; it is the wrong tool here.
 
@@ -604,7 +609,7 @@ MUT='mutation($p:ID!,$i:ID!,$f:ID!,$o:String!){updateProjectV2ItemFieldValue(
 gh api graphql -f query="$MUT" -f p=$PROJ -f i=<item-id> -f f=$FIELD -f o=$DONE
 ```
 
-Re-read the ids rather than trusting those literals if a mutation 404s:
+`gh` needs the `project` scope, not just `read:project`. Re-read the ids rather than trusting those literals if a mutation 404s:
 
 ```bash
 gh api graphql -f query='{organization(login:"yalesites-org"){projectV2(number:6){id
@@ -613,19 +618,17 @@ gh api graphql -f query='{organization(login:"yalesites-org"){projectV2(number:6
 
 **Use `-f`, not `-F`, for the option id.** `-F` type-coerces its value, so a numeric-looking option id like `98236657` is sent as an integer and the mutation fails with `Variable $o of type String! was provided invalid value`. `-f` sends it as the string the schema wants.
 
-**Pace the writes and make the runner resumable.** Projects v2 mutations trip a secondary rate limit well before the documented quota. Space them roughly 3 seconds apart, back off for several minutes on a throttle rather than retrying tight, and record each completed issue to a log file so an interrupted run picks up exactly where it stopped instead of re-writing from the top.
+**Pace the writes and make the runner resumable.** Bulk writes, Projects v2 mutations especially, trip a secondary rate limit well before the documented quota. Space them roughly 3 seconds apart, back off for several minutes on a throttle rather than retrying tight, and record each completed issue to a log file so an interrupted run picks up exactly where it stopped instead of re-writing from the top.
 
-**You do not need to close the issues yourself.** The board's built-in Projects v2 auto-close workflow is enabled and closes an issue within seconds of its Status being set to `Done`. Verified by controlled test: setting #190 to `Done` through the API, with no close call made, closed it on its own.
+**Close each issue yourself.** This phase is the only thing that closes a merged ticket, by design. The board's "Auto-close issue" workflow is off, because it would close tickets the moment they reach `Done`, before the release ships. Leave it off. Workflow `06-close-issue-when-done` is dormant too: it derives `const dryRun = '${{ github.event.inputs.dry_run }}' !== 'false'`, which is `true` on every non-`workflow_dispatch` event, and its `project_card: moved` trigger is Projects v1 only. Don't fix it into service, for the same reason.
 
-This is worth stating plainly because an earlier version of this skill said the opposite and budgeted ~110 manual `gh issue close` calls per run, which is pure waste. The dormant workflow that misled it, `06-close-issue-when-done`, is a *different* mechanism: a custom Actions workflow that has never fired. Its triggers are wrong for this board (`project_card: moved` is Projects v1 only, and a Projects v2 `Status` change fires neither it nor `issues: edited`), and it shares the inverted dry-run default described in Step 9. The built-in Projects workflow makes it redundant regardless. Tracked in YaleSites-Internal #1753.
-
-Verify rather than assume, since this depends on a board setting someone could turn off:
+So the issue stays open until you close it:
 
 ```bash
-gh api repos/yalesites-org/YaleSites-Internal/milestones/<n> --jq '"open=\(.open_issues)"'
+gh issue close <number> --repo yalesites-org/YaleSites-Internal
 ```
 
-If issues are not closing on their own, fall back to `gh issue close <number> --repo yalesites-org/YaleSites-Internal` per item and say so in the report.
+This matters past the one command. Step 7 will not let you close the milestone until it reads zero open, and on this phase's own calibration numbers that is ~110 issues that never close on their own. Pace the closes the same way as the status writes, and log each one so the run can resume.
 
 **On failure, stop.** Any error (auth, scope, item not on the board) means report what was written, what wasn't, and what the error was. Don't retry in a loop, and don't fall back to labels here — a partially-applied bulk status change is worse than none, and the user needs to know exactly where it stopped.
 
@@ -644,7 +647,7 @@ Split what remains by board status, because the two groups make different claims
 
 | Remaining status | Action | Why |
 |---|---|---|
-| `Ready for Release (in dev)`, `In review`, `In progress` | Move to the next release milestone | Actively in flight, so it lands in the next release |
+| `Done` (open, not shipped), `In review`, `In progress` | Move to the next release milestone | Actively in flight, so it lands in the next release |
 | `To Do`, `Backlog`, `Blocked` | **Clear the milestone** | Never started. Carrying them forward asserts they're committed to the next release, which is a bigger claim than the board supports |
 | No board item | Ask | Nothing to reason from |
 
@@ -671,8 +674,8 @@ If anything is still open, do not close it. A closed milestone holding open issu
 **First, sweep the tickets no milestone can reach.** Closing the milestone at zero open does not mean the release is reconciled, because unmilestoned work was never in scope to begin with. Run this after Step 7, every time:
 
 ```bash
-gh project item-list 6 --owner yalesites-org --format json --limit 1200 > board.json
-jq -r '.items[] | select(.status=="Ready for Release (in dev)")
+gh project item-list 6 --owner yalesites-org --format json --limit 2000 > board.json
+jq -r '.items[] | select(.status=="Done")
   | select(.content.repository=="yalesites-org/YaleSites-Internal")
   | .content.number' board.json |
 while read n; do
@@ -694,28 +697,28 @@ Broader backlog problems — tickets with no acceptance criteria, missing board 
 
 ### Step 9: Report back
 
-- How many items moved to `Done` and were closed, and how many were left alone
+- How many tickets were closed, how many moved to `Done` first (bucket C), and how many were left open
 - How many carried to the next milestone, how many had their milestone cleared, and whether the milestone was closed
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
 - How many unmilestoned tickets the Step 8 sweep turned up, since a growing number there means tickets are being created outside the release cadence
-- Whether workflow `02-pr-status-monitor` is still dormant. It is tracked in YaleSites-Internal #1753 (the shared inverted dry-run default) and #1385 (building its replacement), so report the state rather than filing anything new. Workflow `06-close-issue-when-done` is dormant *and* redundant, since the built-in Projects auto-close already does its job; #1753 covers deleting it
+- Whether workflow `02-pr-status-monitor` is still dormant. It is tracked in YaleSites-Internal #1753 (the shared inverted dry-run default) and #1385 (building its replacement), so report the state rather than filing anything new. Until it runs, tickets reach `Done` by hand, and bucket C stays large. Workflow `06-close-issue-when-done` is dormant too, and should stay that way for the reason given in Step 6; #1753 tracks it
 
 ### What a real run looks like
 
-The first real run of this phase, against v2.26.0 (milestone `09-17-26 Feature Release`, 190 issues), to calibrate what to expect:
+The first real run of this phase, against v2.26.0 (milestone `09-17-26 Feature Release`, 190 issues), to calibrate what to expect. It ran before `Ready for Release (in dev)` was retired, so "board said released" meant that status. Today the same bucket is open `Done` tickets:
 
 | Bucket | Count |
 |---|---|
-| A, confirmed shipped, eligible for `Done` | 111 |
-| B, board said released, code not in `master` | 5 |
-| C, shipped but open in another status | 5 |
-| D, undetermined | 13 |
-| Already closed and shipped, never on the board | 10 |
+| A — confirmed shipped, eligible to close | 111 |
+| B — board said released, code not in `master` | 5 |
+| C — shipped but open in another status | 5 |
+| D — undetermined | 13 |
+| Shipped, already closed, never on the board | 10 |
 | In the milestone but not release-ready | 3 |
 
-Those buckets resolved into 114 moved to `Done` (bucket A plus the 3 genuinely stale stragglers) and 38 milestone edits: 5 to a hotfix milestone, 21 carried to the next release, 12 cleared back to no milestone. The milestone then closed at 154 closed, 0 open.
+Those buckets resolved into 114 closed (bucket A plus the 3 genuinely stale stragglers) and 38 milestone edits: 5 to a hotfix milestone, 21 carried to the next release, 12 cleared back to no milestone. The milestone then closed at 154 closed, 0 open.
 
-Then the Step 8 sweep found **22 more** open tickets in `Ready for Release (in dev)` with no milestone, which the milestone-scoped run could never have seen. Ten were shipped children of #1396. Budget for that sweep; it is not a rounding error.
+Then the Step 8 sweep found **22 more** open tickets in `Ready for Release (in dev)` (today, open `Done`) with no milestone, which the milestone-scoped run could never have seen. Ten were shipped children of #1396. Budget for that sweep; it is not a rounding error.
 
 Four numbers worth carrying into the next run:
 
