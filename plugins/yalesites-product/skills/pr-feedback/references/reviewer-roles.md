@@ -55,7 +55,7 @@ Resolve the login with `gh api user --jq .login`.
 
 | GitHub login | Person | Role | Owns | Entitled to apply |
 |---|---|---|---|---|
-| `miketullo95` | Mike Tullo | Product Manager | `functional`, `product` | `pass functional review` |
+| `miketullo95` | Mike Tullo | Product Manager | `product`, `functional`, `design` | `pass functional review`; `pass design review` (component-library-twig only) |
 
 ### Adding someone to this table
 
