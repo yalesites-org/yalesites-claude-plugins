@@ -95,6 +95,32 @@ Nothing else changes. Steps 1, 2, 3, 5, 6, 7, 9, and 10 run identically for ever
 brief is the brief, the environment is the environment, and the approve or request-changes ruling
 is always the user's.
 
+## Step 0b: Title the session so it can be found again
+
+Reviews get done in batches, and the sidebar fills with auto-generated titles that all read
+alike. Set the session title from the PR numbers **before Step 1**, so a review can be found
+weeks later without opening it.
+
+Call `mcp__ccd_session_mgmt__set_session_title` once, with the scope that matches the ask:
+
+| Scope | Title |
+|---|---|
+| One PR | `PR review: yalesites-project #1560` |
+| Named batch | `PR review: 1560, 1572, CLT 728` |
+| Queue-wide sweep | `PR review queue: 2026-09-22 (5 PRs)` |
+
+- Bare numbers mean `yalesites-project`. Name the other repos: `CLT 728`, `atomic 521`,
+  `tokens 94`.
+- **A queue sweep has no numbers in the prompt**, so it gets titled after Step B1 confirms the
+  work set, using today's date and the unit count. This is the case that needs a title most, because
+  the auto-generated one carries nothing at all.
+- Keep it short enough to read in a narrow sidebar. Past three PRs, name the first two and add
+  `+N more`.
+- **Title once.** Do not retitle as the run progresses and do not append outcomes to it. The
+  title is for finding the session, not for reporting on it.
+- **The tool is desktop-app only.** When it is not available, skip this step silently: no
+  mention, no fallback, no error. A CLI run loses nothing else.
+
 ## Step 1: Load the pre-review brief
 
 The `pr-prereview` pass runs every two hours and deep-dives every PR that enters the review

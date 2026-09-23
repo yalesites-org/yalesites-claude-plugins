@@ -19,6 +19,7 @@ confirm before fanning anything out. Do not silently pick a subset.
 | `SKILL.md` step | In batch mode |
 |---|---|
 | 0, whose review this is | **Resolved once in the parent**, before the work set is built, and passed down |
+| 0b, title the session | **Deferred until Step B1 confirms the work set**, then set once for the whole batch |
 | 1, load the brief | Fans out to one subagent per unit of work, concurrently |
 | 2, spot-check the brief | Same subagent, same rules, read-only |
 | 3, what to test | Becomes **one grouped testing sitting** across the whole batch (Step B3) |
@@ -99,6 +100,15 @@ stops getting done.
 **Show the work set and confirm before fanning out.** A short table: unit, PRs in it, author,
 brief freshness if known, why anything was skipped. This is the last cheap moment to drop
 something.
+
+**Title the session once the set is settled**, per `SKILL.md` Step 0b. An explicit list can be
+titled from the prompt, but a queue sweep cannot be titled until here, and a sweep is exactly the
+run whose auto-generated title is useless to look back at. Use the units that survived the skips
+and the cap, not the raw queue:
+
+```
+PR review queue: 2026-09-22 (5 PRs)
+```
 
 ## Step B2: Fan out the prep
 
