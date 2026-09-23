@@ -56,6 +56,7 @@ Resolve the login with `gh api user --jq .login`.
 | GitHub login | Person | Role | Owns | Entitled to apply |
 |---|---|---|---|---|
 | `miketullo95` | Mike Tullo | Product Manager | `functional`, `product` | `pass functional review` |
+| `dblanken-yale` | David Blankenship | Lead Software Engineer | `code` | `pass code review` |
 
 ### Adding someone to this table
 
