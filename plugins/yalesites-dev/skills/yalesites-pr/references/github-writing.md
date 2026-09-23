@@ -149,6 +149,11 @@ do not inflate a suggestion into a blocker.
 with what changed for the reader, not with what the team did. "Galleries now accept alt
 text" beats "we implemented an alt-text field on the gallery paragraph."
 
+**Page drafts (`yalesites-web-content`).** A page on yalesites.yale.edu is not a GitHub
+artifact, so it has no TL;DR, no visible budget, and no `<details>` layer. The sentence
+rules and word swaps above apply to its page copy in full, with no relaxation for
+argument. The skill's own `ste-rules.md` carries only the page-specific additions.
+
 ## What this does not override
 
 - **No em dashes.** This rule outranks everything else here. Use a comma, a period, a
@@ -167,7 +172,7 @@ Run the bundled checker before posting:
 python3 scripts/check-github-text.py draft.md --surface ticket
 ```
 
-Surfaces: `ticket`, `pr-body`, `pr-review`, `release-notes`, `report`.
+Surfaces: `ticket`, `pr-body`, `pr-review`, `release-notes`, `report`, `page-draft`.
 
 The checker flags candidates, not verdicts. A 22-word descriptive sentence is fine. A
 22-word acceptance criterion is not. It only measures the visible layer, so a long

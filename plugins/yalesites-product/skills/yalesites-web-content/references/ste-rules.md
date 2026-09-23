@@ -1,55 +1,22 @@
 # ASD-STE100 for YaleSites pages
 
-[ASD-STE100](https://www.asd-ste100.org/) is a controlled-English standard from aerospace maintenance documentation. YaleSites uses it because the audience overlaps in the way that matters: someone consulting the manual under time pressure, worried about breaking something expensive, who needs to parse a sentence right the first time.
+Page copy follows the same Simplified Technical English rules as every other YaleSites artifact. Those rules live in one place: the shared YaleSites writing standard, which this plugin ships at `../../ticket/references/github-writing.md`. Read its "Sentence rules" and "Word swaps" sections before drafting. The checker enforces that word-swap table, so it is the only copy.
 
-You are not being graded against the full specification. These are the rules that change the writing.
+This file holds only what is different about a page on yalesites.yale.edu.
 
-## Sentence and paragraph rules
+## The full rule set applies to all page copy
+
+The shared standard relaxes the sentence-length caps and the one-instruction rule for arguments inside a collapsed `<details>` block. A page has no collapsed layer, and nearly everything on it is something a reader acts on. So everything under `## Page copy` gets the full rule set, with no relaxation:
 
 - **Procedural sentences: 20 words maximum.** Instructions, steps, anything with an imperative.
 - **Descriptive sentences: 25 words maximum.** Explanations and overviews.
-- **One instruction per sentence.** Two actions means two sentences, even when they always happen together.
-- **One topic per paragraph.** Procedural paragraphs stay under six sentences.
-- **Start a procedural sentence with the verb.** "Select Save configuration to apply your changes."
+- **Procedural paragraphs stay under six sentences.**
 
-## Grammar rules
+The per-surface budgets, TL;DR rules, and `<details>` layering in the shared standard are GitHub rules. They do not apply to pages.
 
-- **Active voice.** "The platform creates the tag" beats "the tag is created."
-- **Simple present tense** for how things behave. Reserve future tense for genuinely future events.
-- **Keep articles.** "Select the title" not "Select title." Dropped articles read as terse and ambiguous.
-- **Don't drop the verb.** No headline-style fragments in body copy.
-- **Noun stacks: three words maximum.** "Announcements cache lifetime setting" is at the edge; rewrite as "the cache lifetime for announcements."
-- **One word, one meaning.** If you call it a "section" once, it stays a "section." Don't rotate through section/area/panel/region for variety.
-- **Write positive instructions.** "Keep this setting on" beats "Do not turn this setting off." Reserve negatives for real warnings.
+## Tense
 
-## Word swaps
-
-| Instead of | Use |
-|---|---|
-| utilize, leverage | use |
-| ensure | make sure |
-| in order to | to |
-| prior to | before |
-| subsequent to, following | after |
-| approximately | about |
-| additional | more |
-| assist | help |
-| attempt | try |
-| commence, initiate | start |
-| terminate | stop, end |
-| require | need |
-| obtain | get |
-| via | with, by |
-| regarding, concerning | about |
-| numerous, multiple | many |
-| modify | change |
-| indicate | show |
-| permit | let |
-| sufficient | enough |
-| facilitate | help, make easier |
-| endeavor | try |
-
-Also avoid: circle back, touch base, move the needle, alignment, synergy, value-add, deliverables (unless literally correct).
+Use the simple present tense for how things behave: "The Dashboard shows your unpublished pages." Reserve future tense for genuinely future events, such as a feature that ships in a later release.
 
 ## Software-specific conventions
 
@@ -61,14 +28,15 @@ STE predates web UI, so a few adaptations:
 - **Backticks** for paths and URLs: `/admin/yalesites/dashboard`.
 - Skip "please." It adds a word without adding meaning.
 
-## What STE does not override
+## Voice and warmth
 
-- **No em dashes.** This rule outranks everything else here. Use a comma, a period, a colon, parentheses, or restructure.
-- **"We" for the YaleSites team.** Never "I," unless the user's own writing-voice preferences say otherwise.
-- **Warmth is still allowed.** STE constrains sentence construction, not friendliness. "Do you have a question about the Dashboard? Come to Office Hours" is fine and better than a colder equivalent.
+The shared standard's "What this does not override" section applies here too: no em dashes, a personal writing-voice skill on top of STE where one is installed, and warmth still allowed. Two page-specific notes:
+
+- **Without a voice skill, default to "we"** for the YaleSites team, never "I." The PR-review exception in the shared standard does not apply to pages.
+- **Warmth fits support moments best.** "Do you have a question about the Dashboard? Come to Office Hours" is fine, and better than a colder equivalent.
 
 ## Checking your work
 
-Run `check-github-text.py --surface page-draft`. Sentence-length violations are easy to miss by eye, especially in bullets, where a long parenthetical can push you past 20 words without the line looking long.
+Run `check-github-text.py --surface page-draft`, as described in Step 5 of the skill. Sentence-length violations are easy to miss by eye, especially in bullets, where a long parenthetical can push you past 20 words without the line looking long.
 
 The script flags candidates, not verdicts. A 22-word descriptive sentence is fine. A 22-word instruction is not.
