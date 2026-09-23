@@ -18,8 +18,9 @@ The page-draft surface is the exception to all of that. A draft for a page on
 yalesites.yale.edu is not a GitHub artifact: it has no TL;DR, no <details>
 layering, and no visible-word budget. It carries its own structure instead, so
 it gets its own structural checks (teaser, required sections, site-relative
-links) and its prose rules apply to the "## Page copy" section alone, leaving
-the config block and handoff notes in normal working English.
+links). Its sentence-length and banned-word rules apply to the "## Page copy"
+section alone, leaving the config block and handoff notes in normal working
+English. The em-dash rule still applies to the whole draft.
 
 Usage:
     python3 check-github-text.py draft.md --surface ticket
@@ -47,8 +48,8 @@ SURFACES = {
     "report": (80, 600),
 }
 
-# Page drafts budget nothing, so they carry no caps. Kept out of SURFACES so
-# the GitHub checks can key off that dict and skip them without a special case.
+# Page drafts budget nothing, so they carry no caps and are kept out of
+# SURFACES. check() branches on PAGE_SURFACES before any GitHub check runs.
 PAGE_SURFACES = ("page-draft",)
 ALL_SURFACES = sorted(tuple(SURFACES) + PAGE_SURFACES)
 
@@ -89,14 +90,23 @@ IMPERATIVES = (
 TEASER = re.compile(r"\*\*Teaser text[^*]*\*\*\s*\n+(.+?)(?:\n\s*\n|\Z)", re.S)
 STATED_COUNT = re.compile(r"\((\d+)\s*characters?\)")
 ABSOLUTE_INTERNAL = re.compile(r"\]\((https?://(?:www\.)?yalesites\.yale\.edu[^)]*)\)")
-REQUIRED_SECTIONS = ("## Title", "## Config considerations")
-PAGE_COPY = "## Page copy"
-PAGE_COPY_STOPS = ("\n## Notes for the editor", "\n## Notes")
+# Headings match as whole lines, so "### Title", "## Titles", or a heading that
+# merely starts with the same words never counts as the real section.
+def heading(title):
+    return re.compile(r"^## " + re.escape(title) + r"[ \t]*$", re.M)
+
+
+REQUIRED_SECTIONS = ("Title", "Config considerations", "Page copy")
+PAGE_COPY = heading("Page copy")
+# Only the handoff heading ends page copy. A plain "## Notes" stop would cut the
+# section short at a real page heading like "## Notes on permissions".
+PAGE_COPY_STOP = re.compile(r"^## Notes for the editor\b.*$", re.M)
 
 # Screenshot markers are instructions to the editor, not page copy. They are
 # dropped before the markdown is stripped, because stripping deletes the very
 # asterisks that identify them.
-SCREENSHOT_MARKER = re.compile(r"^\*?\[SCREENSHOT\b|^\*Alt text\b", re.I)
+# The colon is required: "*Alt text* is ..." is real prose that opens with italics.
+SCREENSHOT_MARKER = re.compile(r"^\*?\[SCREENSHOT\b|^\*Alt text:", re.I)
 
 AGENT_BLOCK = re.compile(r"<!--\s*yalesites:agent\b.*?-->", re.S)
 DETAILS_BLOCK = re.compile(r"<details\b.*?</details>", re.S | re.I)
@@ -234,19 +244,20 @@ def is_procedural(sentence):
     return bool(first) and first[0].lower() in IMPERATIVES
 
 
-def page_copy_section(text):
+def page_copy_section(text, masked):
     """The "## Page copy" section, or the whole draft if there is no heading.
 
     Everything outside it (the config block, handoff notes) is working English
-    for one reader and is not held to the page's prose rules.
+    for one reader and is not held to the page's prose rules. Headings are found
+    in the masked copy so a heading quoted inside a code block never counts. A
+    missing heading is reported as section_missing, and the whole draft is
+    checked so nothing slips through unmeasured.
     """
-    if PAGE_COPY not in text:
+    start = PAGE_COPY.search(masked)
+    if not start:
         return text
-    section = text.split(PAGE_COPY, 1)[1]
-    for stop in PAGE_COPY_STOPS:
-        if stop in section:
-            return section.split(stop, 1)[0]
-    return section
+    stop = PAGE_COPY_STOP.search(masked, start.end())
+    return text[start.end():stop.start() if stop else len(text)]
 
 
 def check_page_draft(text, masked, add):
@@ -272,13 +283,13 @@ def check_page_draft(text, masked, add):
             add("teaser_count_wrong", line,
                 f"Draft says {stated.group(1)} characters, actual is {n}.")
 
-    for heading in REQUIRED_SECTIONS:
-        if heading not in masked:
-            add("section_missing", 0, f"Draft is missing a '{heading}' section.")
+    for title in REQUIRED_SECTIONS:
+        if not heading(title).search(masked):
+            add("section_missing", 0, f"Draft is missing a '## {title}' section.")
 
     # Prose rules, page copy only. prose_lines runs on the unstripped section so
     # the screenshot markers are still recognisable; each unit is stripped after.
-    section = mask_exempt(page_copy_section(text))
+    section = mask_exempt(page_copy_section(text, masked))
     units = [strip_markdown(u) for u in
              prose_lines(section, drop=SCREENSHOT_MARKER.search)]
 
@@ -459,7 +470,7 @@ def main():
     print("Long sentences and banned words are candidates, not verdicts.")
     if args.surface in PAGE_SURFACES:
         print("A 22-word descriptive sentence can be fine. A 22-word instruction is not.")
-        print("Only the '## Page copy' section is held to the prose rules.")
+        print("Sentence length and banned words are checked in '## Page copy' only.")
     else:
         print("A 22-word descriptive sentence can be fine. A 22-word acceptance criterion is not.")
         print("Only the visible layer is budgeted. Collapsed depth is free.")
