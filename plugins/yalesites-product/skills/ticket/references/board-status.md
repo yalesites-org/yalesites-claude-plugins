@@ -154,7 +154,7 @@ Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for t
 
 For sessions without a usable `gh`, including Cowork sessions that have the GitHub connector but no CLI.
 
-Apply the matching `status:*` / `priority:*` / `size:*` label via `mcp__github__update_issue` (for example `status:ready-for-work`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Projects v2 field, and then deletes the label.
+Apply the matching `status:*` / `priority:*` / `size:*` label via `mcp__github__update_issue` (for example `status:to-do`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Projects v2 field, and then deletes the label.
 
 Two consequences:
 
