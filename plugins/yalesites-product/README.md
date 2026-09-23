@@ -14,7 +14,11 @@ team with:
   type, and labels
 - **PR feedback** — reviewing a pull request against its linked issue and
   posting approve/request-changes feedback directly to GitHub, one PR at a
-  time or several in one batched pass
+  time or several in one batched pass, scoped to the review dimensions the
+  person running it actually rules on
+- **Reviewer profile**, a short interview that records what one person
+  reviews, so PR feedback asks them the calls that are theirs and labels only
+  the checks they performed
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
@@ -49,6 +53,7 @@ knowledge that the workflow skills reference:
 | `release-prep` | Preparing a YaleSites release, and reconciling the board after it ships |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |
+| `reviewer-profile` | Setting up or changing how `pr-feedback` is scoped to you (invoke directly with `/reviewer-profile`) |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
@@ -74,6 +79,25 @@ python3 skills/ticket/scripts/check-github-text.py draft.md --surface ticket
 Surfaces: `ticket`, `pr-body`, `pr-review`, `release-notes`, `report`. Both reference
 files and the script are generated from `standards/` at the repo root. Edit the canonical
 copies there, then run `bash scripts/sync-standards.sh`.
+
+## Reviewer role scoping
+
+`pr-feedback` tailors what it asks, what it writes, and which `pass ___ review` label it applies
+to the person running it. It resolves that in three steps: the reviewer's own profile at
+`~/.claude/yalesites/pr-feedback/reviewer-profile.md`, then a shared map keyed by GitHub login at
+`skills/pr-feedback/references/reviewer-roles.md`, then an ungated fallback that behaves exactly
+as the skill did before scoping existed.
+
+Two things need ongoing maintenance, both in `reviewer-roles.md`:
+
+- **The login-to-dimensions map.** Add a row when someone new starts reviewing. Confirm the handle
+  with that person rather than inferring it from org membership or commit history. A wrong row
+  silently withholds feedback they were the right person to give.
+- **The dimension-to-label matrix.** Re-verify it if a repo's label set changes. The file carries
+  the command.
+
+Maintained by whoever maintains this plugin. A person with no profile and no row is a normal,
+supported state, not a misconfiguration.
 
 ## Maintainer
 
