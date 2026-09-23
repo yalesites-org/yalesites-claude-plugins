@@ -47,17 +47,37 @@ bash scripts/sync-standards.sh
 Never hand-edit the copies under `plugins/`. They are generated, and CI fails on drift.
 To change a rule, edit `/standards/github-writing.md` or
 `/standards/github-communication-format.md` and re-sync. A rule change is a `MINOR` bump
-for every plugin that carries a copy.
+for every plugin that carries a copy, so commit it as `feat:`.
 
 ## Versioning
 
-Bump `version` in `plugin.json` with every PR:
+Do not edit `version` in `plugin.json` by hand. [release-please](https://github.com/googleapis/release-please)
+sets it from the Conventional Commit messages that land on `main`:
 
-| Change | Bump |
-|---|---|
-| Content fixes, typos, reference updates | `PATCH` — e.g., `0.1.0` to `0.1.1` |
-| New skills, new reference files, expanded coverage | `MINOR` — e.g., `0.1.0` to `0.2.0` |
-| Breaking changes to skill names or plugin identity | `MAJOR` — e.g., `0.1.0` to `1.0.0` |
+| Change | Commit type | Bump |
+|---|---|---|
+| Content fixes, typos, reference updates | `fix:` or `docs:` | `PATCH` — e.g., `0.1.0` to `0.1.1` |
+| New skills, new reference files, expanded coverage | `feat:` | `MINOR` — e.g., `0.1.0` to `0.2.0` |
+| Breaking changes to skill names or plugin identity | `feat!:` or a `BREAKING CHANGE:` footer | `MAJOR` — e.g., `0.1.0` to `1.0.0` |
+
+`chore:`, `ci:`, and `test:` commits do not trigger a release.
+
+Each plugin gets its own version, and a commit bumps only the plugins whose files it
+touches. After every merge to `main`, release-please opens or updates one release PR
+that holds the pending bumps and changelogs. Several commits or PRs before that release
+PR merges still make one bump: the largest one wins. Merging the release PR writes the
+new versions and tags each plugin, e.g. `yalesites-dev-v0.7.0`.
+
+PR titles must be Conventional Commits too. CI checks this, because a squash merge uses
+the title as the commit message. A rebase merge uses the individual commit messages.
+
+Prefer squash or rebase. With "Create a merge commit", release-please skips any commit
+dated before the last release, so a branch that started before the last release gets no
+bump. It walks history newest-first and stops at the last release commit, and a merge
+commit keeps the branch's original commit dates.
+
+Adding a plugin? Add it to `packages` in `release-please-config.json` and give it a
+starting version in `.release-please-manifest.json`.
 
 ## Core Team Plugins (`/plugins/`)
 

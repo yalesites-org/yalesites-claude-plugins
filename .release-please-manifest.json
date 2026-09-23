@@ -1,0 +1,6 @@
+{
+  "plugins/yalesites": "0.2.0",
+  "plugins/yalesites-dev": "0.6.0",
+  "plugins/yalesites-product": "0.11.0",
+  "plugins/yalesites-security": "0.2.0"
+}
