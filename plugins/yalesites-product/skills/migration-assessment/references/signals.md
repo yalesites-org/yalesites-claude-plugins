@@ -32,7 +32,7 @@ Check `source` first:
   and excluded content.
 - `link-crawl` — discovered by following links within a fetch budget.
   `is_lower_bound: true`. **This is a floor and nothing more.** Content not linked
-  from the navigation is invisible to it; on the accessibility.yale.edu run, two
+  from the navigation is invisible to it; on the test site, two
   orphan pages and roughly 60 event nodes existed that the crawl never reached.
 
 `path_buckets` gives the section shape and `depth_histogram` the URL depth, which
@@ -74,7 +74,7 @@ does not fire on D7 sources.
 
 Image counts on the sample indicate density, not a total. `has_hero` looks for
 `hero`/`banner`/`masthead` class tokens and **misses themes that name the region
-something else** — the accessibility.yale.edu homepage has a header image the
+something else** — the test site's homepage has a header image the
 detector does not see.
 
 `carousel_libraries` is the highest-value field here, because YaleSites has no

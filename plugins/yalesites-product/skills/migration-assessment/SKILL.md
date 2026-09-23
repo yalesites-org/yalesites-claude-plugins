@@ -127,11 +127,12 @@ relevant GitHub issue, or as a standalone document if there is no issue.
 
 ## Tests
 
-The probe's parsing helpers are covered by unit tests with no network access:
+The probe's parsing helpers are covered by unit tests with no network access.
+From the repo root:
 
 ```bash
-python3 scripts/test_probe_site.py                 # this suite
-bash ../../../../scripts/run-skill-tests.sh        # what CI runs, from the repo root
+python3 plugins/yalesites-product/skills/migration-assessment/scripts/test_probe_site.py  # this suite
+bash scripts/run-skill-tests.sh                                                          # what CI runs
 ```
 
 `unittest discover` over `plugins/` is deliberately not used. Python 3.11

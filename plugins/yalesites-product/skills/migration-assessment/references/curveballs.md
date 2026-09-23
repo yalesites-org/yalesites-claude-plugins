@@ -74,5 +74,5 @@ break it or the assessment method, and where to look for them:
 | A Drupal 8/9/10 source with JSON:API open | Every finding so far comes from a D7 site; a modern source should allow an exact inventory instead of a crawl estimate | Any recently built non-YaleSites Yale Drupal site |
 | A non-Drupal source (WordPress) | The fingerprint returns `unknown` and every Drupal-specific signal goes silent — worth knowing how badly it degrades | Any Yale WordPress site |
 
-Naming specific sites for the first five needs someone with the portfolio
-inventory; the two named above are confirmed from ticket history.
+Naming specific sites for the first seven needs someone with the portfolio
+inventory; the one named above is confirmed from ticket history.
