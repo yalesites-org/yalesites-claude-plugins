@@ -147,5 +147,5 @@ yalesites-project produces two PRs, each linking both environments:
 - [ ] Confirm the saved page renders all three items collapsed
 - [ ] Check the browser console for errors on both
 
-References yalesites-org/YaleSites-Internal#1543
+Closes yalesites-org/YaleSites-Internal#1543
 ```

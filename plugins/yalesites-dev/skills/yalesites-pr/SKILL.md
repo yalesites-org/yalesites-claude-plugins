@@ -61,7 +61,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 5. **Draft and create PRs** — companion repos first, yalesites-project last
    For each repo, draft the full PR title and body using the template from references/pr-template.md, then **show the draft to the user and wait for explicit approval before running `gh pr create`**. Do not create any PR without confirmation.
 
-   The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
+   The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `Closes ...` line stay visible.
 
    Write the words per references/github-writing.md: plain sentences, active voice, no em dashes, and 350 words as the budget for everything a reviewer sees before expanding anything. The reader is a developer peer, so normal technical vocabulary is fine, but do not narrate the diff. The diff is already there.
 
@@ -82,7 +82,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - `--base develop`
    - Title format: `{issue number}: {issue title}` — identical to the H2 link text in the PR body (e.g. `1025: Ensure Event Date/Time Changes in Campus Groups Sync to Website`). Do not use conventional commit style for the PR title.
    - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
-   - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
+   - `Closes yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue). `Closes` makes GitHub close the issue when the PR merges
 
 6. **Update cross-links and fill in the preview URLs** — once all PRs exist, every number is
    known. In one `gh pr edit` per repo, add the companion links **and** replace every `<N>`

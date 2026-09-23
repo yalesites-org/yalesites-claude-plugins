@@ -28,7 +28,7 @@ substitutes them.
 - [ ] Step 2
 - [ ] Step 3
 
-References yalesites-org/YaleSites-Internal#NNN
+Closes yalesites-org/YaleSites-Internal#NNN
 ```
 
 ## Without associated issue
