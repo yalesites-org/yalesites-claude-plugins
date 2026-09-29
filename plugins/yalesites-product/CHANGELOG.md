@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.13.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.12.0...yalesites-product-v0.13.0) (2026-09-29)
+
+
+### Features
+
+* **pr-feedback:** drive the test plan in a browser and cover the blast radius ([d0e3b8d](https://github.com/yalesites-org/yalesites-claude-plugins/commit/d0e3b8dee208eb6b5126a0a5d679e1cf4565bed3))
+* **pr-feedback:** drive the test plan in a browser and cover the blast radius ([4e34c54](https://github.com/yalesites-org/yalesites-claude-plugins/commit/4e34c5499b6da25bc04df1a1a76ca74673d9c69a))
+* **pr-feedback:** make the browser run required on every yalesites-project review ([fa4cdf3](https://github.com/yalesites-org/yalesites-claude-plugins/commit/fa4cdf30893e4fdf033d6cfd5d8ae478fcc43c9a))
+* **pr-feedback:** start row 1 from the brief's regression surface ([8f9db33](https://github.com/yalesites-org/yalesites-claude-plugins/commit/8f9db33226c726071c518e02f45832d0a6252df4))
+* **yalesites-product:** add yalesites-web-content skill ([5145798](https://github.com/yalesites-org/yalesites-claude-plugins/commit/5145798a13db758a9744f4108efebeb3498e2bbd))
+
+
+### Bug Fixes
+
+* **pr-feedback:** address review on the drive-it path ([d9c43ca](https://github.com/yalesites-org/yalesites-claude-plugins/commit/d9c43caea49d98c085721d3727e7965713377f57))
+* **pr-feedback:** harden the drive-it path after two trial runs ([d547dd2](https://github.com/yalesites-org/yalesites-claude-plugins/commit/d547dd249076bdd23d2b18c57cb6e94691007300))
+* **pr-feedback:** never approve a review that asks for changes ([8b5a8d2](https://github.com/yalesites-org/yalesites-claude-plugins/commit/8b5a8d2085fcff0012f10fec473c7b62ddd651ce))
+* **pr-feedback:** never approve a review that asks for changes ([8c674f1](https://github.com/yalesites-org/yalesites-claude-plugins/commit/8c674f1543ae1b66c6b43bf8805e44e899560433))
+
 ## [0.12.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.11.1...yalesites-product-v0.12.0) (2026-09-23)
 
 
