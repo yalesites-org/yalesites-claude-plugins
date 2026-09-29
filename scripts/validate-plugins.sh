@@ -60,6 +60,25 @@ else
 fi
 echo ""
 
+# Fixture checks for the page-draft surface. The clean draft follows the
+# SKILL.md template and must pass. The dirty one must report every kind listed,
+# each of which a past checker bug let through.
+echo "Checking check-github-text.py fixtures..."
+CHECKER="$(dirname "$0")/../standards/check-github-text.py"
+FIXTURES="$(dirname "$0")/../standards/fixtures"
+if ! python3 "$CHECKER" "$FIXTURES/page-draft-clean.md" --surface page-draft > /dev/null; then
+  echo "  ERROR: page-draft-clean.md should pass the checker"
+  ERRORS=$((ERRORS + 1))
+fi
+dirty=$(python3 "$CHECKER" "$FIXTURES/page-draft-dirty.md" --surface page-draft --json || true)
+for kind in section_missing teaser_count_wrong absolute_internal_link long_sentence banned_word; do
+  if ! grep -q "\"kind\": \"$kind\"" <<< "$dirty"; then
+    echo "  ERROR: page-draft-dirty.md should report $kind"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+echo ""
+
 plugin_count=0
 for base_dir in plugins external_plugins; do
   [[ -d "$base_dir" ]] || continue
