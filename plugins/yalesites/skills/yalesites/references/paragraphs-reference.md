@@ -92,6 +92,12 @@ Paragraph sub-items are the editable rows within certain blocks — accordion it
 |---|---|---|
 | **Link** | Yes | URL + required link text. |
 
+**Where it's actually used.** Despite the generic name, `cta_link` is referenced by only two block bundles through the `field_heading_links` field: **View** (`block_content.view`) and **Events Calendar** (`block_content.event_calendar`). Other blocks that collect links do so through their own fields (`link_list` on Link Grid, the per-item `Link` fields on Callout/Custom Cards/Tiles), not through `cta_link`.
+
+**Why the authoring form looks the way it does.** `field_heading_links` is an `entity_reference_revisions` field labelled **Links**, capped at 3 values, with exactly one allowed target bundle (`cta_link`) — and `cta_link` itself holds exactly one field. So it's a paragraph entity wrapping a single link. That's why the General tab of the View block form shows a full paragraphs widget (the "Links" table header, drag handles, collapsed summaries, Duplicate, and a delete-confirm modal) just to collect up to three links.
+
+Paragraphs earns that complexity when a field allows multiple types or nesting. Neither applies here. If a request comes in to clean up this form, the relevant fact is that the storage is shared: `field_heading_links` config is per-bundle, so a change can technically be scoped to just the View block, but that leaves Events Calendar handling links differently from its sibling. Treat "which bundles does this change cover" as a scoping question to settle before the work is estimated, not a detail to leave to the implementer.
+
 ---
 
 ## Known Issues
