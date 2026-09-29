@@ -219,8 +219,9 @@ Rules that make this useful instead of noise:
   `references/beyond-ac-checks.md` and add the rows whose trigger matches what the diff
   touches: other places that share the changed code, other section layouts and themes,
   in-between widths, other content types, existing content. About half of past manual review
-  findings sat outside the AC, so a plan that stops at the AC misses them. Say in one line
-  which rows you picked and why.
+  findings sat outside the AC, so a plan that stops at the AC misses them. A row whose trigger
+  matches gets run; skipping one needs a stated reason before testing starts, and "already
+  known" is not one.
 - **Flag any step that needs a role other than platform admin.** The user is a platform admin
   by default, so a role-gated step silently passes for them and fails for everyone else. This
   is the single most common thing a PM review misses. A `drush uli` login is user 1, which is
@@ -236,7 +237,9 @@ once the behavior is settled.)
 ### Then drive it, or hand it off
 
 **For a `yalesites-project` PR with a live multidev, run the plan in a browser.** Read
-`references/drive-it.md` and follow it: preflight, ask once before creating anything, log in
+`references/drive-it.md` and follow it: preflight (including proof the server runs the
+branch, since green CI does not show that), the brief and plan before any testing, ask once
+before creating anything, log in
 per role with `drush uli`, run each step in a visible Playwright browser while the user
 watches, screenshot every result (pass, fail, ask, or blocked), check the Drupal log, and clean
 up. Show the screenshots as the run goes, failures first. Checks marked `ask` in
