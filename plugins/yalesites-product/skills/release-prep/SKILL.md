@@ -26,7 +26,7 @@ Phase 5 in particular is **not** a late-stage phase. Testers need their steps th
 | 2. Feature Documentation | New or updated page draft for yalesites.yale.edu |
 | 3. Email Communication | Concise release announcement email |
 | 4. Current Issues & Fixes | Updated version of the yalesites.yale.edu issues page |
-| 5. QA Testing Steps | Release Testing Steps added to GitHub issues |
+| 5. QA Testing Steps | Release Testing Steps added to GitHub issues, RC site groups, testing kickoff message |
 | 6. Knowledge Base Sync | Updated yalesites skill reference files reflecting platform changes |
 | 7. Post-Release Reconciliation | Board cleaned up after the release ships: shipped tickets closed, the rest carried over, milestone closed |
 
@@ -121,6 +121,9 @@ Write it per `../ticket/references/github-writing.md`: plain language, active vo
 
 Keep the bulleted list inside "PRs Included" (not a table) — the no-table rule still applies inside a `<details>` block in a comment.
 
+### Publishing to the website
+This format, PRs Included section and all, is for the GitHub comment audience. If the same content gets reused as the public Release Notes page on yalesites.yale.edu, drop the **PRs Included** section before publishing — that list isn't something the site's audience sees; it belongs to the GitHub PR thread only.
+
 ### Voice & tone
 - Write for non-technical users first: site owners, content editors, department admins
 - Lead with user benefit, not technical implementation
@@ -139,6 +142,25 @@ Announcement title uses short form: v2.22.0 in code → "v2.22" in title. URL sl
 
 - **New page** — Draft a full standalone page following the YaleSites documentation style
 - **Addition** — Paste in the current page content; draft the new section to insert
+
+**Name the actual page, not "the documentation."** YaleSites documentation on yalesites.yale.edu is plain page content — there's no help center, no article IDs, no doc-tree structure to point at generically. A documentation acceptance criterion that says "update the documentation" gives whoever picks it up nothing to work from, and they'll spend the first twenty minutes finding the page you already found.
+
+Before writing a docs acceptance criterion, fetch the live site and confirm where the content actually belongs, then write the criterion as a specific URL plus the section within it — e.g. "Add to yalesites.yale.edu/building-with-blocks, Media Content Blocks section" or "Update yalesites.yale.edu/in-line-message-block." If the feature genuinely has no existing page, say that explicitly and flag it as a new-page decision rather than guessing at a URL that doesn't exist. Guessed URLs are worse than an honest "no page yet."
+
+While you're in there, note any stale or duplicate pages you pass through, but keep them out of the release ticket — they're their own cleanup item.
+
+### Linking a draft page for review
+
+Documentation drafts usually go up on yalesites.yale.edu as an unpublished revision before anyone reviews them, and the link you hand a reviewer has to point at that revision rather than the published page.
+
+**Use the node path, not the path alias.** The reviewable URL is `https://yalesites.yale.edu/node/[nid]/latest`. Appending `/latest` to a path alias (`/in-line-message-block/latest`) doesn't resolve — Drupal's Latest Version tab only lives under the canonical node route, so the alias form gives a 404 and the reviewer assumes the draft doesn't exist.
+
+To find the node ID without admin access, fetch the published page and read `currentPath` out of the `drupalSettings` JSON in the page source. That gives you `node/[nid]` directly.
+
+Two things worth telling the reviewer in the same message:
+
+- They need to be logged in. `/latest` is behind CAS, so a logged-out visitor sees nothing.
+- If you fetch a draft URL yourself and get an empty body, that's the expected signature of an unpublished page behind CAS, not a broken link. It confirms the draft exists and isn't live yet.
 
 ### Structure for a new documentation page
 
@@ -203,6 +225,18 @@ The YaleSites Team
 - The opening line establishes collaboration context (or theme) once — don't repeat it
 - No subject line is needed in the draft; that's handled separately
 - Closing paragraph always references the Release Notes page on yalesites.yale.edu
+
+### Who approves and who sends
+
+The email isn't sent by whoever drafts it. Chris Suquilanda (Information Services Consultant) approves the copy, and ITS Communications sends it to the YaleSites community list. Build that into the ticket's acceptance criteria so the handoff is explicit rather than assumed.
+
+**Publish the Release Notes page before the email goes out.** The closing paragraph links to it, so sending first means the link 404s for everyone who opens the email early. Sequence it as: release notes drafted → page published on yalesites.yale.edu → email approved → email sent.
+
+When a single ticket covers all three deliverables (release notes draft, Release Notes webpage, release email), split the acceptance criteria by deliverable rather than running them together. Each one has a different owner and a different "done."
+
+### Don't ship in-progress framing to the community
+
+Release notes and the release email describe what shipped. Drop "(in progress)" qualifiers, migration status labels, and reassurance filler like "no action needed from site owners" before publishing. If work genuinely isn't done, either describe the user-visible part plainly or leave it out of this release's notes entirely.
 
 ### Output
 Save as `release-email-v[version]-draft.md` in the workspace folder.
@@ -319,6 +353,31 @@ After processing all issues, report a summary:
 - How many issues were updated with new testing steps
 - How many already had sufficient steps (no action needed)
 - Any issues where the PR description lacked enough detail to write confident testing steps (flag these for review)
+
+Two things worth surfacing separately from the counts, because they're board-hygiene problems rather than testing-steps problems:
+
+- An open `Done` issue on the release milestone whose acceptance criteria are still largely unchecked — especially where only the research/discovery items are ticked and the implementation items aren't. That usually means it landed on the board ahead of the work, and a tester needs to confirm with the developer what actually shipped before testing it.
+- An issue that's unassigned or still carrying a `forming`-style label. Both signal it wasn't fully groomed, and it's worth confirming it belongs in the release at all.
+
+### Step 6: Group the RC test sites and send the testing kickoff
+
+Once the issues are ready, testers need somewhere to test and a note telling them to start.
+
+**Grouping the RC sites.** The release candidate spins up a multidev per participating site, following the pattern `https://v{VERSION}-{site-slug}.pantheonsite.io` (e.g. `v2260-ys-mcdb-yale-edu` for v2.26.0). Split those links into two groups:
+
+- **Site-owner outreach** — sites that have a named contact. Pair each RC link with its contact so the outreach can go out per site rather than as a broadcast.
+- **Internal team** — platform/sandbox sites, plus any site whose contact list says they're no longer participating. These go to the testing team as a single block of links.
+
+Matching RC slugs back to a contact list is fuzzier than it looks: slugs flatten dots to hyphens and sometimes carry extra segments (`research-computing` vs `research.computing`, `-yalecollege-` inserted mid-slug). Match on the underlying domain, and report any site that appears in one list but not the other rather than silently dropping it.
+
+**The kickoff message.** This goes to the testing team, usually in Teams. Keep it short and lead with the version. It should cover:
+
+- The version number, confirmed against the release PR rather than inferred from the RC slug
+- That the testing board is updated and every issue has testing steps, with a link to the board view
+- That they can start now or wait for the kickoff meeting, either is fine
+- Important dates: testing start, pending release date, communications date
+- The internal-team testing links
+- Anything that makes this release unusual — a longer testing window, a migration bundled in, an unusually large scope. Testers plan their time around this, so say it plainly.
 
 ---
 
