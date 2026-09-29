@@ -1,6 +1,6 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'."
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'."
 argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product]"
 ---
 
@@ -141,7 +141,7 @@ brief, not from the diff.** Re-deriving it is the single biggest waste in this r
 |---|---|
 | Present, SHA matches head | **Use it. Skip Step 2 entirely.** This is the normal path. |
 | Present, SHA is behind head | Use it for context, then read only the new commits: `gh pr diff NUMBER --repo yalesites-org/REPO` and compare against the brief's claims. Tell the user which parts of the brief may be stale. |
-| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. |
+| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. On `yalesites-project`, the Step 3 browser run still happens: start its setup while this brief is written. |
 
 The dry-run fallback matters: it means this skill has exactly one deep-dive implementation
 to maintain, living in `pr-prereview`, and a PR the schedule never saw still gets reviewed
@@ -174,8 +174,9 @@ What the brief could not do, and you are here for:
 ## Step 3: Walk the user through what to test
 
 **This is the skill's main output.** Everything before it was preparation and everything
-after it is posting. The user is the PM, not the developer: the useful thing this skill
-produces is a short, concrete answer to "where do I go and what do I click."
+after it is posting. The reviewer is usually not the developer who built it, whatever their
+role: the useful thing this skill produces is a short, concrete answer to "where do I go and
+what do I click."
 
 The brief's **Where to test** and **Draft test plan** sections are the starting point. Treat
 the draft as a draft. The audit has never seen the feature work and its plan will be
@@ -215,11 +216,20 @@ Short numbered list. Each step is a link, an action, and what should happen:
 
 Rules that make this useful instead of noise:
 
-- **Cover the acceptance criteria first**, then edge cases worth a human eye: empty state,
-  long content, mobile, keyboard and screen reader paths.
+- **Cover the acceptance criteria first, then the blast radius.** After the AC steps, read
+  `references/beyond-ac-checks.md` and add the rows whose trigger matches what the diff
+  touches: other places that share the changed code, other section layouts and themes,
+  in-between widths, other content types, existing content. About half of past manual review
+  findings sat outside the AC, so a plan that stops at the AC misses them. A row whose trigger
+  matches gets run; skipping one needs a stated reason before testing starts, and "already
+  known" is not one. Row 1 (other places that share the changed code) starts from the
+  brief's **Regression surface** section, which names each consumer and where to see it.
+  Every consumer listed there gets a step; a brief without that section predates it, so do
+  the grep yourself.
 - **Flag any step that needs a role other than platform admin.** The user is a platform admin
   by default, so a role-gated step silently passes for them and fails for everyone else. This
-  is the single most common thing a PM review misses.
+  is the single most common thing a PM review misses. A `drush uli` login is user 1, which is
+  not a platform admin either; see "Roles" in `references/beyond-ac-checks.md`.
 - **Keep it to what a human must see.** If CI already proves it, or the audit already verified
   it from the code, leave it out and say the audit covered it.
 - **Say how long it should take.** Three steps or ten changes whether this happens now.
@@ -228,8 +238,33 @@ This is a walkthrough for the user in chat, not a GitHub comment. Do not post it
 copy it onto the ticket as Release Testing Steps. (The `release-prep` skill owns those, later,
 once the behavior is settled.)
 
-Eventually this step will drive a browser directly. Until then it hands off to the user, so
-write it for someone reading it on a second monitor with the PR open.
+### Then drive it, or hand it off
+
+**Every `yalesites-project` review gets a driven browser run.** This is not optional, and it
+does not depend on where the brief came from. A brief the scheduled `pr-prereview` pass wrote,
+a stale one refreshed from the new commits, and one written at the start of this session by
+the Step 1 dry-run fallback all lead to the same run. Do not offer the hand-off walkthrough as
+an alternative, and do not ask whether to drive it. Read `references/drive-it.md` and follow
+it: preflight (including proof the server runs the branch, since green CI does not show that),
+the brief and plan before any testing, ask once before creating anything, log in per role with
+`drush uli`, run each step in a visible Playwright browser while the user watches, screenshot
+every result (pass, fail, ask, or blocked), check the Drupal log, and clean up. Show the
+screenshots as the run goes, failures first. Checks marked `ask` in
+`references/beyond-ac-checks.md` are never ruled on by the browser run; they go to Step 3b with
+their screenshots.
+
+**No brief yet is not a reason to skip the run.** When Step 1 has to write the brief itself,
+open the browser and do the setup (log in, create the test page) while the brief is being
+written, then start testing once the plan exists. The user gets something to watch without the
+run getting ahead of the plan.
+
+**The hand-off walkthrough is for what cannot be driven, and only that.** That covers
+Storybook, `atomic` and `tokens`, and a `yalesites-project` PR whose drive-it preflight fails
+(no multidev, a server not running the branch, a cloud session, a machine without Terminus or
+Node). For a failed preflight, say which check failed, hand the plan to the user, and offer to
+run the browser pass as soon as the cause is fixed: a skipped run is a gap in the review, not
+a different kind of review. Write the hand-off plan for someone reading it on a second monitor
+with the PR open.
 
 ## Step 3b: Get the user's calls and their own feedback
 
