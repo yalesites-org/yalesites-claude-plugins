@@ -221,7 +221,10 @@ Rules that make this useful instead of noise:
   in-between widths, other content types, existing content. About half of past manual review
   findings sat outside the AC, so a plan that stops at the AC misses them. A row whose trigger
   matches gets run; skipping one needs a stated reason before testing starts, and "already
-  known" is not one.
+  known" is not one. Row 1 (other places that share the changed code) starts from the
+  brief's **Regression surface** section, which names each consumer and where to see it.
+  Every consumer listed there gets a step; a brief without that section predates it, so do
+  the grep yourself.
 - **Flag any step that needs a role other than platform admin.** The user is a platform admin
   by default, so a role-gated step silently passes for them and fails for everyone else. This
   is the single most common thing a PM review misses. A `drush uli` login is user 1, which is
