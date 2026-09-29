@@ -141,7 +141,7 @@ brief, not from the diff.** Re-deriving it is the single biggest waste in this r
 |---|---|
 | Present, SHA matches head | **Use it. Skip Step 2 entirely.** This is the normal path. |
 | Present, SHA is behind head | Use it for context, then read only the new commits: `gh pr diff NUMBER --repo yalesites-org/REPO` and compare against the brief's claims. Tell the user which parts of the brief may be stale. |
-| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. |
+| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. On `yalesites-project`, the Step 3 browser run still happens: start its setup while this brief is written. |
 
 The dry-run fallback matters: it means this skill has exactly one deep-dive implementation
 to maintain, living in `pr-prereview`, and a PR the schedule never saw still gets reviewed
@@ -239,19 +239,30 @@ once the behavior is settled.)
 
 ### Then drive it, or hand it off
 
-**For a `yalesites-project` PR with a live multidev, run the plan in a browser.** Read
-`references/drive-it.md` and follow it: preflight (including proof the server runs the
-branch, since green CI does not show that), the brief and plan before any testing, ask once
-before creating anything, log in
-per role with `drush uli`, run each step in a visible Playwright browser while the user
-watches, screenshot every result (pass, fail, ask, or blocked), check the Drupal log, and clean
-up. Show the screenshots as the run goes, failures first. Checks marked `ask` in
+**Every `yalesites-project` review gets a driven browser run.** This is not optional, and it
+does not depend on where the brief came from. A brief the scheduled `pr-prereview` pass wrote,
+a stale one refreshed from the new commits, and one written at the start of this session by
+the Step 1 dry-run fallback all lead to the same run. Do not offer the hand-off walkthrough as
+an alternative, and do not ask whether to drive it. Read `references/drive-it.md` and follow
+it: preflight (including proof the server runs the branch, since green CI does not show that),
+the brief and plan before any testing, ask once before creating anything, log in per role with
+`drush uli`, run each step in a visible Playwright browser while the user watches, screenshot
+every result (pass, fail, ask, or blocked), check the Drupal log, and clean up. Show the
+screenshots as the run goes, failures first. Checks marked `ask` in
 `references/beyond-ac-checks.md` are never ruled on by the browser run; they go to Step 3b with
 their screenshots.
 
-**Otherwise, or when the drive-it preflight fails, hand the plan to the user.** That covers
-Storybook, `atomic` and `tokens`, cloud sessions, and machines without Terminus. Say in one
-line why the run is not driven, then write the plan for someone reading it on a second monitor
+**No brief yet is not a reason to skip the run.** When Step 1 has to write the brief itself,
+open the browser and do the setup (log in, create the test page) while the brief is being
+written, then start testing once the plan exists. The user gets something to watch without the
+run getting ahead of the plan.
+
+**The hand-off walkthrough is for what cannot be driven, and only that.** That covers
+Storybook, `atomic` and `tokens`, and a `yalesites-project` PR whose drive-it preflight fails
+(no multidev, a server not running the branch, a cloud session, a machine without Terminus or
+Node). For a failed preflight, say which check failed, hand the plan to the user, and offer to
+run the browser pass as soon as the cause is fixed: a skipped run is a gap in the review, not
+a different kind of review. Write the hand-off plan for someone reading it on a second monitor
 with the PR open.
 
 ## Step 3b: Get the user's calls and their own feedback

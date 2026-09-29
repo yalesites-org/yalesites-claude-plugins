@@ -5,9 +5,11 @@ the user to click through, Claude runs it in a visible browser on the user's mac
 Playwright, while the user watches. Every step ends with a screenshot, pass or fail, so the
 review rests on evidence rather than on a claim that something was checked.
 
-**Scope today: `yalesites-project` multidevs only.** Storybook previews
-(`component-library-twig`) need no login and would work the same way, but that path is not
-written yet. For every other case, hand the plan to the user as `SKILL.md` Step 3 describes.
+**Scope today: every `yalesites-project` review, on its multidev.** It is required, not
+offered, and it runs whether the brief came from the scheduled pre-review pass or was written
+at the start of the session. Storybook previews (`component-library-twig`) need no login and
+would work the same way, but that path is not written yet. For every other case, hand the plan
+to the user as `SKILL.md` Step 3 describes.
 
 **The user watches, the user rules.** Driving the browser settles mechanical questions (does it
 overflow, which column is on the left, does focus move). It never settles design or product
@@ -62,8 +64,10 @@ into a plan with its beyond-AC rows picked. A run planned without the brief test
 driver happens to think of, not what the diff points to, and misses whole areas (on one trial
 run it skipped the region checks, the reusable block library, and logged-out viewing).
 
-If the brief is still being written, the browser may open early for setup only: logging in,
-creating the test page. No step gets a result until the plan exists.
+If the brief is still being written (including when `SKILL.md` Step 1 is writing it right now
+because none existed), open the browser early for setup only: logging in, creating the test
+page. No step gets a result until the plan exists. A missing brief delays testing; it never
+cancels the run.
 
 **Every checklist row whose trigger matches the diff gets run.** To skip one, say which row
 and why before the run starts, so the user can overrule it. Skipping silently is not allowed.

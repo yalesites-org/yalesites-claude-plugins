@@ -159,6 +159,12 @@ One walkthrough for the whole batch, grouped by environment so the user is not b
 a multidev, a Storybook preview, and a CMS login six times over. This is batch mode's headline
 output, the same way Step 3 is single-PR mode's.
 
+**The `yalesites-project` group is driven, not handed off.** Batching does not change
+`SKILL.md` Step 3's rule: every `yalesites-project` unit gets a browser run per
+`drive-it.md`, one PR at a time in the sitting's order, with its own screenshots folder. The
+walkthrough below is what the user clicks through for everything else, plus any
+`yalesites-project` unit whose drive-it preflight failed, named as such.
+
 ### Every block leads with its own full URL
 
 In a single-PR review the environment is obvious from context. Across six PRs in four repos it
