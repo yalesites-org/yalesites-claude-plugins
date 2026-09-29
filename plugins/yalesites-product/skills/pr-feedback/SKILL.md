@@ -174,8 +174,9 @@ What the brief could not do, and you are here for:
 ## Step 3: Walk the user through what to test
 
 **This is the skill's main output.** Everything before it was preparation and everything
-after it is posting. The user is the PM, not the developer: the useful thing this skill
-produces is a short, concrete answer to "where do I go and what do I click."
+after it is posting. The reviewer is usually not the developer who built it, whatever their
+role: the useful thing this skill produces is a short, concrete answer to "where do I go and
+what do I click."
 
 The brief's **Where to test** and **Draft test plan** sections are the starting point. Treat
 the draft as a draft. The audit has never seen the feature work and its plan will be

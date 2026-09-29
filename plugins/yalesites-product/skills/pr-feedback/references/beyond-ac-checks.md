@@ -66,7 +66,7 @@ To act as a role, log in with a one-time link for a user holding it:
 terminus drush <site>.<env> -- uli --name=<username> --uri=https://<env>-<site>.pantheonsite.io
 ```
 
-Run each role in its own browser session (`playwright-cli -s=<role> ...`) so cookies never mix,
+Run each role in its own browser session (`npx -y @playwright/cli@0.1.22 -s=<role> ...`, see `drive-it.md`) so cookies never mix,
 and run the same steps in each.
 
 **Where the users come from:**

@@ -19,9 +19,11 @@ questions. Those rows (`ask` in `beyond-ac-checks.md`) get a screenshot and go t
 
 ## Step D0: Preflight, and fall back instead of forcing it
 
-Check all of these before opening anything. If any fails, say which one in one line and use the
-normal hand-off walkthrough instead. Do not try to install or authenticate things on the user's
-behalf mid-review.
+Check all of these before opening anything, and **finish all of D0 before Step D1 writes
+anything to the multidev**. A check that fails after content exists leaves a mess behind. If a
+check fails, say which one in one line and use the normal hand-off walkthrough instead. Do not
+authenticate things on the user's behalf. The one install allowed is a browser, and only with
+the user's OK (see below).
 
 | Check | Command | If it fails |
 |---|---|---|
@@ -29,6 +31,34 @@ behalf mid-review.
 | Terminus is authenticated | `terminus multidev:list <site> --fields=id` returns rows | Hand off, and mention `terminus auth:login`. `terminus auth:whoami` can report "not logged in" while commands still work, so test with a real command. |
 | The multidev exists and loads | `terminus multidev:list <site> --fields=id,domain` includes `pr-<N>`, and the site URL returns 200 | A missing environment is often the 25/25 multidev cap, not the code. Say so and hand off. |
 | This is a machine the user can see | The session runs on the user's desktop, not in the cloud | A headed browser in a cloud session shows nobody anything. Hand off. |
+| The CLI can launch a browser | `npx -y @playwright/cli@0.1.22 -s=preflight open about:blank`, then `-s=preflight close` | See "Browsers" below. Do not move on to D1 until a browser opens. |
+
+### Browsers
+
+`@playwright/cli@0.1.22` opens the installed **Google Chrome** by default. A machine without
+Chrome passes every other check and then fails at `open`, which is why the launch check above
+runs a real, headless `open` on a blank page rather than trusting `npx` alone.
+
+If the launch fails, ask the user (one `AskUserQuestion`) which fix they want, then run it:
+
+| Option | Command | Then open with | Note |
+|---|---|---|---|
+| Install Chrome | `npx -y @playwright/cli@0.1.22 install-browser chrome` | the default (no `--browser`) | A system-wide install; macOS may ask for an admin password |
+| Use Firefox | `npx -y @playwright/cli@0.1.22 install-browser firefox` | `--browser firefox` | Installs into the user's Playwright cache, no admin needed |
+| Hand off | none | none | Skip the run and give the walkthrough, per `SKILL.md` Step 3 |
+
+Re-run the launch check after installing. Use the same `--browser` value on every `open` for
+the rest of the run.
+
+**Safari (checklist row 4)** needs WebKit, which is not installed by default. With the user's
+OK, install it once (user cache, no admin), then run the Safari steps in their own session:
+
+```bash
+npx -y @playwright/cli@0.1.22 install-browser webkit
+npx -y @playwright/cli@0.1.22 -s=<role>-webkit open --browser webkit --headed '<login link>'
+```
+
+A WebKit session needs its own `uli` login link: one-time links do not carry across sessions.
 
 The site on Pantheon is `yalesites-platform`, and PR multidevs are named `pr-<N>`, served at
 `https://pr-<N>-yalesites-platform.pantheonsite.io`. Confirm against the brief's **Where to
@@ -81,13 +111,21 @@ Visreg multidevs carry a red "DO NOT CHANGE CONTENT" banner. That banner protect
 site itself; a PR multidev is a disposable copy. Still, ask the user once per PR, with one
 `AskUserQuestion`, before doing any of these:
 
-- creating test content (nodes, blocks, sections, media)
+- creating test pages (nodes). Inline blocks and sections placed on a test page go with it
+- creating reusable blocks or media (including uploaded files)
 - creating `qa-<role>` users
-- changing any setting
+- changing a setting
+
+Only these kinds, because Step D5 has a removal or revert step for each. Anything else a step
+would need is out of bounds: say so and hand that step off.
 
 Offer the alternative in the same question: test on an existing page such as
 `/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
-Record exactly what gets created (node IDs, usernames) so Step D5 can remove it.
+
+Record everything as it is created, in `.created` in the run folder, one line per item:
+`node <nid>`, `block_content <id>`, `media <mid>`, `file <fid>`, `user qa-<role>`, and for a
+setting, `config <name> <key> <original value>` written **before** changing it, from
+`terminus drush ... -- config:get <name> <key>`. Step D5 works from this file and nothing else.
 
 ## Step D2: Log in, one session per role
 
@@ -98,7 +136,9 @@ npx -y @playwright/cli@0.1.22 -s=<role> open --headed '<login link>'
 
 Follow "Roles" in `beyond-ac-checks.md`: user 1 (a bare `uli`) is for setup only, `e2etest` is
 the site admin, `qa-<role>` users are created only with consent, and real people's accounts are
-never used. Name each session after its role (`-s=site_admin`, `-s=editor`) so the logins never
+never used. Confirm `e2etest` exists and still holds `site_admin` before relying on it
+(`terminus drush ... -- user:information e2etest`). If it does not, treat site admin like any
+other role: a `qa-site_admin` user, created with the D1 consent. Name each session after its role (`-s=site_admin`, `-s=editor`) so the logins never
 mix. Open the role under test headed; setup-only sessions can stay headless.
 
 ## Step D3: Run each step, and screenshot every result
@@ -203,16 +243,24 @@ reviewer) shows up in the same log, and its access-denied entries are not the ru
 
 ## Step D5: Clean up
 
-Remove exactly what Step D1 recorded, and nothing else. Check each target before deleting it.
+Remove exactly what `.created` lists, and nothing else. Check each target before removing it
+(its title, name, or current value), and work through the kinds in this order:
 
-```bash
-terminus drush yalesites-platform.pr-<N> -- sqlq "SELECT nid,title FROM node_field_data WHERE nid=<nid>"
-terminus drush yalesites-platform.pr-<N> -- entity:delete node <nid>
-terminus drush yalesites-platform.pr-<N> -- -y user:cancel --delete-content qa-<role>
-npx -y @playwright/cli@0.1.22 -s=<session> close
-```
+| Kind | Check | Remove | Confirm |
+|---|---|---|---|
+| Setting | `config:get <name> <key>` | `config:set <name> <key> <original value> -y` | `config:get` returns the original |
+| Reusable block | `sqlq "SELECT id,info FROM block_content_field_data WHERE id=<id>"` | `entity:delete block_content <id>` | the query returns nothing |
+| Media | `sqlq "SELECT mid,name FROM media_field_data WHERE mid=<mid>"` | `entity:delete media <mid>` | the query returns nothing |
+| File | `sqlq "SELECT fid,filename FROM file_managed WHERE fid=<fid>"` | `entity:delete file <fid>` | the query returns nothing |
+| Test page | `sqlq "SELECT nid,title FROM node_field_data WHERE nid=<nid>"` | `entity:delete node <nid>` | its URL returns 404 |
+| `qa-<role>` user | `user:information qa-<role>` | `-y user:cancel --delete-content qa-<role>` | `user:information` finds no user |
 
-Confirm removal (the node URL returns 404, the user no longer exists), and say so. Leave the
+Every command runs as `terminus drush yalesites-platform.pr-<N> -- <command>`. Deleting media
+does not delete its file, so each upload needs both lines. Then close every browser session
+(`npx -y @playwright/cli@0.1.22 -s=<session> close`).
+
+Report cleanup item by item. If anything could not be removed, say which item and why. Do not
+report cleanup as done while `.created` lists something still on the multidev. Leave the
 screenshots and `results.md`: they are the evidence for the review.
 
 ## Handing results to the rest of the skill
