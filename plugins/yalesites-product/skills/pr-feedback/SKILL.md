@@ -303,7 +303,7 @@ For every point that does go in:
 - **Name the file and line(s)** from the brief's acceptance-criteria coverage map, or from the diff if Step 2 had to read it (`path/to/file.php:42` style, or the closest anchor if exact lines shifted).
 - **Say what to change**, not just what's wrong. "This should check the user's role before rendering" beats "this seems off."
 - **Say why**, tying back to the issue or a concrete risk (a11y, broken state, security, mismatched spec), one line is enough.
-- **Separate blocking from optional.** If the user's feedback includes both must-fix items and nice-to-haves, label them so the developer doesn't have to guess what's gating merge.
+- **Separate blocking from optional.** If the user's feedback includes both must-fix items and nice-to-haves, label them so the developer doesn't have to guess what's gating merge. There is no third bucket. Anything the reviewer expects to see changed before merge is blocking, however small (a wording fix, a doc line, a rename). "Optional" means the developer can skip it and merge without anyone following up. Never write "edits before merge (non-blocking)": it is a contradiction, and Step 6 turns it into the wrong review event.
 
 Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this memory exists for the person running the skill), no "PM-approved," no "do not push back," no ownership stamps. State the feedback and let it speak for itself.
 
@@ -365,6 +365,28 @@ for follow-up work the audit did not surface.
 ## Step 6: Decide approve vs. request changes
 
 Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?
+
+**The event has to match the body.** Developers, and the Claude sessions they review with, treat
+an approval as "done, merge it" and do not dig through its body for work. Developer Claude
+sessions pick up work from the `needs work` label, and only request changes puts it there (Step
+8). An approval lands `ready to merge` instead, so any edits in its body never get seen.
+Confirmed on `component-library-twig#751`, 2026-09-28: the review said "Approving," listed
+before-merge edits, and landed `pass functional review` + `ready to merge`. The developer's
+Claude never saw the edits.
+
+| What the feedback contains | Event |
+|---|---|
+| Nothing, or only items the dev can skip and still merge | **Approve** |
+| Anything the reviewer expects changed before merge, even one small edit | **Request changes** |
+
+When the user says "approve" but the composed body still carries a before-merge edit, stop and
+say so before posting. Offer the two honest options: request changes with those items as the
+blocking list, or downgrade them to genuinely optional (or to a follow-up ticket) and approve.
+Do not pick for them, and do not soften the wording to make an approval fit.
+
+A request-changes review for a few small edits is normal and not a harsh verdict. Say so in the
+TL;DR ("Requesting changes: four small doc edits, then this is good to go.") so the developer
+reads it as close, not rejected.
 
 Whichever way it goes, format the `body` per "How this reads on GitHub" above: TL;DR first, blocking items visible, everything else in named `<details>` blocks.
 
@@ -606,6 +628,7 @@ After posting, report: a link to the review/comment, the final approval state, t
 - **Two or more PRs in one prompt means `references/batch-mode.md`**, not this file run in a loop. Running the steps above once per PR re-asks the same questions in series and, worse, invites a single blanket ruling at the end. Batch mode exists to collapse the reading and the testing while keeping the approve or request-changes call one explicit ruling per unit of work.
 - **GitHub writes prefer `gh`**, per Step 6's preflight, because the connector's token has an intermittent 403 write gap on these repos while reading fine. The connector stays a documented fallback for anyone who set Claude up from the team wiki and has no terminal tooling, and on that path the review must be read back and confirmed rather than assumed. Reads through the connector are fine on either path.
 - Labels are a full-set `PUT` (Step 8), so always start from the PR's current labels, never an empty list. `gh pr edit --add-label/--remove-label` is not a safe substitute: removing and adding the same label in one call silently drops it.
+- **An approval carries no to-do list.** If the body asks the developer to change anything before merge, the event is request changes, per Step 6. Approvals get read as "merge it," not read for edits.
 - This skill performs real, user-visible GitHub actions (a review, a notification, label changes). When in doubt about approve vs. request-changes, or about scope-creep questions, ask rather than assume.
 - The team's PR body format (e.g. `## [#1157 :: Title](url)`) is not a GitHub-recognized closing keyword (`Fixes #`, `Closes #`, etc.), so merged PRs do not auto-close their linked issue. Don't assume an issue is closed just because its PR merged, check or close it explicitly.
 - **This skill is the only approval gate.** `pr-prereview` can move a PR backward to `needs work` and back again, but it can never set a `pass` label, `ready to merge`, or `ready to close`, and it never submits a review event. If a PR arrives already carrying an approval label, that came from a human, so treat it as a real prior sign-off rather than something to walk back silently.

@@ -269,7 +269,9 @@ Walk the units one at a time. For each:
 
 1. Present the assembled feedback per `SKILL.md` Step 4, blocking separated from optional.
 2. **Ask for the ruling on this unit.** Approve, or request changes. One unit, one question, in
-   the user's own words back to them. Never roll several units into one ask.
+   the user's own words back to them. Never roll several units into one ask. If the unit has
+   any before-merge edit and the user says approve, flag the mismatch and offer Step 6's two
+   options before posting. An approval never carries a to-do list.
 3. Post per Steps 6 through 9. Every PR in the unit gets the same outcome.
 4. Only then move to the next unit.
 
