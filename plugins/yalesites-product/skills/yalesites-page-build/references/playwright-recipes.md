@@ -1,8 +1,22 @@
 # Playwright recipes for yalesites.yale.edu
 
-Every recipe runs as `"$RUN/pw" run-code "async page => { ... }"`. Things learned the hard way:
+Each recipe below is the body of an `async page => { ... }` function for `"$RUN/pw" run-code`. Never type a recipe inline in a double-quoted shell string. The recipes use backticks, `${nid}` template literals, and `[name="..."]` selectors, and the shell would run the backticks, blank out `${nid}`, and end the string at the first inner `"`.
 
-- `run-code` has no `require`. To pass HTML in, JSON-encode it in the shell and paste it into the script: `H=$(python3 -c 'import json;print(json.dumps(open("block.html").read().strip()))')`, then use `$H` inside the double-quoted script.
+Instead, keep the values in a JSON file and the body in a file written with a quoted heredoc, then assemble them. `run-code` has no `require`, so this is also how HTML gets in:
+
+```bash
+python3 -c 'import json; json.dump({"nid": 559, "HTML": open("block.html").read().strip()}, open("'"$RUN"'/vars.json", "w"))'
+cat > "$RUN/step.js" <<'JS'
+// recipe body goes here, unchanged
+JS
+code() { python3 -c 'import json,sys; v=json.load(open(sys.argv[1])); print("async page => {\n" + "".join("const %s = %s;\n" % (k, json.dumps(x)) for k, x in v.items()) + open(sys.argv[2]).read() + "}")' "$1" "$2"; }
+"$RUN/pw" run-code "$(code "$RUN/vars.json" "$RUN/step.js")"
+```
+
+Every name a recipe uses in capitals or as `nid` / `uuid` (`HTML`, `WEIGHTS`, `FIELD`, `OLD`, `NEW`) goes in `vars.json`. The shell does not re-expand the output of `$(...)`, so nothing in the body or the values is touched.
+
+Things learned the hard way:
+
 - Prefer `page.locator('[name="..."]')` and `getByRole` over snapshot refs. Drupal form rebuilds invalidate refs.
 - After a submit, wait with `page.waitForURL(u => String(u).includes('/node/<nid>/layout'))`. A plain click with no wait can return before the save, or never submit at all.
 - A `waitForURL` timeout does not always mean failure. The Move form redirected somewhere unexpected but still saved. Re-read the layout before retrying anything.
@@ -81,18 +95,32 @@ await page.goto(`https://yalesites.yale.edu/layout_builder/move/block/overrides/
 await page.evaluate(w => { for (const [u, v] of Object.entries(w)) {
   const s = document.querySelector(`[name="components[${u}][weight]"]`); s.value = v;
   s.dispatchEvent(new Event('change', {bubbles: true})); } }, WEIGHTS);
-await page.getByRole('button', {name: 'Move', exact: true}).first().click();
+await Promise.all([
+  page.waitForNavigation({timeout: 45000}),
+  page.getByRole('button', {name: 'Move', exact: true}).first().click(),
+]);
 ```
 
-Then reload `/node/<nid>/layout` and print the block order to confirm.
+Wait for the navigation before anything else. A reload right after the click can cut off the submit, so the move is lost or the order you read back is stale. Any destination counts, since Move does not always land back on the layout page. Then reload `/node/<nid>/layout` and print the block order to confirm.
 
 ## Edit existing blocks by exact replace
 
+Set `FIELD` to the textarea name of the field you mean, for example `settings[block_form][field_text][0][value]`. Do not take the first editor on the form: Quote Callout has two.
+
 ```js
-const before = await page.evaluate(() => document.querySelector('.ck-editor__editable').ckeditorInstance.getData());
-const after = before.replace(OLD, NEW);
-if (after === before) return 'NO CHANGE: pattern not found';
+const result = await page.evaluate(([name, OLD, NEW]) => {
+  const ta = document.querySelector(`[name="${name}"]`);
+  const ed = (ta.closest('.form-item') || ta.parentElement.parentElement).querySelector('.ck-editor__editable').ckeditorInstance;
+  const before = ed.getData();
+  const count = before.split(OLD).length - 1;
+  if (count !== 1) return `NO CHANGE: found ${count} matches, expected exactly 1`;
+  ed.setData(before.replace(OLD, () => NEW));
+  return 'REPLACED';
+}, [FIELD, OLD, NEW]);
+if (result !== 'REPLACED') return result;
 ```
+
+It refuses anything but exactly one match, so a phrase that appears twice is never half-updated. Widen `OLD` until it is unique, or run it once per match. The replacer function keeps `$&`, `$$`, and similar patterns in `NEW` from being rewritten.
 
 Existing content carries `data-list-item-id` attributes and `&nbsp;` entities. Match against `getData()` output, not the rendered text.
 
