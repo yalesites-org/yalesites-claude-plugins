@@ -2,9 +2,10 @@
 
 Each recipe below is the body of an `async page => { ... }` function for `"$RUN/pw" run-code`. Never type a recipe inline in a double-quoted shell string. The recipes use backticks, `${nid}` template literals, and `[name="..."]` selectors, and the shell would run the backticks, blank out `${nid}`, and end the string at the first inner `"`.
 
-Instead, keep the values in a JSON file and the body in a file written with a quoted heredoc, then assemble them. `run-code` has no `require`, so this is also how HTML gets in:
+Instead, keep the values in a JSON file and the body in a file written with a quoted heredoc, then assemble them. `run-code` has no `require`, so this is also how HTML gets in. Run the whole block as one Bash call. The Bash tool does not keep variables or shell functions between calls, so start every call with the same `RUN=...` line from SKILL.md Step 2. Without it, `$RUN` is empty and the paths below turn into `/vars.json`, `/step.js`, and `/pw`:
 
 ```bash
+RUN=~/.claude/yalesites/page-build/runs/<slug>-<YYYY-MM-DD>   # same value as Step 2
 python3 -c 'import json; json.dump({"nid": 559, "HTML": open("block.html").read().strip()}, open("'"$RUN"'/vars.json", "w"))'
 cat > "$RUN/step.js" <<'JS'
 // recipe body goes here, unchanged

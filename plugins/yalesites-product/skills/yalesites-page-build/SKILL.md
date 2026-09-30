@@ -49,6 +49,8 @@ chmod +x "$RUN/pw"
 "$RUN/pw" open --headed 'https://yalesites.yale.edu/user/login'
 ```
 
+The Bash tool does not keep `RUN` between calls. Repeat this exact `RUN=...` line at the start of every later call that uses `$RUN`, including each recipe in `references/playwright-recipes.md`.
+
 Then ask the user to log in with CAS in that window, and wait for them to say so. **Never type a NetID, password, or Duo code**, and never use `drush uli` against production. Confirm the login by reading `page.url()` after they reply. The session dies when the browser closes, so a second pass needs a second login.
 
 ## Step 3: New page, or forward draft?
