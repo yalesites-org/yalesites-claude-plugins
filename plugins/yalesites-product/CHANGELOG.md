@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.14.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.13.0...yalesites-product-v0.14.0) (2026-09-30)
+
+
+### Features
+
+* **yalesites-product:** add yalesites-page-build skill and a freshness audit for page edits ([#49](https://github.com/yalesites-org/yalesites-claude-plugins/issues/49)) ([290861c](https://github.com/yalesites-org/yalesites-claude-plugins/commit/290861c9d178f69be90d0f014fda403e0d7d6e70))
+
+
+### Bug Fixes
+
+* **pr-feedback:** drive Layout Builder through the modal, not direct URLs ([#48](https://github.com/yalesites-org/yalesites-claude-plugins/issues/48)) ([a9626f4](https://github.com/yalesites-org/yalesites-claude-plugins/commit/a9626f4e94ee1224f20c332ff85d6a553e3f7e33))
+
 ## [0.13.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.12.0...yalesites-product-v0.13.0) (2026-09-29)
 
 
