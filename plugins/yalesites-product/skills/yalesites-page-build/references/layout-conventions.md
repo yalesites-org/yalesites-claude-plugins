@@ -25,10 +25,14 @@ If the draft ends with a Text block of links (a support list, for example), keep
 The **Text** block defaults to **No padding**. That is fine for one Text block alone, but two Text blocks in a row then sit jammed together, with the second heading right against the paragraph above it.
 
 - When a Text block follows another Text block, set the second one to **No bottom padding** (that is, keep the top padding). On node 559, the "Find a site like yours" Text block after the intro needed exactly this.
+- A Text block alone in its own section needs **Padding on both top and bottom**. On **No padding** its heading sits right under the previous section, and the next section's heading sits right under its last line. On node 354 the rebuilt "Available Section Types" section needed this. Measure the gap above and below (64px matched the rest of that page).
 - Most other blocks (Quote Callout, View, Callout, Divider) default to **Padding on both top and bottom**. Leave them on the default unless the page's own pattern says otherwise.
 - The section-level "Connected Sections" trick (No bottom padding on one section, No top padding on the next) is for joining sections. Do not use it to fix spacing inside one section.
 
 ## Match the page you are editing
+
+When a section only existed to hold a split that no longer makes sense (a 50/50 of "existing" and "new" items), replace it with a one-column section rather than keeping the columns. A one-column section has no Component theme on production today, so any background color goes away with the old section. Say so in the handoff.
+
 
 On an existing page, read the blocks around the insertion point before adding anything, and copy their pattern:
 

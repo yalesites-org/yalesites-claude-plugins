@@ -100,6 +100,8 @@ A new page's content region is section `2`, region `content`. A new block always
 
 **Leave Reusable Block unchecked** on every new inline block. It starts unchecked; check it anyway.
 
+**Look at the page before you touch it.** On an edit, open the rendered page and skim the area you are about to change. If the page draft missed something from the `yalesites-web-content` freshness audit (a "New" heading next to the insertion point, a list that should now include the new item, a dated intro), stop and raise it before building. A restructure found mid-build costs a second pass.
+
 **Read before you write on an existing page.** Pull each target block's HTML with `getData()`, change it with an exact string replace, and log whether the pattern was found. A replace that finds nothing must report `NO CHANGE`, not pass silently.
 
 Read `references/layout-conventions.md` before placing anything. It holds the team's rules for how pages end, how padding works between blocks, and how to match a page's existing rhythm.
