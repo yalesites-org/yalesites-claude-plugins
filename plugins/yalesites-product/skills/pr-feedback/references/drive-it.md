@@ -170,11 +170,30 @@ call fill a whole form and loop over regions or widths.
 front end, so a block alone in a 70/30 sidebar renders at the section's full width and the test
 proves nothing. Put a Text block in every other column of the section first.
 
-**Layout Builder's AJAX links sometimes do nothing when clicked** (seen on "Add block" in a
-column). The first time a click on a `use-ajax` link fails to open its panel, stop retrying and
-`goto` the link's `href` instead (for example
-`/layout_builder/choose/block/overrides/node.<nid>/<delta>/<region>`). Drupal serves these as
-full pages and the saved result is the same.
+**In Layout Builder, take the editor's path. Never `goto` a Layout Builder URL.** An editor
+adds a block by clicking "Add block" in a region, picking it from the block browser modal, and
+filling "Configure block" inside that same dialog. Sections, and configuring a block already
+placed, work the same way. Do the same. Never open a `/layout_builder/choose/...`,
+`/layout_builder/add/...`, or `/layout_builder/configure/...` URL directly. Drupal serves those
+as full admin pages, which saves the same data but skips everything the editor actually sees:
+the modal, its styling and scrolling, the AJAX rebuilds inside it, and where focus goes. A PR
+can break any of those and a run that went around them would still pass.
+
+A click on a `use-ajax` link that "does nothing" is almost always timing, not a broken link.
+Playwright clicked before Drupal attached its AJAX handler, or did not wait for the dialog.
+So, in one `run-code` call:
+
+1. Wait for the link to carry the handler: its `data-once` attribute includes `ajax`.
+2. Click it, then wait for the dialog (`.ui-dialog` with `role="dialog"`) to be visible. The
+   first open on a page can take several seconds.
+3. Scope every locator after that to the dialog (`dialog.getByLabel(...)`), because the page
+   behind it has fields with the same labels.
+4. After "Add block" or "Update", wait for the dialog to close and the layout to rebuild before
+   the next step.
+
+If the modal still does not open after waiting, the step is `blocked`: screenshot what the
+browser shows and tell the user. Do not work around it. A modal that will not open may be the
+bug the PR introduced.
 
 Prefer measuring to eyeballing. "The sidebar sits at x=64 and is 225px wide; the main column
 sits at x=465" is evidence. "It looks right" is not.
