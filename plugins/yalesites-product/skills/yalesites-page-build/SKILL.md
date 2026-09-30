@@ -86,6 +86,8 @@ The Layout Builder save form has no log message field. The Tasks sidebar is the 
 
 Work from direct URLs rather than clicking the Layout Builder UI. Drupal serves every Layout Builder dialog as a full page, and URLs survive the AJAX rebuilds that break element refs.
 
+This is deliberately different from `pr-feedback`, which must take the editor's path through the modal and sidebar, because there the UI itself is under test (see yalesites-org/yalesites-claude-plugins#48). Here only the saved layout matters, and the full-page forms save the same result.
+
 | Need | URL |
 |---|---|
 | Map the page | `/node/<nid>/layout`, then read `.layout-builder__section` and `[data-layout-block-uuid]` in order |
