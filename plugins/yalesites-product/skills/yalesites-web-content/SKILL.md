@@ -13,7 +13,7 @@ The end goal is a page the user can actually build in Drupal, not just prose. Th
 
 1. Orient: find where this page sits in the site, and check whether something similar already exists
 2. Research the feature from the merged code, not the ticket summary
-3. Read a sibling page to match house style
+3. Read a sibling page to match house style. When the task is an edit to an existing page, audit that page for freshness too (Step 3b)
 4. Draft, using the required deliverable structure, and suggest blocks
 5. Run the draft through `check-github-text.py --surface page-draft` and fix what it finds
 6. Report deviations from the ticket's acceptance criteria, and ask rather than guess wherever something is genuinely unclear
@@ -59,6 +59,24 @@ Read `references/researching-features.md` for the YaleSites repo layout and conc
 Fetch one existing page in the same section before drafting. It shows you the heading depth, how much hand-holding the house style uses, and how features get named. `WebFetch` works on published pages.
 
 Unpublished pages return an empty body, because unpublished content on yalesites.yale.edu sits behind CAS and needs an editor login. An empty result means "not published yet," not "broken." Verify against the local draft file instead, or ask the user to paste what they see.
+
+## Step 3b: When adding to an existing page, audit what it sits in
+
+A new item added to an old page can turn the page around it stale. On the Sections page, adding 30/70 exposed a "New Sections" heading from a release two years back, a 50/50 layout that existed only to split "original" from "new," and an intro that still led with "With the YaleSites 2.0 release." Slotting the new item in and leaving all that alone ships a page that reads older than it did before.
+
+Before drafting an edit, read the whole page (the live page for a published edit, or `/node/<nid>/latest` if a draft already exists), and check the part you are adding to, and the page framing, for:
+
+| Look for | Example | Usual fix |
+|---|---|---|
+| Time-stamped framing | "New Sections," "our newest addition," "our original layout," "with the 2.0 release" | Neutral wording. Drop release references from evergreen pages; those belong in release notes |
+| Structure built around a past release | Items split into "existing" and "new" groups, or columns that only separate old from new | One list in the order the UI shows it |
+| Lists and tables that enumerate options | A list of section types, a block compatibility table, a step that names every layout | Add the new option everywhere it is listed, not only in the paragraph you are writing |
+| Claims the new code contradicts | "Only 50/50 and 33/33/33 get a background color," when the new release gives it to 70/30 too | Fix it if it is in scope. If another ticket owns it, name that ticket in the handoff notes |
+| Leftover debris | Stray numbering ("4. Three Column"), empty paragraphs, headings with trailing spaces | Fix quietly, and list it in the notes |
+
+Keep the audit to the area the change touches plus the page framing (title, intro, teaser). A full rewrite of an unrelated section is a separate ticket.
+
+**Surface it, do not silently restructure.** Fixing wording in the paragraph you are already editing is fine. Anything that changes the page's structure (removing a section, merging groups, reordering headings) is a product call. Put the findings in the draft's notes, propose a structure (a short preview helps), and ask before building it. A finding that is out of scope becomes a follow-up, offered to the user, not a silent extra edit.
 
 ## Step 4: Draft
 
