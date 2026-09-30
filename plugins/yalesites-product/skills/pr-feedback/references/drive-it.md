@@ -171,25 +171,39 @@ front end, so a block alone in a 70/30 sidebar renders at the section's full wid
 proves nothing. Put a Text block in every other column of the section first.
 
 **In Layout Builder, take the editor's path. Never `goto` a Layout Builder URL.** An editor
-adds a block by clicking "Add block" in a region, picking it from the block browser modal, and
-filling "Configure block" inside that same dialog. Sections, and configuring a block already
-placed, work the same way. Do the same. Never open a `/layout_builder/choose/...`,
-`/layout_builder/add/...`, or `/layout_builder/configure/...` URL directly. Drupal serves those
-as full admin pages, which saves the same data but skips everything the editor actually sees:
-the modal, its styling and scrolling, the AJAX rebuilds inside it, and where focus goes. A PR
-can break any of those and a run that went around them would still pass.
+adds a block by clicking "Add block" in a region, picking it from the block browser, and
+filling "Configure block" in the same dialog. Adding or configuring a section works the same
+way. Do the same. Never open a `/layout_builder/choose/...`, `/layout_builder/add/...`, or
+`/layout_builder/configure/...` URL directly. Drupal serves those as full admin pages, which
+saves the same data but skips everything the editor actually sees: the dialog, its styling and
+scrolling, the AJAX rebuilds inside it, and where focus goes. A PR can break any of those and a
+run that went around them would still pass.
 
-A click on a `use-ajax` link that "does nothing" is almost always timing, not a broken link.
-Playwright clicked before Drupal attached its AJAX handler, or did not wait for the dialog.
-So, in one `run-code` call:
+The two dialogs look different, so expect the right one:
 
-1. Wait for the link to carry the handler: its `data-once` attribute includes `ajax`.
-2. Click it, then wait for the dialog (`.ui-dialog` with `role="dialog"`) to be visible. The
-   first open on a page can take several seconds.
-3. Scope every locator after that to the dialog (`dialog.getByLabel(...)`), because the page
-   behind it has fields with the same labels.
-4. After "Add block" or "Update", wait for the dialog to close and the layout to rebuild before
-   the next step.
+| Link | Opens | Title |
+|---|---|---|
+| "Add block", configure a block | Centered modal (the block browser) | "Choose a block", then "Configure block" |
+| "Add section", "Configure section" | Off-canvas sidebar on the right (`.ui-dialog-off-canvas`) | "Choose a layout for this section", then "Configure section" |
+
+**Hover the section before clicking "Add block".** The section wrapper sits on top of its "Add
+block" links until the pointer is over the section, so a bare `click` fails with "`<div
+class="layout-builder__section">` intercepts pointer events" and times out. A real mouse
+always hovers first. This, not a broken link, is why these clicks used to "do nothing". So, in
+one `run-code` call:
+
+1. Wait for the link to carry Drupal's AJAX handler: its `data-once` attribute includes `ajax`.
+2. Hover the section (`div.layout-builder__section[aria-label="<section label>"]`), then click
+   the link.
+3. Wait for the dialog (`.ui-dialog[role="dialog"]`, visible). Picking a block or layout
+   replaces the dialog's content, so wait for the next title or button before filling.
+4. Scope every locator to the dialog (`dialog.getByLabel(...)`), because the page behind it
+   has fields with the same labels. For a CKEditor field, click `.ck-editor__editable` in the
+   dialog and `type`; `fill` does not reach it.
+5. After "Add block", "Add section", or "Update", wait for the dialog to close and the new
+   content to appear on the page before the next step.
+6. Confirm `page.url()` is still `/node/<nid>/layout`. If it changed, the run left the
+   editor's path.
 
 If the modal still does not open after waiting, the step is `blocked`: screenshot what the
 browser shows and tell the user. Do not work around it. A modal that will not open may be the
@@ -275,7 +289,9 @@ Remove exactly what `.created` lists, and nothing else. Check each target before
 | `qa-<role>` user | `user:information qa-<role>` | `-y user:cancel --delete-content qa-<role>` | `user:information` finds no user |
 
 Every command runs as `terminus drush yalesites-platform.pr-<N> -- <command>`. Deleting media
-does not delete its file, so each upload needs both lines. Then close every browser session
+does not delete its file, so each upload needs both lines. Deleting a test page does not delete
+an unsaved Layout Builder draft for it either. After deleting the node, clear it:
+`sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND name LIKE '%node.<nid>%'"`. Then close every browser session
 (`npx -y @playwright/cli@0.1.22 -s=<session> close`).
 
 Report cleanup item by item. If anything could not be removed, say which item and why. Do not
