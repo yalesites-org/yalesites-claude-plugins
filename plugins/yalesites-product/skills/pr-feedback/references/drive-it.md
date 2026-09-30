@@ -291,7 +291,7 @@ Remove exactly what `.created` lists, and nothing else. Check each target before
 Every command runs as `terminus drush yalesites-platform.pr-<N> -- <command>`. Deleting media
 does not delete its file, so each upload needs both lines. Deleting a test page does not delete
 an unsaved Layout Builder draft for it either. After deleting the node, clear it:
-`sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND name LIKE '%node.<nid>%'"`. Then close every browser session
+`sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND (name = 'node.<nid>' OR name LIKE 'node.<nid>.%')"`. Then close every browser session
 (`npx -y @playwright/cli@0.1.22 -s=<session> close`).
 
 Report cleanup item by item. If anything could not be removed, say which item and why. Do not
