@@ -69,6 +69,7 @@ knowledge that the workflow skills reference:
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
 | `yalesites-web-content` | Writing or revising a page that will live on yalesites.yale.edu |
+| `yalesites-page-build` | Building a drafted page on yalesites.yale.edu in Layout Builder with Playwright, as an unpublished draft or a forward draft revision |
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
 | `beacon-test-bank` | A full tiered test bank with guardrails, safety, and edge-case coverage |
 | `beacon-comparison-review` | Analyzing a Beacon AI Tester A/B comparison JSON export |
