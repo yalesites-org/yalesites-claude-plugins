@@ -5,7 +5,9 @@ two layouts that should match. A text question in chat makes the reviewer hold a
 their head. The review board puts each call on its own page, with the screenshot at full size,
 numbered callouts on the exact spot in question, the relevant ticket text with the key line
 highlighted, and big option cards. The reviewer can drop their own pins, draw boxes, and comment
-on selected ticket text. One click sends everything back.
+on selected ticket text. Every screenshot has an Enlarge button that opens it full screen, at fit
+or actual size, and a `compare` block flips between its images in place with the arrow keys, which
+is how a 1px against 2px change becomes visible. One click sends everything back.
 
 It is a single local page (`scripts/review-board/index.html`) served by a small Python server
 (`scripts/review-board/server.py`) on `127.0.0.1`. Nothing leaves the machine, which matters:

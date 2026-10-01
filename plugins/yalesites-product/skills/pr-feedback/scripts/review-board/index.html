@@ -90,6 +90,21 @@
   .btn:hover { background: var(--bg); }
   .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
   .btn.primary:hover { filter: brightness(1.08); }
+  .shot-holder { position: relative; }
+  .zoom-btn { position: absolute; top: 8px; right: 8px; z-index: 2; border: 1px solid rgba(255,255,255,.7); background: rgba(20,20,20,.75); color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: zoom-in; }
+  .zoom-btn:hover { background: rgba(20,20,20,.9); }
+  .lb { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .lb-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .lb-bar .lb-title { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-bar .btn { padding: 5px 12px; font-size: 14px; }
+  .btn[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+  .lb-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+  .lb-body { overflow: auto; padding: 20px; display: flex; justify-content: center; align-items: flex-start; }
+  .lb-body.actual { justify-content: flex-start; }
+  .lb-body .shot { flex: none; }
+  .lb-side { background: var(--surface); overflow: auto; padding: 16px; border-left: 1px solid var(--border); }
+  .lb-side .hint { margin: 0 0 8px; }
+  @media (max-width: 860px) { .lb-main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } .lb-side { max-height: 35vh; border-left: none; border-top: 1px solid var(--border); } }
   .done-card { max-width: 560px; margin: 60px auto; text-align: center; }
   .done-card h2 { font-size: 26px; font-weight: 500; }
   .done-card p { color: var(--muted); font-size: 17px; }
@@ -113,7 +128,7 @@ const params = new URLSearchParams(location.search);
 const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
 const storeKey = `review-board:${packetId}`;
-let packet, state, current = 0, submitted = false;
+let packet, state, current = 0, submitted = false, zoom = null;
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -188,6 +203,7 @@ function render() {
   else renderOwnRead(main);
   const n = packet.questions.filter((_, i) => isAnswered(i)).length;
   $('#h-progress').textContent = `${n} of ${packet.questions.length} answered`;
+  renderLightbox();
 }
 
 function renderNav() {
@@ -201,7 +217,7 @@ function renderNav() {
     h('span', { class: 'dot' }, '✎'), h('span', { class: 'lbl' }, 'Your own read', h('small', {}, 'Anything you noticed'))));
 }
 
-function go(i) { current = i; submitted = false; render(); window.scrollTo(0, 0); }
+function go(i) { current = i; submitted = false; zoom = null; render(); window.scrollTo(0, 0); }
 
 function renderQuestion(main, qi) {
   const q = packet.questions[qi], a = state.answers[qi];
@@ -255,10 +271,10 @@ function renderContext(qi, ctx, ci) {
   sec.append(h('div', { class: 'block-head' }, h('span', {}, ctx.label || ''), link));
   const list = h('ul', { class: 'notes-list' });
   if (ctx.type === 'image') {
-    sec.append(renderShot(qi, ci, 0, ctx, list));
+    sec.append(renderShot(qi, ci, 0, ctx));
   } else if (ctx.type === 'compare') {
     const grid = h('div', { class: 'compare' });
-    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || ''), renderShot(qi, ci, k, img, list))));
+    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || ''), renderShot(qi, ci, k, img))));
     sec.append(grid);
   } else if (ctx.type === 'text') {
     sec.append(renderDoc(qi, ci, ctx, list));
@@ -274,14 +290,14 @@ function claudeMarks(ctx) {
   return [];
 }
 
-function refreshList(qi, ci, ctx, list) {
+function refreshList(qi, ci, ctx, list, inLightbox = false) {
   const a = state.answers[qi];
   list.replaceChildren();
   claudeMarks(ctx).forEach((m, i) => list.append(h('li', {}, h('span', { class: 'n' }, String(i + 1)), h('span', {}, m.note), h('span'))));
   a.markups.filter(m => m.ctx === ci).forEach((m, i) => {
     const input = h('input', { type: 'text', placeholder: m.type === 'quote' ? 'What about this part?' : 'What should change here?', value: m.note });
     input.addEventListener('input', () => { m.note = input.value; save(); });
-    if (m.focus) { setTimeout(() => input.focus(), 0); delete m.focus; }
+    if (m.focus && inLightbox === !!zoom) { setTimeout(() => input.focus(), 0); delete m.focus; }
     list.append(h('li', {},
       h('span', { class: 'n mine' }, m.type === 'quote' ? '❝' : String.fromCharCode(65 + i)),
       h('span', {}, m.type === 'quote' && h('blockquote', {}, m.quote), input),
@@ -291,11 +307,76 @@ function refreshList(qi, ci, ctx, list) {
   });
 }
 
-function rerenderCurrent() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+function rerenderCurrent() {
+  const y = window.scrollY, body = $('#lb .lb-body');
+  const lbScroll = body && [body.scrollLeft, body.scrollTop];
+  render();
+  window.scrollTo(0, y);
+  if (lbScroll) { const nb = $('#lb .lb-body'); if (nb) [nb.scrollLeft, nb.scrollTop] = lbScroll; }
+}
 
-function renderShot(qi, ci, k, img, list) {
+function zoomImages(ctx) { return ctx.type === 'compare' ? ctx.images : [ctx]; }
+function openZoom(qi, ci, k) { zoom = { qi, ci, k, actual: false, opener: document.activeElement }; renderLightbox(); }
+function closeZoom() {
+  const opener = zoom?.opener;
+  zoom = null; renderLightbox();
+  if (opener?.isConnected) opener.focus();
+}
+
+function renderLightbox() {
+  $('#lb')?.remove();
+  document.body.style.overflow = zoom ? 'hidden' : '';
+  if (!zoom) return;
+  const q = packet.questions[zoom.qi], ctx = q.context[zoom.ci], imgs = zoomImages(ctx), img = imgs[zoom.k];
+  const flip = imgs.length > 1 && imgs.map((im, k) => h('button', {
+    class: 'btn', 'aria-pressed': k === zoom.k ? 'true' : 'false', onclick: () => { zoom.k = k; rerenderCurrent(); }
+  }, im.caption || `Image ${k + 1}`));
+  const body = h('div', { class: 'lb-body' + (zoom.actual ? ' actual' : '') });
+  const close = h('button', { class: 'btn', onclick: closeZoom, 'aria-label': 'Close enlarged view' }, 'Close ✕');
+  const list = h('ul', { class: 'notes-list' });
+  const lb = h('div', { id: 'lb', class: 'lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Enlarged: ${img.caption || ctx.label || 'screenshot'}` },
+    h('div', { class: 'lb-bar' },
+      h('span', { class: 'lb-title' }, ctx.label || img.caption || ''),
+      flip,
+      h('button', { class: 'btn', 'aria-pressed': zoom.actual ? 'true' : 'false', onclick: () => { zoom.actual = !zoom.actual; rerenderCurrent(); } }, 'Actual size'),
+      close),
+    h('div', { class: 'lb-main' }, body,
+      h('div', { class: 'lb-side' },
+        h('p', { class: 'hint' }, (imgs.length > 1 ? 'Press ← and → to flip between images in place. ' : '') + 'Click to pin, drag to box. Esc closes.'),
+        list)));
+  document.body.append(lb);
+  body.append(renderShot(zoom.qi, zoom.ci, zoom.k, img, { lightbox: true, actual: zoom.actual, fitTo: body }));
+  refreshList(zoom.qi, zoom.ci, ctx, list, true);
+  if (!lb.contains(document.activeElement) && !list.querySelector('input:focus')) setTimeout(() => { if (!lb.contains(document.activeElement)) close.focus(); }, 0);
+}
+
+document.addEventListener('keydown', e => {
+  if (!zoom) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeZoom(); return; }
+  if (e.target instanceof Element && e.target.matches('input, textarea')) return;
+  const n = zoomImages(packet.questions[zoom.qi].context[zoom.ci]).length;
+  if (n > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    e.preventDefault();
+    zoom.k = (zoom.k + (e.key === 'ArrowRight' ? 1 : n - 1)) % n;
+    rerenderCurrent();
+  }
+});
+window.addEventListener('resize', () => { if (zoom && !zoom.actual) rerenderCurrent(); });
+
+function renderShot(qi, ci, k, img, opts = {}) {
   const a = state.answers[qi];
-  const wrap = h('div', { class: 'shot' }, h('img', { src: base + img.src, alt: img.alt || img.caption || 'Screenshot' }));
+  const imgEl = h('img', { src: base + img.src, alt: img.alt || img.caption || 'Screenshot' });
+  const wrap = h('div', { class: 'shot' }, imgEl);
+  if (opts.lightbox) {
+    const size = () => {
+      const nw = imgEl.naturalWidth, nh = imgEl.naturalHeight;
+      if (!nw) return;
+      if (opts.actual) { wrap.style.width = nw + 'px'; return; }
+      const box = opts.fitTo, availW = box.clientWidth - 40, availH = box.clientHeight - 40;
+      wrap.style.width = Math.max(200, Math.min(availW, availH * nw / nh, nw * 2)) + 'px';
+    };
+    if (imgEl.complete) requestAnimationFrame(size); else imgEl.addEventListener('load', size);
+  }
   const marks = claudeMarks(packet.questions[qi].context[ci]);
   marks.forEach((m, i) => { if (m.img === k) wrap.append(markEl(m, String(i + 1), false)); });
   a.markups.filter(m => m.ctx === ci && m.img === k && m.type !== 'quote').forEach(m => {
@@ -324,7 +405,11 @@ function renderShot(qi, ci, k, img, list) {
     start = null; ghost = null;
     a.markups.push({ ...m, focus: true }); save(); rerenderCurrent();
   });
-  return h('div', {}, wrap, h('div', { class: 'hint' }, 'Click to drop a pin, or drag to draw a box. Then add a note below.'));
+  if (opts.lightbox) return wrap;
+  const enlarge = h('button', { class: 'zoom-btn', type: 'button', onclick: () => openZoom(qi, ci, k), 'aria-label': `Enlarge ${img.caption || 'screenshot'}` }, '⤢ Enlarge');
+  return h('div', {},
+    h('div', { class: 'shot-holder' }, wrap, enlarge),
+    h('div', { class: 'hint' }, 'Click to drop a pin, or drag to draw a box. Use Enlarge for a closer look.'));
 }
 
 function markEl(m, label, mine) {
