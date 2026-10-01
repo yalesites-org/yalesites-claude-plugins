@@ -23,7 +23,7 @@ confirm before fanning anything out. Do not silently pick a subset.
 | 1, load the brief | Fans out to one subagent per unit of work, concurrently |
 | 2, spot-check the brief | Same subagent, same rules, read-only |
 | 3, what to test | Becomes **one grouped testing sitting** across the whole batch (Step B3) |
-| 3b, held calls | Batched into rounds of up to four questions (Step B4) |
+| 3b, held calls | One review board packet for the whole batch, or rounds of up to four questions on the chat fallback (Step B4) |
 | 4, actionable feedback | Per unit, in the main session, unchanged |
 | 6, approve vs. request changes | **Per unit, explicitly, never batched** |
 | 7 to 9b, post, mention, label, sync | Per unit, sequentially, in the main session, unchanged |
@@ -239,8 +239,13 @@ Rules that keep this useful instead of noise:
 
 ## Step B4: Batch the held calls
 
-`AskUserQuestion` takes at most four questions per call, so group the units' held calls into
-rounds of four.
+**On the review board** (`references/review-board.md`), build one `batch-<yyyy-mm-dd>` packet
+for every unit. Set `pr` on each question so its page is tagged with the PR, keep a unit's
+questions next to each other, and let the last page take their own read for the whole batch.
+The four-per-round limit below does not apply there. The other rules in this step do.
+
+**On the chat fallback,** `AskUserQuestion` takes at most four questions per call, so group the
+units' held calls into rounds of four.
 
 - **Name the PR in every header.** Four questions can span four different PRs and a header of
   just "Copy" is unreadable in that context. Headers cap at twelve characters, so `1560 copy`,
@@ -268,7 +273,7 @@ rounds of four.
   one of them is actually clear.
 
 Then ask once, for the whole batch, what they noticed during the sitting, with room to attach
-notes per PR. Their own read is a first-class input here exactly as it is in single-PR mode.
+notes per PR (the board's last page, or one chat question on the fallback). Their own read is a first-class input here exactly as it is in single-PR mode.
 
 ## Step B5: Rule on each unit, then post it
 

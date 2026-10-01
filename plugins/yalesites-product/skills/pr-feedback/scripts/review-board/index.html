@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review board</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1f1e1c; --muted: #6b6a66; --faint: #9a9893;
+    --border: rgba(0,0,0,.12); --border-strong: rgba(0,0,0,.24);
+    --accent: #185fa5; --accent-bg: #e6f1fb; --accent-text: #0c447c;
+    --mine: #c2410c; --mine-bg: #fdeee6; --mine-text: #7c2d12;
+    --ok: #3b6d11; --ok-bg: #eaf3de; --danger: #a32d2d; --mark: rgba(239,159,39,.35);
+    --radius: 8px; --pin: #185fa5; --pin-mine: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a19; --surface: #242423; --text: #ecebe8; --muted: #a8a7a2; --faint: #7a7975;
+      --border: rgba(255,255,255,.12); --border-strong: rgba(255,255,255,.26);
+      --accent: #85b7eb; --accent-bg: #0c2e52; --accent-text: #b5d4f4;
+      --mine: #f0997b; --mine-bg: #4a1b0c; --mine-text: #f5c4b3;
+      --ok: #97c459; --ok-bg: #1f3608; --danger: #f09595; --mark: rgba(239,159,39,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  button, textarea, input { font: inherit; color: inherit; }
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 16px; align-items: center; }
+  header .title { flex: 1; min-width: 0; }
+  header .title h1 { font-size: 17px; font-weight: 500; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header .title .sub { font-size: 13px; color: var(--muted); }
+  .progress { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 62px); }
+  nav { border-right: 1px solid var(--border); padding: 16px 12px; background: var(--surface); }
+  nav button { display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius); padding: 8px 10px; cursor: pointer; align-items: flex-start; }
+  nav button:hover { background: var(--bg); }
+  nav button[aria-current="true"] { background: var(--accent-bg); border-color: var(--accent); }
+  nav .dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); font-size: 12px; display: grid; place-items: center; margin-top: 1px; }
+  nav .done .dot { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  nav .lbl { font-size: 14px; line-height: 1.35; }
+  nav .lbl small { display: block; color: var(--muted); font-size: 12px; }
+  main { padding: 28px 40px 80px; max-width: 1100px; }
+  .tag { display: inline-block; text-decoration: none; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); margin-right: 6px; }
+  h2.q-title { font-size: 26px; font-weight: 500; margin: 10px 0 6px; line-height: 1.3; }
+  p.q-text { font-size: 19px; color: var(--text); margin: 0 0 24px; max-width: 70ch; }
+  section.block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 0 0 20px; }
+  .block-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare .cap { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .shot { position: relative; user-select: none; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: crosshair; line-height: 0; }
+  .shot img { width: 100%; display: block; pointer-events: none; }
+  .pin { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; line-height: 1; color: #fff; background: var(--pin); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .pin.mine { background: var(--pin-mine); }
+  .box { position: absolute; border: 2.5px solid var(--pin); box-shadow: 0 0 0 1px rgba(255,255,255,.6); background: rgba(24,95,165,.08); border-radius: 3px; }
+  .box.mine { border-color: var(--pin-mine); background: rgba(194,65,12,.1); }
+  .box .pin { left: 0; top: 0; }
+  .box.drawing { border-style: dashed; }
+  .hint { font-size: 13px; color: var(--faint); margin-top: 8px; }
+  .notes-list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .notes-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; font-size: 15px; }
+  .notes-list .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: var(--pin); margin-top: 2px; }
+  .notes-list .n.mine { background: var(--pin-mine); }
+  .notes-list input { width: 100%; border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
+  .notes-list blockquote { margin: 0 0 4px; padding-left: 10px; border-left: 3px solid var(--mine); color: var(--muted); font-size: 14px; }
+  .icon-btn { border: none; background: none; color: var(--faint); cursor: pointer; padding: 2px 6px; font-size: 18px; line-height: 1; }
+  .icon-btn:hover { color: var(--danger); }
+  .doc { font-size: 16px; max-height: 420px; overflow: auto; padding-right: 8px; }
+  .doc h3, .doc h4 { font-size: 16px; font-weight: 600; margin: 14px 0 4px; }
+  .doc p { margin: 0 0 10px; }
+  .doc ul { margin: 0 0 10px; padding-left: 22px; }
+  .doc code { font: 14px ui-monospace, Menlo, monospace; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .doc mark { background: var(--mark); color: inherit; padding: 1px 2px; border-radius: 3px; }
+  .doc mark.mine { background: var(--mine-bg); outline: 1px solid var(--mine); }
+  .sel-btn { position: absolute; z-index: 10; border: 1px solid var(--mine); background: var(--mine-bg); color: var(--mine-text); border-radius: 99px; font-size: 13px; padding: 4px 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  h3.section { font-size: 15px; font-weight: 500; color: var(--muted); margin: 28px 0 10px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .opt { text-align: left; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 12px; padding: 16px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+  .opt:hover { border-color: var(--accent); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .opt .o-label { font-size: 17px; font-weight: 500; }
+  .opt .o-detail { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .opt[aria-pressed="true"] .o-detail { color: var(--accent-text); }
+  .rec { align-self: flex-start; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); }
+  textarea { width: 100%; min-height: 120px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 12px 14px; background: var(--surface); font-size: 16px; resize: vertical; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .err { color: var(--danger); font-size: 14px; margin-top: 8px; }
+  .pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .btn { border: 1px solid var(--border-strong); background: var(--surface); border-radius: var(--radius); padding: 9px 18px; cursor: pointer; font-size: 15px; }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .done-card { max-width: 560px; margin: 60px auto; text-align: center; }
+  .done-card h2 { font-size: 26px; font-weight: 500; }
+  .done-card p { color: var(--muted); font-size: 17px; }
+  @media (max-width: 860px) {
+    .layout { grid-template-columns: 1fr; } nav { border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 20px; } .compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title"><h1 id="h-title">Loading review…</h1><div class="sub" id="h-sub"></div></div>
+  <div class="progress" id="h-progress"></div>
+</header>
+<div class="layout">
+  <nav id="nav" aria-label="Questions"></nav>
+  <main id="main"></main>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const packetId = params.get('packet') || 'demo';
+const base = `packets/${encodeURIComponent(packetId)}/`;
+const storeKey = `review-board:${packetId}`;
+let packet, state, current = 0, submitted = false;
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+};
+
+function md(src, highlights = [], quotes = []) {
+  const inline = t => {
+    let s = esc(t).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    for (const hl of highlights) s = s.split(esc(hl)).join(`<mark>${esc(hl)}</mark>`);
+    for (const q of quotes) s = s.split(esc(q)).join(`<mark class="mine">${esc(q)}</mark>`);
+    return s;
+  };
+  const out = []; let list = null;
+  for (const raw of String(src).split('\n')) {
+    const line = raw.trimEnd();
+    const li = line.match(/^\s*[-*] (?:\[[ x]\] )?(.*)$/);
+    if (li) { (list ??= []).push(`<li>${inline(li[1])}</li>`); continue; }
+    if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
+    const hd = line.match(/^(#{1,4}) (.*)$/);
+    if (hd) out.push(`<h4>${inline(hd[2])}</h4>`);
+    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+  }
+  if (list) out.push(`<ul>${list.join('')}</ul>`);
+  return out.join('');
+}
+
+function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
+function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+function isAnswered(i) {
+  const a = state.answers[i];
+  return a.choice && (a.choice !== '__other' || a.other.trim());
+}
+const totalSteps = () => packet.questions.length + 1;
+
+async function init() {
+  try {
+    const res = await fetch(base + 'packet.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    packet = await res.json();
+  } catch (e) {
+    $('#h-title').textContent = `Couldn't load packet "${packetId}"`;
+    return;
+  }
+  document.title = `Review: ${packet.title}`;
+  const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
+  state = saved && saved.answers?.length === packet.questions.length
+    ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
+  const pr = packet.pr || {};
+  $('#h-title').innerHTML = pr.url ? `<a href="${esc(pr.url)}" target="_blank" rel="noopener">${esc(packet.title)}</a>` : esc(packet.title);
+  $('#h-sub').innerHTML = [pr.ref, packet.issue && `<a href="${esc(packet.issue.url)}" target="_blank" rel="noopener">${esc(packet.issue.ref)}</a>`, packet.subtitle]
+    .filter(Boolean).map(s => s.startsWith('<') ? s : esc(s)).join(' · ');
+  render();
+}
+
+function render() {
+  renderNav();
+  const main = $('#main');
+  main.replaceChildren();
+  if (submitted) return renderDone(main);
+  if (current < packet.questions.length) renderQuestion(main, current);
+  else renderOwnRead(main);
+  const n = packet.questions.filter((_, i) => isAnswered(i)).length;
+  $('#h-progress').textContent = `${n} of ${packet.questions.length} answered`;
+}
+
+function renderNav() {
+  const nav = $('#nav');
+  nav.replaceChildren(...packet.questions.map((q, i) => h('button', {
+    class: isAnswered(i) ? 'done' : '', 'aria-current': i === current && !submitted ? 'true' : 'false',
+    onclick: () => go(i)
+  }, h('span', { class: 'dot' }, isAnswered(i) ? '✓' : String(i + 1)),
+     h('span', { class: 'lbl' }, q.title, h('small', {}, [q.pr?.ref, q.dimension].filter(Boolean).join(' · '))))),
+  h('button', { class: state.ownRead.trim() ? 'done' : '', 'aria-current': current === packet.questions.length && !submitted ? 'true' : 'false', onclick: () => go(packet.questions.length) },
+    h('span', { class: 'dot' }, '✎'), h('span', { class: 'lbl' }, 'Your own read', h('small', {}, 'Anything you noticed'))));
+}
+
+function go(i) { current = i; submitted = false; render(); window.scrollTo(0, 0); }
+
+function renderQuestion(main, qi) {
+  const q = packet.questions[qi], a = state.answers[qi];
+  main.append(
+    h('div', {}, q.pr && h('a', { class: 'tag', href: q.pr.url, target: '_blank', rel: 'noopener' }, q.pr.ref), q.dimension && h('span', { class: 'tag' }, q.dimension), h('span', { class: 'hint' }, `Question ${qi + 1} of ${packet.questions.length}`)),
+    h('h2', { class: 'q-title' }, q.title),
+    h('p', { class: 'q-text' }, q.question));
+
+  (q.context || []).forEach((ctx, ci) => main.append(renderContext(qi, ctx, ci)));
+
+  main.append(h('h3', { class: 'section' }, 'Your call'));
+  const opts = h('div', { class: 'options', role: 'group', 'aria-label': 'Options' });
+  const err = h('div', { class: 'err', hidden: true }, 'Pick an option first, or describe something else.');
+  const otherBox = h('textarea', { placeholder: 'Describe what you want instead', hidden: a.choice !== '__other' });
+  otherBox.value = a.other;
+  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; save(); renderNav(); });
+  const choices = [...(q.options || []), { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
+  for (const o of choices) {
+    opts.append(h('button', {
+      class: 'opt', type: 'button', 'aria-pressed': a.choice === o.value ? 'true' : 'false',
+      onclick: e => {
+        a.choice = o.value; err.hidden = true; save();
+        opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === e.currentTarget ? 'true' : 'false'));
+        otherBox.hidden = o.value !== '__other';
+        if (!otherBox.hidden) otherBox.focus();
+        renderNav(); $('#h-progress').textContent = `${packet.questions.filter((_, i) => isAnswered(i)).length} of ${packet.questions.length} answered`;
+      }
+    }, o.recommended && h('span', { class: 'rec' }, 'Recommended'),
+       h('span', { class: 'o-label' }, o.label),
+       o.detail && h('span', { class: 'o-detail' }, o.detail)));
+  }
+  main.append(opts, h('div', { style: 'margin-top:12px' }, otherBox), err);
+
+  main.append(h('h3', { class: 'section' }, 'Notes for the developer (optional)'));
+  const notes = h('textarea', { placeholder: 'Anything to add: why, edge cases, wording you want' });
+  notes.value = a.notes;
+  notes.addEventListener('input', () => { a.notes = notes.value; save(); });
+  main.append(notes);
+
+  main.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => go(qi - 1), disabled: qi === 0 || null, style: qi === 0 ? 'visibility:hidden' : '' }, '← Back'),
+    h('button', { class: 'btn primary', onclick: () => {
+      if (!isAnswered(qi)) { err.hidden = false; err.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
+      go(qi + 1);
+    } }, qi === packet.questions.length - 1 ? 'Next: your own read →' : 'Next question →')));
+}
+
+function renderContext(qi, ctx, ci) {
+  const sec = h('section', { class: 'block' });
+  const link = ctx.url ? h('a', { href: ctx.url, target: '_blank', rel: 'noopener' }, 'Open ↗') : null;
+  sec.append(h('div', { class: 'block-head' }, h('span', {}, ctx.label || ''), link));
+  const list = h('ul', { class: 'notes-list' });
+  if (ctx.type === 'image') {
+    sec.append(renderShot(qi, ci, 0, ctx, list));
+  } else if (ctx.type === 'compare') {
+    const grid = h('div', { class: 'compare' });
+    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || ''), renderShot(qi, ci, k, img, list))));
+    sec.append(grid);
+  } else if (ctx.type === 'text') {
+    sec.append(renderDoc(qi, ci, ctx, list));
+  }
+  sec.append(list);
+  refreshList(qi, ci, ctx, list);
+  return sec;
+}
+
+function claudeMarks(ctx) {
+  if (ctx.type === 'image') return (ctx.marks || []).map(m => ({ ...m, img: 0 }));
+  if (ctx.type === 'compare') return ctx.images.flatMap((im, k) => (im.marks || []).map(m => ({ ...m, img: k })));
+  return [];
+}
+
+function refreshList(qi, ci, ctx, list) {
+  const a = state.answers[qi];
+  list.replaceChildren();
+  claudeMarks(ctx).forEach((m, i) => list.append(h('li', {}, h('span', { class: 'n' }, String(i + 1)), h('span', {}, m.note), h('span'))));
+  a.markups.filter(m => m.ctx === ci).forEach((m, i) => {
+    const input = h('input', { type: 'text', placeholder: m.type === 'quote' ? 'What about this part?' : 'What should change here?', value: m.note });
+    input.addEventListener('input', () => { m.note = input.value; save(); });
+    if (m.focus) { setTimeout(() => input.focus(), 0); delete m.focus; }
+    list.append(h('li', {},
+      h('span', { class: 'n mine' }, m.type === 'quote' ? '❝' : String.fromCharCode(65 + i)),
+      h('span', {}, m.type === 'quote' && h('blockquote', {}, m.quote), input),
+      h('button', { class: 'icon-btn', 'aria-label': 'Remove', title: 'Remove', onclick: () => {
+        a.markups.splice(a.markups.indexOf(m), 1); save(); rerenderCurrent();
+      } }, '×')));
+  });
+}
+
+function rerenderCurrent() { const y = window.scrollY; render(); window.scrollTo(0, y); }
+
+function renderShot(qi, ci, k, img, list) {
+  const a = state.answers[qi];
+  const wrap = h('div', { class: 'shot' }, h('img', { src: base + img.src, alt: img.alt || img.caption || 'Screenshot' }));
+  const marks = claudeMarks(packet.questions[qi].context[ci]);
+  marks.forEach((m, i) => { if (m.img === k) wrap.append(markEl(m, String(i + 1), false)); });
+  a.markups.filter(m => m.ctx === ci && m.img === k && m.type !== 'quote').forEach(m => {
+    const mine = a.markups.filter(x => x.ctx === ci);
+    wrap.append(markEl(m, String.fromCharCode(65 + mine.indexOf(m)), true));
+  });
+  let start = null, ghost = null;
+  const pct = e => { const r = wrap.getBoundingClientRect(); return { x: Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100)), y: Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100)) }; };
+  wrap.addEventListener('pointerdown', e => {
+    if (e.target.closest('.pin')) return;
+    start = pct(e); wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove', e => {
+    if (!start) return;
+    const p = pct(e);
+    if (!ghost && Math.hypot(p.x - start.x, p.y - start.y) > 1.5) { ghost = h('div', { class: 'box mine drawing' }); wrap.append(ghost); }
+    if (ghost) Object.assign(ghost.style, { left: Math.min(p.x, start.x) + '%', top: Math.min(p.y, start.y) + '%', width: Math.abs(p.x - start.x) + '%', height: Math.abs(p.y - start.y) + '%' });
+  });
+  wrap.addEventListener('pointerup', e => {
+    if (!start) return;
+    const p = pct(e);
+    const r2 = n => Math.round(n * 10) / 10;
+    const m = ghost
+      ? { type: 'box', ctx: ci, img: k, x: r2(Math.min(p.x, start.x)), y: r2(Math.min(p.y, start.y)), w: r2(Math.abs(p.x - start.x)), h: r2(Math.abs(p.y - start.y)), note: '' }
+      : { type: 'pin', ctx: ci, img: k, x: r2(p.x), y: r2(p.y), note: '' };
+    start = null; ghost = null;
+    a.markups.push({ ...m, focus: true }); save(); rerenderCurrent();
+  });
+  return h('div', {}, wrap, h('div', { class: 'hint' }, 'Click to drop a pin, or drag to draw a box. Then add a note below.'));
+}
+
+function markEl(m, label, mine) {
+  const pin = h('span', { class: 'pin' + (mine ? ' mine' : '') }, label);
+  if (m.w != null) {
+    const box = h('div', { class: 'box' + (mine ? ' mine' : ''), style: `left:${m.x}%;top:${m.y}%;width:${m.w}%;height:${m.h}%` }, pin);
+    return box;
+  }
+  pin.style.left = m.x + '%'; pin.style.top = m.y + '%';
+  return pin;
+}
+
+function renderDoc(qi, ci, ctx, list) {
+  const a = state.answers[qi];
+  const quotes = a.markups.filter(m => m.ctx === ci && m.type === 'quote').map(m => m.quote);
+  const doc = h('div', { class: 'doc', html: md(ctx.body, ctx.highlight || [], quotes) });
+  const holder = h('div', { style: 'position:relative' }, doc, h('div', { class: 'hint' }, 'Highlighted lines are what this question is about. Select any text to comment on it.'));
+  let btn = null;
+  const clear = () => { btn?.remove(); btn = null; };
+  doc.addEventListener('mouseup', () => {
+    setTimeout(() => {
+      clear();
+      const sel = window.getSelection(); const text = sel.toString().trim();
+      if (!text || !doc.contains(sel.anchorNode)) return;
+      const r = sel.getRangeAt(0).getBoundingClientRect(), hr = holder.getBoundingClientRect();
+      btn = h('button', { class: 'sel-btn', style: `left:${r.left - hr.left}px;top:${r.bottom - hr.top + 6}px`, onmousedown: e => e.preventDefault(), onclick: () => {
+        a.markups.push({ type: 'quote', ctx: ci, quote: text, note: '', focus: true }); save(); clear(); rerenderCurrent();
+      } }, '+ Comment on selection');
+      holder.append(btn);
+    }, 0);
+  });
+  doc.addEventListener('mousedown', clear);
+  return holder;
+}
+
+function renderOwnRead(main) {
+  main.append(
+    h('div', {}, h('span', { class: 'tag' }, 'Your read')),
+    h('h2', { class: 'q-title' }, 'What did you notice?'),
+    h('p', { class: 'q-text' }, packet.ownReadPrompt || 'Anything from your own testing, a meeting, or a gut reaction that the questions above did not cover. Leave it blank if nothing comes to mind.'));
+  const ta = h('textarea', { style: 'min-height:220px', placeholder: 'I tried it on my phone and…' });
+  ta.value = state.ownRead;
+  ta.addEventListener('input', () => { state.ownRead = ta.value; save(); });
+  main.append(ta);
+  const err = h('div', { class: 'err', hidden: true });
+  const send = h('button', { class: 'btn primary', onclick: async () => {
+    const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
+    if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
+    send.disabled = true; send.textContent = 'Sending…';
+    try {
+      const res = await fetch(`api/answers?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildAnswers()) });
+      if (!res.ok) throw new Error(res.status);
+      submitted = true; render();
+    } catch (e) {
+      err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
+      err.hidden = false; send.disabled = false; send.textContent = 'Send to Claude';
+    }
+  } }, 'Send to Claude');
+  main.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
+}
+
+function buildAnswers() {
+  return {
+    packet: packetId, title: packet.title, submittedAt: new Date().toISOString(),
+    answers: packet.questions.map((q, i) => {
+      const a = state.answers[i];
+      const opt = (q.options || []).find(o => o.value === a.choice);
+      return {
+        id: q.id, pr: q.pr?.ref || packet.pr?.ref || null, title: q.title, dimension: q.dimension || null,
+        choice: a.choice === '__other' ? 'other' : a.choice,
+        choiceLabel: a.choice === '__other' ? a.other.trim() : opt?.label,
+        notes: a.notes.trim() || null,
+        markups: a.markups.map(m => {
+          const ctx = q.context[m.ctx];
+          const where = ctx.type === 'compare' ? ctx.images[m.img] : ctx;
+          return { on: where.caption || ctx.label, file: where.src || null, ...m, ctx: undefined, img: undefined };
+        })
+      };
+    }),
+    ownRead: state.ownRead.trim() || null
+  };
+}
+
+function renderDone(main) {
+  main.append(h('div', { class: 'done-card' },
+    h('h2', {}, 'Sent to Claude'),
+    h('p', {}, 'Head back to the chat. Claude picks your answers up from here and turns them into feedback for the developer.'),
+    h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
+  $('#h-progress').textContent = 'Submitted';
+}
+
+init();
+</script>
+</body>
+</html>
