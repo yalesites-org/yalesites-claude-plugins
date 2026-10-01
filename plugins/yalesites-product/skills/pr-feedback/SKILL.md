@@ -270,10 +270,18 @@ with the PR open.
 
 Two parts, and neither is optional.
 
-**Part 1, the held calls.** Use `AskUserQuestion` on the brief's **Your calls** items. They
+**Ask them on the review board, not in a chat text box.** Read `references/review-board.md` and
+follow it. The board is a local page that shows each held call with its screenshot at full size,
+numbered callouts on the exact spot, the ticket or PR text with the key line highlighted, and big
+option cards. The reviewer can pin, box, and comment on what they see, and one click sends it all
+back. Both parts below go on it, Part 2 as the last page. `AskUserQuestion` is the fallback for
+the cases that reference lists (no in-lane calls, no local browser, or a reviewer who prefers
+chat). The sorting rules below decide what goes on the board, and they do not change.
+
+**Part 1, the held calls.** Put the brief's **Your calls** items to the user. They
 are already scoped to real product decisions (copy, defaults, role gating, scope) because the
 audit was forbidden to decide them, so put them to the user in the brief's own words where they
-are already clear.
+are already clear. Every `ask` screenshot from the driven run goes in as that call's context.
 
 **Sort them against the reviewer's dimensions from Step 0 first.** Every held call belongs to one
 of the five dimensions, usually obviously: a copy or defaults question is `product`, a keyboard
@@ -310,7 +318,8 @@ fully-out-of-lane brief do not look the same from the outside.
 **Part 2, their own read.** Always ask what they noticed, separately from your questions. They
 may have tested the multidev before starting this session, or carry context from a meeting the
 diff cannot show. Ask even when your own analysis turned up nothing: their input is a
-first-class input to this review, not a fallback for when you are stuck.
+first-class input to this review, not a fallback for when you are stuck. Pins, boxes, and
+comments they leave on the board count as part of their own read.
 
 
 ## Step 4: Turn the user's answers into actionable feedback

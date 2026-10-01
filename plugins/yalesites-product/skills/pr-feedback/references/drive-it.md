@@ -304,7 +304,9 @@ screenshots and `results.md`: they are the evidence for the review.
   measured evidence, and the file and line from the brief. `gh` cannot upload images, so tell
   the user which screenshots are worth dragging into the review comment; do not post them
   yourself.
-- **Asks feed Step 3b** as questions, with their screenshots.
+- **Asks feed Step 3b** as questions, with their screenshots. Those screenshots become the
+  question's context on the review board (`references/review-board.md`), so frame each one so
+  the call can be made from the picture.
 - **Passes support the approval.** The approval body can say what was verified and as which
   roles, instead of a bare "tested on multidev".
 - **Blocked steps are not passes.** Say plainly which steps could not run and why; the user
