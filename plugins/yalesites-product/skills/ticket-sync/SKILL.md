@@ -94,6 +94,8 @@ If a ticket in scope needs both (an edit to the direct ticket, and a separate co
 
 Run `python3 ../ticket/scripts/check-github-text.py draft.md --surface ticket` before posting either one.
 
+If the sync needs a screenshot (for example, showing how the shipped behavior differs from the ticket), post it with `../ticket/scripts/post-screenshot.py` and put the `<img>` tag it prints in the comment. See `../ticket/references/screenshots.md`.
+
 **Parent epic updates** are a separate write from the child ticket's — don't fold an epic's `Scope`/`Child Tickets` correction into the same edit call as the child ticket's own update.
 
 ## When there's nothing to flag

@@ -301,9 +301,14 @@ screenshots and `results.md`: they are the evidence for the review.
 ## Handing results to the rest of the skill
 
 - **Fails feed Step 4.** Each `fail` becomes a feedback point with its screenshot filename, the
-  measured evidence, and the file and line from the brief. `gh` cannot upload images, so tell
-  the user which screenshots are worth dragging into the review comment; do not post them
-  yourself.
+  measured evidence, and the file and line from the brief. `gh` cannot upload images, and the
+  PR repos are public, so `../ticket/scripts/post-screenshot.py` refuses them: images from the
+  private screenshots repo would show as broken to outside readers. Tell the user which
+  screenshots are worth adding, and offer two options: they drag those into the review
+  comment, or, if the PR has a linked YaleSites-Internal issue, we post them there with the
+  helper and link that comment from the review. Ask which one. Posting on the issue is a
+  GitHub write, so it needs the same confirmation as the review itself. See
+  `../ticket/references/screenshots.md`.
 - **Asks feed Step 3b** as questions, with their screenshots.
 - **Passes support the approval.** The approval body can say what was verified and as which
   roles, instead of a bare "tested on multidev".
