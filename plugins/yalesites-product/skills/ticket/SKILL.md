@@ -307,6 +307,8 @@ python3 scripts/check-github-text.py draft.md --surface ticket
 
 It flags em dashes, over-length criteria, banned words, a missing or bloated TL;DR, `<details>` blocks that will not render, and anything unsafe in the machine block. Findings are candidates, not verdicts: fix what is real, and say so if you are overriding one.
 
+**Screenshots:** when a screenshot belongs on a YaleSites-Internal ticket or comment (a punch list, a bug repro, an image the user pasted into chat), use the `github-screenshots` skill instead of asking the user to drag it in. It prints an `<img>` tag to put in the body. It refuses public repos, where the image would show as broken.
+
 ---
 
 ### Title
