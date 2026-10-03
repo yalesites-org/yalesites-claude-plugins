@@ -63,6 +63,16 @@ bash scripts/sync-standards.sh
 
 `scripts/validate-plugins.sh` (and therefore CI) fails if any copy has drifted.
 
+## Posting screenshots
+
+`gh` can't upload images to GitHub, so skills in `yalesites-product` post screenshots with
+`plugins/yalesites-product/skills/ticket/scripts/post-screenshot.py`. It commits the image to
+the private repo `yalesites-org/ys-screenshots` and prints an `<img>` tag for the comment.
+
+The image only shows for people with access to that repo (every org member). That makes it work
+in YaleSites-Internal, but not in public repos, including this one, so the script refuses public
+targets. Details are in `plugins/yalesites-product/skills/ticket/references/screenshots.md`.
+
 ## Contributing
 
 See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the plugin contract,
