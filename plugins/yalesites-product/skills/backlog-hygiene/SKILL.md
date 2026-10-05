@@ -82,7 +82,7 @@ Run these across every open ticket. No bodies needed.
 - Title starts with `Epic:` but the `epic` label and native `Epic` type are both missing, or vice versa
 
 **Leftover trigger labels**
-- Any `status:*`, `priority:*`, or `size:*` label still present. These are meant to be consumed and deleted by a GitHub Action after it writes the board field. A surviving label means the Action didn't fire or didn't clean up, and the board field may never have been set. Small in number but worth surfacing, since it's a silent failure of the fallback path documented in the `ticket` skill's `references/board-status.md`.
+- Any `status:*`, `priority:*`, or `size:*` label still present. Skills no longer apply these, and the sync Action never matched them (its mappings expect `priority: medium` with a space). A label like this almost always means the board field was never set. Report the label next to the ticket's actual board value. See the `ticket` skill's `references/board-status.md`.
 
 **Age signals**
 - Open more than 6 months with no update and still in `Backlog`
@@ -161,9 +161,9 @@ Missing native Issue Type, or native type conflicting with a type label.
 | Ticket | Native type | Type label | Issue |
 
 ## Leftover trigger labels
-`status:`/`priority:`/`size:` labels the sync Action should have consumed and deleted.
-The board field may never have been written.
-| Ticket | Label(s) still present |
+`status:`/`priority:`/`size:` labels. The sync Action never matched these, so the board
+field was most likely never written.
+| Ticket | Label(s) still present | Board value |
 
 ## Possibly stale
 Open 6+ months, no recent activity, still in Backlog. Not a close recommendation.

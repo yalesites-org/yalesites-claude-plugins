@@ -66,7 +66,7 @@ If the scope is missing, the user can add it themselves (this is an interactive 
 gh auth refresh -h github.com -s project
 ```
 
-If `gh` is unavailable or unauthorized, **do not troubleshoot the user's setup mid-task.** Use the label fallback at the bottom of this file and tell them what was missing.
+If `gh` is unavailable or unauthorized, **do not troubleshoot the user's setup mid-task**, and do not reach for labels. Finish the parts that don't need the board, then hand the user the exact field values to set by hand, per "No `gh`: hand the fields to the user" at the bottom of this file.
 
 ---
 
@@ -114,7 +114,15 @@ Only one field per invocation for non-draft issues. Run the command once per fie
 
 **Read before you write when the transition is conditional.** If the rule is "move to X only if it isn't already X," check current status first rather than writing unconditionally, so the board's updated timestamp and activity feed stay meaningful.
 
-**On failure, don't retry.** Any error (auth, scope, renamed option, issue not on the board) means fall back to labels and tell the user `gh` wasn't usable. A retry loop against a permissions problem just burns turns.
+**On failure, don't retry.** Any error (auth, scope, renamed option, issue not on the board) means stop writing, tell the user `gh` wasn't usable, and hand them the values to set by hand. A retry loop against a permissions problem just burns turns.
+
+**3. Read it back.** A write that returned no error is not proof the field is set. Confirm every field you wrote, in one query:
+
+```bash
+gh api graphql -f query='query($n:Int!){repository(owner:"yalesites-org",name:"YaleSites-Internal"){issue(number:$n){issueType{name} milestone{title} assignees(first:5){nodes{login}} projectItems(first:5){nodes{project{number} fieldValues(first:20){nodes{... on ProjectV2ItemFieldSingleSelectValue{name field{... on ProjectV2FieldCommon{name}}}}}}}}}}' -F n=<number>
+```
+
+Anything missing or wrong gets fixed before the ticket is reported as done. Say which field it was.
 
 ---
 
@@ -133,7 +141,7 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 | Release ships → ticket closed | Release merged to `master` | `release-prep` Phase 7 | Working |
 | Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | **Dormant** (see `release-prep` Phase 7). Must stay that way |
 | Status set to `Done` → issue closed | Board change | Board workflow "Auto-close issue" | **Off by design** since 2026-09-23. Turning it on closes tickets before they ship |
-| Trigger label → board field | Label applied | Workflow `07-label-to-project-fields` | Working |
+| Trigger label → board field | Label applied | Workflow `07-label-to-project-fields` | **Not used by any skill.** See "Why there is no label fallback" below |
 
 **Workflow 02 is written correctly but has never fired on real work.** It last ran 2026-01-06. Two independent causes, either fatal on its own:
 
@@ -150,15 +158,19 @@ Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for t
 
 ---
 
-## Fallback: trigger labels
+## No `gh`: hand the fields to the user
 
-For sessions without a usable `gh`, including Cowork sessions that have the GitHub connector but no CLI.
+Skills write Status, Priority, and Size **only** with `gh project item-edit`. There is no label fallback.
 
-Apply the matching `status:*` / `priority:*` / `size:*` label via `mcp__github__update_issue` (for example `status:to-do`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Projects v2 field, and then deletes the label.
+When `gh` is missing, unauthenticated, or lacks the `project` scope:
 
-Two consequences:
+1. Create or update the issue itself through whatever path works (the GitHub connector can create issues, set the milestone, assignees, and labels).
+2. Tell the user, in one short block, the exact values to set on the YaleSites Board, with the issue link. For example: `Status: Backlog, Priority: Medium, Size: XS`.
+3. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` as the durable fix, once.
+4. Do not report the ticket as complete until the user confirms the fields are set, or says they will do it.
 
-- The label **will not persist**, so it can't be used later to check what the value was.
-- The write is **asynchronous**. Don't read the field back immediately and conclude it failed.
+### Why there is no label fallback
 
-`mcp__github__update_issue` takes a **full replacement array** for `labels`. Fetch the issue's current labels first and compute the complete new list, or the update will wipe every other label on the issue.
+Older versions of this skill applied `status:*` / `priority:*` / `size:*` labels and relied on workflow `07-label-to-project-fields` to copy them onto the board. That never worked for skill-created tickets. The workflow's mappings expect a space after the colon (`priority: medium`), and the repo's labels have none (`priority:medium`). The workflow logged "No label mappings matched" and left both the label and an empty board field behind. On 2026-10-05, about 30 open tickets were carrying these labels with no matching board field.
+
+**Never apply these labels.** A `priority:*`, `size:*`, or `status:*` label on a ticket is a sign the board field was never set. `backlog-hygiene` reports them for that reason.
