@@ -37,6 +37,11 @@ One packet per review, or one per batch. The packet folder lives in the session 
   01-fail-editor-overflow-360.png   (copied from the drive-it run folder)
 ```
 
+**A prepped packet is already built.** When `SKILL.md` Step 1 found one, skip this step and
+start the server on the prep packets folder, `~/.claude/yalesites/pr-review-prep/packets`,
+instead of the scratchpad (Step R2). Delete a leftover `answers.json` in it first, as below.
+Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
+
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
 batch. Copy every screenshot the packet names into the folder. If an `answers.json` is already
 there from an earlier pass, delete it first, or the wait in Step R3 ends at once on stale answers.
@@ -217,3 +222,4 @@ When the review is posted, or abandoned:
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
 - Leave the packet folder. Like the drive-it screenshots, it is the evidence for the review.
+  A prepped packet stays where prep mode put it, and its `answers.json` stays with it.

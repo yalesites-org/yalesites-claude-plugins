@@ -11,6 +11,11 @@ at the start of the session. Storybook previews (`component-library-twig`) need 
 would work the same way, but that path is not written yet. For every other case, hand the plan
 to the user as `SKILL.md` Step 3 describes.
 
+**Prep mode changes some of this.** When this runs under `/pr-feedback --prep`
+(`references/prep-mode.md`), no one is watching: sessions are headless, nothing is installed,
+nothing is shown as it goes, and the disposable multidev rule in prep-mode.md Step P3 replaces the
+Step D1 ask. Everything else here applies as written, Step D5 cleanup included.
+
 **The user watches, the user rules.** Driving the browser settles mechanical questions (does it
 overflow, which column is on the left, does focus move). It never settles design or product
 questions. Those rows (`ask` in `beyond-ac-checks.md`) get a screenshot and go to Step 3b.
@@ -108,7 +113,7 @@ known issue is the only one there.
 ## Step D1: Ask once, before writing anything
 
 Visreg multidevs carry a red "DO NOT CHANGE CONTENT" banner. That banner protects the visreg
-site itself; a PR multidev is a disposable copy. Still, ask the user once per PR, with one
+site itself; a PR multidev is a disposable copy. Still, in a live review, ask the user once per PR, with one
 `AskUserQuestion`, before doing any of these:
 
 - creating test pages (nodes). Inline blocks and sections placed on a test page go with it
