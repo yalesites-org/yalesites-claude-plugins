@@ -25,6 +25,8 @@ class ReviewBoardServerTest(unittest.TestCase):
         os.makedirs(os.path.join(cls.packets, "ysp-1"))
         with open(os.path.join(cls.packets, "ysp-1", "packet.json"), "w") as f:
             json.dump({"title": "T", "questions": []}, f)
+        with open(os.path.join(cls.packets, "ysp-1", "clip.webm"), "wb") as f:
+            f.write(bytes(range(100)))
         with open(os.path.join(cls.tmp.name, "..", "outside.txt"), "w") as f:
             f.write("secret")
         cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(cls.packets))
@@ -38,13 +40,17 @@ class ReviewBoardServerTest(unittest.TestCase):
         os.remove(os.path.join(cls.tmp.name, "..", "outside.txt"))
         cls.tmp.cleanup()
 
-    def status(self, path, data=None):
-        req = urllib.request.Request(self.base + path, data=data, method="POST" if data is not None else "GET")
+    def status(self, path, data=None, headers=None):
+        req = urllib.request.Request(self.base + path, data=data, headers=headers or {},
+                                     method="POST" if data is not None else "GET")
         try:
             with urllib.request.urlopen(req) as res:
                 return res.status, res.read()
         except urllib.error.HTTPError as e:
             return e.code, b""
+
+    def ranged(self, path, spec):
+        return self.status(path, headers={"Range": spec})
 
     def test_health_names_the_app_and_packets_dir(self):
         code, body = self.status("/api/health")
@@ -64,6 +70,16 @@ class ReviewBoardServerTest(unittest.TestCase):
     def test_packet_paths_cannot_escape(self):
         self.assertEqual(self.status("/packets/../outside.txt")[0], 404)
         self.assertEqual(self.status("/packets/%2e%2e/outside.txt")[0], 404)
+
+    def test_clips_serve_byte_ranges_for_seeking(self):
+        clip = "/packets/ysp-1/clip.webm"
+        self.assertEqual(self.ranged(clip, "bytes=10-19"), (206, bytes(range(10, 20))))
+        self.assertEqual(self.ranged(clip, "bytes=95-"), (206, bytes(range(95, 100))))
+        self.assertEqual(self.ranged(clip, "bytes=-3"), (206, bytes(range(97, 100))))
+        self.assertEqual(self.ranged(clip, "bytes=90-500"), (206, bytes(range(90, 100))))
+        self.assertEqual(self.ranged(clip, "bytes=200-")[0], 416)
+        self.assertEqual(self.ranged(clip, "bytes=0-1,5-6"), (200, bytes(range(100))))
+        self.assertEqual(self.ranged("/packets/../outside.txt", "bytes=0-1")[0], 404)
 
     def test_post_writes_answers(self):
         code, _ = self.status("/api/answers?packet=ysp-1", json.dumps({"answers": [1]}).encode())

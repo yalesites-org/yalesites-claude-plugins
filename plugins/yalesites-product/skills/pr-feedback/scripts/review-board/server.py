@@ -6,7 +6,7 @@ saves the reviewer's answers next to the packet they belong to.
 
   python3 server.py --packets <dir> [--port 8765]
 
-A packet is <dir>/<id>/packet.json plus the images it names. The board lives at
+A packet is <dir>/<id>/packet.json plus the images and clips it names. The board lives at
 http://localhost:<port>/?packet=<id>. Submitting writes <dir>/<id>/answers.json.
 
 If the port is taken, the next free one (up to 20 higher) is used, unless
@@ -24,6 +24,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 BOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 APP = "pr-feedback-review-board"
 PACKET_ID = re.compile(r"^[A-Za-z0-9._-]+$")
+RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
 def make_handler(packets_dir):
@@ -56,7 +57,43 @@ def make_handler(packets_dir):
                 self.end_headers()
                 self.wfile.write(body)
                 return
+            if self.headers.get("Range") and self.send_range():
+                return
             super().do_GET()
+
+        def send_range(self):
+            # Browsers need byte ranges to seek in a video. Single ranges only.
+            m = RANGE.match(self.headers["Range"].strip())
+            path = self.translate_path(self.path)
+            if not m or not os.path.isfile(path):
+                return False
+            size = os.path.getsize(path)
+            start, end = m.group(1), m.group(2)
+            if start == "":
+                start, end = max(0, size - int(end)), size - 1
+            else:
+                start, end = int(start), min(int(end), size - 1) if end else size - 1
+            if start >= size or start > end:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.end_headers()
+                return True
+            self.send_response(206)
+            self.send_header("Content-Type", self.guess_type(path))
+            self.send_header("Accept-Ranges", "bytes")
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+            self.send_header("Content-Length", str(end - start + 1))
+            self.end_headers()
+            with open(path, "rb") as f:
+                f.seek(start)
+                left = end - start + 1
+                while left > 0:
+                    chunk = f.read(min(64 * 1024, left))
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    left -= len(chunk)
+            return True
 
         def do_POST(self):
             url = urlparse(self.path)
