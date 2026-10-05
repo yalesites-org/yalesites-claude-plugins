@@ -40,6 +40,11 @@ One packet per review, or one per batch. The packet folder lives in the session 
   06-fail-editor-escape-focus.webm
 ```
 
+**A prepped packet is already built.** When `SKILL.md` Step 1 found one, skip this step and
+start the server on the prep packets folder, `~/.claude/yalesites/pr-review-prep/packets`,
+instead of the scratchpad (Step R2). Delete a leftover `answers.json` in it first, as below.
+Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
+
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
 batch. Copy every screenshot and clip the packet names into the folder. Use the `.webm` for clips:
 the board plays it in the browser. If an `answers.json` is already
@@ -245,4 +250,4 @@ When the review is posted, or abandoned:
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
 - Leave the packet folder. Like the drive-it screenshots and clips, it is the evidence for the
-  review.
+  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it.
