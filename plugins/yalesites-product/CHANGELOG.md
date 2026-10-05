@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.15.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.14.0...yalesites-product-v0.15.0) (2026-10-05)
+
+
+### Features
+
+* **pr-feedback:** ask held calls on a local review board ([#51](https://github.com/yalesites-org/yalesites-claude-plugins/issues/51)) ([ef3bc28](https://github.com/yalesites-org/yalesites-claude-plugins/commit/ef3bc28ac4f9c26ce04e858c2d27dc8a2b93a318))
+* **pr-feedback:** record short clips of key interactions and play them on the review board ([#55](https://github.com/yalesites-org/yalesites-claude-plugins/issues/55)) ([ff83d62](https://github.com/yalesites-org/yalesites-claude-plugins/commit/ff83d625d0220334c88136fbbd7c9491feac767b))
+* **yalesites-product:** add github-screenshots skill for YaleSites-Internal tickets ([#52](https://github.com/yalesites-org/yalesites-claude-plugins/issues/52)) ([6cef118](https://github.com/yalesites-org/yalesites-claude-plugins/commit/6cef118b978188e7df5592350d011ceebae84e33))
+
+
+### Bug Fixes
+
+* **ticket:** set board fields only via gh and read them back ([#56](https://github.com/yalesites-org/yalesites-claude-plugins/issues/56)) ([d2817f5](https://github.com/yalesites-org/yalesites-claude-plugins/commit/d2817f532d9b7b1923f0dfdeb2d5a98ab7a511a1))
+
 ## [0.14.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.13.0...yalesites-product-v0.14.0) (2026-09-30)
 
 
