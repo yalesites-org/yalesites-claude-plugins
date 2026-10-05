@@ -25,6 +25,9 @@ team with:
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
+- **GitHub screenshots**: putting screenshots (bug repros, punch lists, proof of
+  PR work) on YaleSites-Internal tickets and comments, since `gh` can't upload
+  images
 - **Web content**: drafting and revising pages for yalesites.yale.edu
   (user guides, resource pages, release documentation), researched from the
   merged code and written in ASD-STE100 Simplified Technical English, with the
@@ -66,6 +69,7 @@ knowledge that the workflow skills reference:
 | `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |
 | `reviewer-profile` | Setting up or changing how `pr-feedback` is scoped to you (invoke directly with `/reviewer-profile`) |
+| `github-screenshots` | Posting a screenshot on a YaleSites-Internal ticket or comment, since `gh` can't upload images |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
 | `yalesites-web-content` | Writing or revising a page that will live on yalesites.yale.edu |
