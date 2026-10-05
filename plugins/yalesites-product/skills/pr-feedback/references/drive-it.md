@@ -381,9 +381,14 @@ screenshots, clips, and `results.md`: they are the evidence for the review.
 ## Handing results to the rest of the skill
 
 - **Fails feed Step 4.** Each `fail` becomes a feedback point with its screenshot filename, the
-  measured evidence, and the file and line from the brief. `gh` cannot upload images or
-  video, so tell the user which screenshots and clips (the MP4) are worth dragging into the
-  review comment; do not post them yourself. A clip is often the fastest way for a developer
+  measured evidence, and the file and line from the brief. Images posted with the
+  `github-screenshots` skill only show for org members, so it refuses the public PR repos.
+  Tell the user which screenshots are worth adding, and offer two options: they drag those
+  into the review comment, or, if the PR has a linked YaleSites-Internal issue, we post them
+  there with `github-screenshots` and link that comment from the review. Ask which one.
+  Posting on the issue is a GitHub write, so it needs the same confirmation as the review
+  itself. `github-screenshots` posts images only, so a clip (the MP4) always goes in by the
+  user dragging it into the review comment. A clip is often the fastest way for a developer
   to see a timing or focus bug.
 - **Asks feed Step 3b** as questions, with their screenshots and clips. Those become the
   question's context on the review board (`references/review-board.md`), so frame each one so
