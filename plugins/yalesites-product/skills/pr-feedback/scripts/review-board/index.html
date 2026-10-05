@@ -58,9 +58,14 @@
   .box.drawing { border-style: dashed; }
   .hint { font-size: 13px; color: var(--faint); margin-top: 8px; }
   .notes-list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
-  .notes-list li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; font-size: 15px; }
+  .notes-list li { display: grid; grid-template-columns: minmax(28px, auto) 1fr auto; gap: 10px; align-items: start; font-size: 15px; }
   .notes-list .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: var(--pin); margin-top: 2px; }
   .notes-list .n.mine { background: var(--pin-mine); }
+  .notes-list .n.t { width: auto; border-radius: 99px; padding: 0 8px; border: none; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .clip video { width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px; background: #000; }
+  .clip-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .clip-bar .btn { padding: 5px 12px; font-size: 14px; }
+  .clip-bar .spacer { flex: 1; }
   .notes-list input { width: 100%; border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
   .notes-list blockquote { margin: 0 0 4px; padding-left: 10px; border-left: 3px solid var(--mine); color: var(--muted); font-size: 14px; }
   .icon-btn { border: none; background: none; color: var(--faint); cursor: pointer; padding: 2px 6px; font-size: 18px; line-height: 1; }
@@ -129,6 +134,7 @@ const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
 const storeKey = `review-board:${packetId}`;
 let packet, state, current = 0, submitted = false, zoom = null;
+const clips = {};
 
 const $ = (sel, el = document) => el.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -276,6 +282,8 @@ function renderContext(qi, ctx, ci) {
     const grid = h('div', { class: 'compare' });
     ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || ''), renderShot(qi, ci, k, img))));
     sec.append(grid);
+  } else if (ctx.type === 'video') {
+    sec.append(renderClip(qi, ci, ctx));
   } else if (ctx.type === 'text') {
     sec.append(renderDoc(qi, ci, ctx, list));
   }
@@ -293,13 +301,17 @@ function claudeMarks(ctx) {
 function refreshList(qi, ci, ctx, list, inLightbox = false) {
   const a = state.answers[qi];
   list.replaceChildren();
+  if (ctx.type === 'video') {
+    (ctx.moments || []).forEach(m => list.append(h('li', {}, seekBtn(qi, ci, m.t, false), h('span', {}, m.note), h('span'))));
+  }
   claudeMarks(ctx).forEach((m, i) => list.append(h('li', {}, h('span', { class: 'n' }, String(i + 1)), h('span', {}, m.note), h('span'))));
   a.markups.filter(m => m.ctx === ci).forEach((m, i) => {
-    const input = h('input', { type: 'text', placeholder: m.type === 'quote' ? 'What about this part?' : 'What should change here?', value: m.note });
+    const placeholder = { quote: 'What about this part?', moment: 'What happens here?' }[m.type] || 'What should change here?';
+    const input = h('input', { type: 'text', placeholder, value: m.note });
     input.addEventListener('input', () => { m.note = input.value; save(); });
     if (m.focus && inLightbox === !!zoom) { setTimeout(() => input.focus(), 0); delete m.focus; }
     list.append(h('li', {},
-      h('span', { class: 'n mine' }, m.type === 'quote' ? '❝' : String.fromCharCode(65 + i)),
+      m.type === 'moment' ? seekBtn(qi, ci, m.t, true) : h('span', { class: 'n mine' }, m.type === 'quote' ? '❝' : String.fromCharCode(65 + i)),
       h('span', {}, m.type === 'quote' && h('blockquote', {}, m.quote), input),
       h('button', { class: 'icon-btn', 'aria-label': 'Remove', title: 'Remove', onclick: () => {
         a.markups.splice(a.markups.indexOf(m), 1); save(); rerenderCurrent();
@@ -420,6 +432,36 @@ function markEl(m, label, mine) {
   }
   pin.style.left = m.x + '%'; pin.style.top = m.y + '%';
   return pin;
+}
+
+const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+function seekBtn(qi, ci, t, mine) {
+  return h('button', { class: 'n t' + (mine ? ' mine' : ''), type: 'button', title: 'Jump here', 'aria-label': `Jump to ${clock(t)}`, onclick: () => {
+    const v = clips[`${qi}:${ci}`]?.el;
+    if (v) { v.pause(); v.currentTime = t; v.focus(); }
+  } }, clock(t));
+}
+
+function renderClip(qi, ci, ctx) {
+  const a = state.answers[qi], key = `${qi}:${ci}`;
+  const pos = clips[key] ||= { t: 0, rate: 1 };
+  const v = h('video', { src: base + ctx.src, controls: true, preload: 'metadata', playsinline: true, muted: true, poster: ctx.poster ? base + ctx.poster : null, 'aria-label': ctx.caption || ctx.label || 'Clip' });
+  pos.el = v;
+  v.addEventListener('loadedmetadata', () => { if (pos.t) v.currentTime = pos.t; v.playbackRate = pos.rate; });
+  v.addEventListener('timeupdate', () => { pos.t = v.currentTime; stamp.textContent = `+ Note at ${clock(v.currentTime)}`; });
+  const speeds = [1, 0.5, 0.25].map(r => h('button', { class: 'btn', type: 'button', 'aria-pressed': pos.rate === r ? 'true' : 'false', onclick: e => {
+    pos.rate = r; v.playbackRate = r;
+    e.currentTarget.parentNode.querySelectorAll('[data-rate]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.rate) === r)));
+  }, 'data-rate': r }, r === 1 ? 'Normal speed' : `${r}×`));
+  const stamp = h('button', { class: 'btn', type: 'button', onclick: () => {
+    v.pause();
+    a.markups.push({ type: 'moment', ctx: ci, t: Math.round(v.currentTime * 10) / 10, note: '', focus: true }); save(); rerenderCurrent();
+  } }, `+ Note at ${clock(pos.t)}`);
+  return h('div', { class: 'clip' },
+    ctx.caption && h('div', { class: 'cap', style: 'font-size:13px;font-weight:500;margin-bottom:6px' }, ctx.caption), v,
+    h('div', { class: 'clip-bar' }, ...speeds, h('span', { class: 'spacer' }), stamp),
+    h('div', { class: 'hint' }, 'Slow it down to catch a flicker. Pause where something looks wrong and add a note at that moment.'));
 }
 
 function renderDoc(qi, ci, ctx, list) {
