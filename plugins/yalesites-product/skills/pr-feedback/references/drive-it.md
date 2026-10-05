@@ -244,11 +244,89 @@ retake it. Never relabel a bad image.
 Alongside the images, write `results.md` in the same folder, one line per step:
 
 ```
-| # | Step | Role | Result | Evidence | Screenshot |
-|---|---|---|---|---|---|
-| 1 | 30/70 appears in the section picker | site_admin | pass | listed between 70/30 and 50/50 | 01-pass-site_admin-picker.png |
-| 4 | No overflow at 360px | editor | fail | scrollWidth 412 > 360 | 04-fail-editor-overflow-360.png |
+| # | Step | Role | Result | Evidence | Screenshot | Clip |
+|---|---|---|---|---|---|---|
+| 1 | 30/70 appears in the section picker | site_admin | pass | listed between 70/30 and 50/50 | 01-pass-site_admin-picker.png | |
+| 4 | No overflow at 360px | editor | fail | scrollWidth 412 > 360 | 04-fail-editor-overflow-360.png | |
+| 6 | Escape closes the dialog and returns focus | editor | fail | focus lands on `body` | 06-fail-editor-escape-focus.png | 06-fail-editor-escape-focus.webm |
 ```
+
+### Clips: when a still is not enough
+
+A screenshot shows where a step ended. Some steps are about how it got there. For those, also
+record a short clip of the interaction, so the reviewer and the developer can watch it happen.
+The clip is extra evidence. It never replaces the step's screenshot, which still carries the
+result.
+
+**Record a clip when the thing under test moves or happens in order:**
+
+| Record a clip for | Example |
+|---|---|
+| Something that opens, closes, slides, or animates | A modal, the off-canvas sidebar, a menu, an accordion, tabs |
+| Focus order and keyboard paths | Tab through a form, Escape returns focus to the trigger |
+| An AJAX rebuild | A field that appears after a choice, the Layout Builder dialog swapping content |
+| Hover and drag | Hover states, drag to reorder |
+| A failure that happens partway through, or only sometimes | A flicker, a layout jump, a double submit, a dialog that opens and closes again |
+| An `ask` row that is about behavior | "The menu snaps open with no transition. Is that what we want?" |
+
+**Do not record a clip for** layout, color, copy, spacing, or widths. A screenshot shows those
+better, and the reviewer can pin it. Keep each clip to one interaction and under 30 seconds.
+Most runs need none, or two or three. If every step gets a clip, nobody watches them.
+
+The CLI records the page viewport only, not the browser UI or the desktop. It works headed or
+headless and needs no macOS permissions. Record in the same session as the step:
+
+```bash
+pw resize 1280 720
+pw video-start <run folder>/<NN>-<result>-<role>-<slug>.webm --size 1280x720 --cursor
+pw video-show-actions --highlight-style "outline: 3px solid #f9c642"
+pw video-chapter "Open the dialog" --duration 1200
+pw click <ref>
+pw run-code "async page => { await page.waitForTimeout(1500); }"
+pw video-chapter "Close it with Escape" --duration 1200
+pw press Escape
+pw run-code "async page => { await page.waitForTimeout(1500); }"
+pw video-stop
+```
+
+(`pw` is the small wrapper script "Driving the page" asks for, which runs
+`npx -y @playwright/cli@0.1.22 -s=<session>`.) Name the clip the same as
+the step's screenshot, with `.webm`. What we learned in trial runs:
+
+- **Resize first, and pass a matching `--size`.** The default frame fits 800x800, which shrinks
+  a desktop page until text is hard to read.
+- **Drive the steps you want seen with CLI commands** (`click <ref>`, `press`, `fill`).
+  `--cursor` draws a pointer that travels to each action and paces it by 800ms, so a viewer can
+  follow. Actions inside one `run-code` call run at machine speed: add a
+  `page.waitForTimeout(800)` between them.
+- **Hold the end state.** Wait about 1.5 seconds after the last action, or the clip stops on
+  the moment that matters.
+- **Chapter cards blur the page while they show.** Use one per sub-step, keep
+  `--duration` at 1000 to 1500, and add it before an action, never during the moment in
+  question.
+- **Clips have no audio.**
+
+**Look at every clip before using it,** the same as a screenshot. Make a frame strip, and read
+it:
+
+```bash
+ffmpeg -v error -y -i <clip>.webm -vf "fps=2,scale=320:-1,tile=6x5" -frames:v 1 <clip>-strip.png
+```
+
+Frames run left to right, top to bottom, half a second apart, so frame *n* (from 0) is at
+*n* / 2 seconds. Use that to find the timestamps the review board needs (`moments` in
+`review-board.md`). For a clip longer than 15 seconds, raise the tile count. If `ffmpeg` is
+not installed, keep the clip but say it is unchecked. The screenshot still carries the result.
+
+**For GitHub, also make an MP4.** GitHub accepts `.webm`, but QuickTime and Safari do not play
+it, and the MP4 is smaller:
+
+```bash
+ffmpeg -v error -y -i <clip>.webm -c:v libx264 -pix_fmt yuv420p -movflags +faststart <clip>.mp4
+```
+
+A 15-second clip at 1280x720 came out at about 2 MB as MP4. Keep clips under 10 MB, which GitHub
+accepts on every plan. If one is bigger, it is probably too long: re-record it shorter.
 
 ### Show the user as you go
 
@@ -256,6 +334,8 @@ Do not save screenshots silently and summarize at the end. After each group of s
 user what happened, with the screenshots, in the same turn:
 
 - In the Claude desktop app, send the images with the file-sharing tool so they render inline.
+  Send a clip's MP4 the same way, with its frame strip, so the user can see what it shows
+  without opening it.
 - Anywhere else, give the file paths.
 
 Show failures first and in full. Passes can be shown together. `ask` screenshots are shown with
@@ -296,7 +376,7 @@ an unsaved Layout Builder draft for it either. After deleting the node, clear it
 
 Report cleanup item by item. If anything could not be removed, say which item and why. Do not
 report cleanup as done while `.created` lists something still on the multidev. Leave the
-screenshots and `results.md`: they are the evidence for the review.
+screenshots, clips, and `results.md`: they are the evidence for the review.
 
 ## Handing results to the rest of the skill
 
@@ -307,10 +387,12 @@ screenshots and `results.md`: they are the evidence for the review.
   into the review comment, or, if the PR has a linked YaleSites-Internal issue, we post them
   there with `github-screenshots` and link that comment from the review. Ask which one.
   Posting on the issue is a GitHub write, so it needs the same confirmation as the review
-  itself.
-- **Asks feed Step 3b** as questions, with their screenshots. Those screenshots become the
+  itself. `github-screenshots` posts images only, so a clip (the MP4) always goes in by the
+  user dragging it into the review comment. A clip is often the fastest way for a developer
+  to see a timing or focus bug.
+- **Asks feed Step 3b** as questions, with their screenshots and clips. Those become the
   question's context on the review board (`references/review-board.md`), so frame each one so
-  the call can be made from the picture.
+  the call can be made from the picture or the clip.
 - **Passes support the approval.** The approval body can say what was verified and as which
   roles, instead of a bare "tested on multidev".
 - **Blocked steps are not passes.** Say plainly which steps could not run and why; the user

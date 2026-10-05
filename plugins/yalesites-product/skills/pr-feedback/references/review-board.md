@@ -7,7 +7,9 @@ numbered callouts on the exact spot in question, the relevant ticket text with t
 highlighted, and big option cards. The reviewer can drop their own pins, draw boxes, and comment
 on selected ticket text. Every screenshot has an Enlarge button that opens it full screen, at fit
 or actual size, and a `compare` block flips between its images in place with the arrow keys, which
-is how a 1px against 2px change becomes visible. One click sends everything back.
+is how a 1px against 2px change becomes visible. A `video` block plays a clip from the run, at
+normal, half, or quarter speed, and the reviewer can leave a note at any moment in it. One click
+sends everything back.
 
 It is a single local page (`scripts/review-board/index.html`) served by a small Python server
 (`scripts/review-board/server.py`) on `127.0.0.1`. Nothing leaves the machine, which matters:
@@ -35,10 +37,12 @@ One packet per review, or one per batch. The packet folder lives in the session 
 <scratchpad>/review-board/packets/<id>/
   packet.json
   01-fail-editor-overflow-360.png   (copied from the drive-it run folder)
+  06-fail-editor-escape-focus.webm
 ```
 
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
-batch. Copy every screenshot the packet names into the folder. If an `answers.json` is already
+batch. Copy every screenshot and clip the packet names into the folder. Use the `.webm` for clips:
+the board plays it in the browser. If an `answers.json` is already
 there from an earlier pass, delete it first, or the wait in Step R3 ends at once on stale answers.
 
 ### packet.json
@@ -83,6 +87,7 @@ Context blocks, any number per question, shown in order:
 |---|---|---|
 | `image` | `src`, `caption`, `label`, `marks[]`, optional `url` | One screenshot. An `ask` row from drive-it, or a `fail` that needs a ruling |
 | `compare` | `label`, `images[]` (each with `src`, `caption`, `marks[]`) | Side by side: multidev against `dev`, two layouts, two roles, two widths |
+| `video` | `src`, `caption`, `label`, `moments[]`, optional `poster`, optional `url` | One clip from drive-it ("Clips: when a still is not enough"). Behavior over time: a dialog, focus order, an AJAX rebuild, a flicker |
 | `text` | `label`, `body` (light markdown: `###`, `-` lists, `**bold**`, `` `code` ``, links), `highlight[]`, optional `url` | Ticket acceptance criteria, the PR description, the brief's evidence for the call |
 
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
@@ -90,6 +95,25 @@ and `h` is a box, and one without is a pin. Look at the screenshot before placin
 each one on the thing its note describes. A pin in the wrong place is worse than no pin.
 `highlight` strings must match the `body` text exactly, inline markdown included, or they do not
 highlight.
+
+`moments` are a clip's callouts: `{ "t": 4.5, "note": "The dialog opens, but focus stays on the
+page behind it." }`, with `t` in seconds. Each shows as a timestamp the reviewer clicks to jump
+there. Take `t` from the clip's frame strip, never from a clock kept while recording: each CLI
+call takes a second or two to start, so clock times drift. A moment at the wrong time is worse
+than none, the same as a misplaced pin.
+
+```json
+{
+  "type": "video",
+  "label": "Configure block dialog, editor, 1280px",
+  "src": "06-fail-editor-escape-focus.webm",
+  "caption": "Open the dialog, then press Escape",
+  "moments": [
+    { "t": 3.5, "note": "The dialog opens." },
+    { "t": 7, "note": "After Escape, focus lands on the page body, not on Add block." }
+  ]
+}
+```
 
 `pr` on a question overrides the packet's `pr`. Batch packets set it on every question, which
 tags each page with its PR. Keep a unit's questions next to each other.
@@ -187,7 +211,9 @@ types their answers in chat instead, use those and leave the wait to expire.
       "markups": [
         { "on": "Two column, Gray 100 selected", "file": "01-pass-site_admin-2col-gray100.png",
           "type": "box", "x": 10, "y": 30, "w": 20, "h": 40, "note": "The white swatch blends into the modal" },
-        { "on": "PR description", "file": null, "type": "quote", "quote": "are unchanged", "note": "Are they, though?" }
+        { "on": "PR description", "file": null, "type": "quote", "quote": "are unchanged", "note": "Are they, though?" },
+        { "on": "Open the dialog, then press Escape", "file": "06-fail-editor-escape-focus.webm",
+          "type": "moment", "t": 7.5, "note": "Focus should go back to Add block" }
       ]
     }
   ],
@@ -200,8 +226,10 @@ types their answers in chat instead, use those and leave the wait to expire.
 - **`markups`** are the reviewer's own observations, so they are first-class input for Step 4,
   like `ownRead`. A box or pin names the screenshot `file` and where on it. Describe it in words
   in the feedback ("the white swatch, left of the selected one"), because the developer never
-  sees the coordinates. A screenshot with markups is one worth suggesting they drag into the
-  review comment, since `gh` cannot upload images.
+  sees the coordinates. A `moment` names the clip `file` and `t`, the second they paused on.
+  Describe it the same way ("right after Escape, about 7 seconds in"). A screenshot or clip
+  with markups is one worth suggesting they drag into the review comment, since `gh` cannot
+  upload images or video. For a clip, suggest the MP4.
 - **Play the rulings back in chat before Step 4,** one line per question, so the decisions are in
   the transcript and the reviewer can correct a misclick before anything is drafted.
 
@@ -216,4 +244,5 @@ When the review is posted, or abandoned:
   task elsewhere. Leave a reused one running.
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
-- Leave the packet folder. Like the drive-it screenshots, it is the evidence for the review.
+- Leave the packet folder. Like the drive-it screenshots and clips, it is the evidence for the
+  review.

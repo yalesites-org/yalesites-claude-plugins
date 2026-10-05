@@ -248,7 +248,8 @@ an alternative, and do not ask whether to drive it. Read `references/drive-it.md
 it: preflight (including proof the server runs the branch, since green CI does not show that),
 the brief and plan before any testing, ask once before creating anything, log in per role with
 `drush uli`, run each step in a visible Playwright browser while the user watches, screenshot
-every result (pass, fail, ask, or blocked), check the Drupal log, and clean up. Show the
+every result (pass, fail, ask, or blocked), record a short clip where the step is about
+behavior over time (a dialog, focus order, an AJAX rebuild), check the Drupal log, and clean up. Show the
 screenshots as the run goes, failures first. Checks marked `ask` in
 `references/beyond-ac-checks.md` are never ruled on by the browser run; they go to Step 3b with
 their screenshots.
@@ -271,7 +272,7 @@ with the PR open.
 Two parts, and neither is optional.
 
 **Ask them on the review board, not in a chat text box.** Read `references/review-board.md` and
-follow it. The board is a local page that shows each held call with its screenshot at full size,
+follow it. The board is a local page that shows each held call with its screenshot at full size (or its clip),
 numbered callouts on the exact spot, the ticket or PR text with the key line highlighted, and big
 option cards. The reviewer can pin, box, and comment on what they see, and one click sends it all
 back. Both parts below go on it, Part 2 as the last page. `AskUserQuestion` is the fallback for
