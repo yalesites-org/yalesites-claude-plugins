@@ -23,7 +23,7 @@ Search these when you need implementation context, but always write the issue de
 - An epic's native GitHub progress bar only reflects open/closed sub-issue state. It has no awareness of custom Project board Status fields (e.g., "Ready for Deployment"), so don't expect it to show a custom workflow stage as complete — that needs to be tracked separately if it matters.
 - Some larger reworks run as "the whole epic lives in one PR" — nothing merges until the full scope is done and approved, rather than the usual merge-then-follow-up-tickets model. Confirm which model applies to a given epic before drafting PR review feedback that assumes work will continue after merge.
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
-- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields, and the issue-creation/update tools (`mcp__github__create_issue`/`update_issue`) can't write to them directly — see "Writing Status, Priority, and Size to the Board" below for how to actually set them.
+- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only `gh project item-edit` does. See "Writing Status, Priority, and Size to the Board" below.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
 - **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI, distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
 
@@ -190,11 +190,11 @@ Once the values are confirmed, proceed with grooming.
 
 ## Writing Status, Priority, and Size to the Board
 
-Once the issue exists and Status/Priority/Size are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`). Try the `gh` CLI first; fall back to the trigger-label workflow if it's not usable in this session (e.g. Cowork sessions that don't have `gh` configured).
+Once the issue exists and Status/Priority/Size are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`) with the `gh` CLI. This is the only supported path. **Never apply `status:*`, `priority:*`, or `size:*` labels as a substitute.** The label-sync workflow does not match them, so they leave the board field empty while looking like they worked. `references/board-status.md` has the history.
 
-**Preferred: `gh` CLI** — writes the Project v2 fields directly. No label workaround, no waiting on the GitHub Action to migrate it.
+**`gh` CLI** writes the Project v2 fields directly.
 
-1. Check it's usable before relying on it: `gh auth status`. `gh` needs to be installed, authenticated, and its token needs the `project` scope specifically — `read:project` alone can read the board but can't write to it. If any of that isn't true, stop and use the MCP fallback below instead of troubleshooting the user's `gh` setup mid-task.
+1. Check it's usable before relying on it: `gh auth status`. `gh` needs to be installed, authenticated, and its token needs the `project` scope specifically — `read:project` alone can read the board but can't write to it. If any of that isn't true, don't troubleshoot the user's `gh` setup mid-task. Go to "No `gh`" below.
 2. Make sure the issue is on the board (a no-op if it's already there): `gh project item-add 6 --owner yalesites-org --url <issue-url>`
 3. Set each field by name — no need to look up field or option IDs:
    ```bash
@@ -203,9 +203,10 @@ Once the issue exists and Status/Priority/Size are confirmed, write them to the 
    gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
    ```
    Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`).
-4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry — fall back to the label workflow below and tell the user `gh` wasn't available so they can fix it later.
+4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry. Go to "No `gh`" below.
+5. **Read it back.** After every field, milestone, assignee, and Issue Type write, confirm them in one query (the read-back query is in `references/board-status.md`, step 3 of "Writing a field"). A command that returned no error is not proof. Fix anything missing before reporting the ticket as done, and name which field it was.
 
-**Fallback: MCP + trigger labels** — for sessions without a working `gh`. Apply the `status:*`/`priority:*`/`size:*` trigger label via `mcp__github__update_issue` (e.g. `status:to-do`, `priority:high`, `size:m`). A GitHub Action reads the label, writes the corresponding Project v2 field, and deletes the label — so don't expect the label to persist as a way to check the value later. Note `update_issue` replaces the whole label array, so fetch current labels first and send the complete list.
+**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Size: XS`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
 
 ### Writing the milestone, assignee, and `claude` label
 
@@ -537,6 +538,8 @@ Before submitting or updating an issue, check:
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
+- [ ] Status, Priority, Size, Type, milestone, and assignee were **read back** from GitHub after writing, not assumed from a clean exit
+- [ ] No `status:*`, `priority:*`, or `size:*` label is on the ticket
 - [ ] Relevant labels are applied
 - [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first
 - [ ] Assignee is set, or the user explicitly chose to leave it unassigned

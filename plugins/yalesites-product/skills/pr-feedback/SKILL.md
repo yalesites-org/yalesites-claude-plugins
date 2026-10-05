@@ -388,19 +388,25 @@ on this PR.
 option on an existing block, that the shared visreg content set will not represent. The
 consequence is worth stating when you raise it: the next PR to touch this area will have no
 reference page either, so the gap compounds. Offer a follow-up ticket as a heads-up, not an
-`AskUserQuestion`. If they want it, draft it with the `ticket` skill's conventions, assigned to
+`AskUserQuestion`. If they want it, **invoke the `ticket` skill** to create it, assigned to
 whoever is running this, with acceptance criteria naming the specific block and the page it
 belongs on under `/blocks-for-visreg` or `/content-types`.
 
 **B. Documentation.** The brief flags a documentation item in the ticket's acceptance criteria
 that the PR does not include, or user-facing behavior changing with no doc change anywhere.
-Offer a follow-up ticket. If they want it:
+Offer a follow-up ticket. If they want it, **invoke the `ticket` skill** to create it, with:
 
 - **Assignee:** whoever is running this skill (the PM), not the PR's developer.
 - **Title prefix:** `Docs:`, per the `ticket` skill's conventions.
 - **Where it lives:** ask which applies. External and editor-facing is yalesites.yale.edu.
   Internal is Teams, or GitHub (the org-wide internal knowledge repo, or a repo-specific
   README or docs folder).
+
+**Every follow-up ticket goes through the `ticket` skill, never a hand-written `gh issue create`.**
+Copying its body format is not enough. The skill is what sets Status, Priority, Size, and Issue
+Type on the board and reads them back. A ticket written by hand lands with the right labels and
+an empty board, which is how `YaleSites-Internal#1870` shipped without Priority or Size on
+2026-10-05.
 
 If the brief's follow-ups section is empty, skip this step without comment. Do not go hunting
 for follow-up work the audit did not surface.
