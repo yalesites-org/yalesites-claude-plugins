@@ -101,10 +101,31 @@ page, such as a simulated deploy, and say so in the caption. A link is only usef
 shows still exists, which is one reason Step D5 of `drive-it.md` keeps test content on PR
 multidevs.
 
-**Name each side by what it is, never "A" and "B".** Captions, labels, notes, and question text
-use the environment's own name: `Develop:` and `Vite:`, `pr-1612:` and `pr-1413:`, `Published:`
-and `Preview:`. The reviewer reads one question at a time and should never have to remember
-which letter is which. Put the left side first in every caption pair, the same way every time.
+**Label each side by what differs between them, never "A" and "B".** Any side-by-side, a
+two-environment parity run or a single `compare` block, gets labels that say what is being
+compared. The reviewer reads one question at a time and should never have to remember which
+letter, or which multidev number, means which. Pick the one thing that differs and name it in
+a word or two:
+
+| Comparing | Label the sides | Not |
+|---|---|---|
+| Current code against a PR | `Develop:` / `This PR:`, or the change itself (`Webpack:` / `Vite:`) | `A:` / `B:`, `pr-1612:` / `pr-1413:` |
+| Published Storybook against a deploy preview | `Published:` / `Preview:`, or the change itself | `Prod:` / `Netlify:` |
+| Two roles | `Editor:` / `Site admin:` | `User 1:` / `User 2:` |
+| Two widths | `1440px:` / `360px:` | `Desktop:` / `Small:` |
+| Two layouts or themes | `33/67:` / `50/50:`, `Theme One:` / `Theme Four:` | `Left:` / `Right:` |
+| Before and after an action | `Before Save:` / `After Save:` | `1:` / `2:` |
+
+Environment IDs, URLs, and commits are what the labels stand for, not the labels themselves.
+Put them in a legend in the packet `subtitle`, one entry per label, so the mapping is stated
+once at the top of every page:
+
+```
+Develop = pr-1612, develop at 41ed37c (Storybook 8, webpack) · Vite = pr-1413, 1435 branch at b556763 (Storybook 10, Vite)
+```
+
+Use the same labels everywhere in the packet: captions, block labels, mark notes, question
+text, and option details. Put the same side on the left in every pair, the baseline first.
 
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
 and `h` is a box, and one without is a pin. Look at the screenshot before placing marks, and put
