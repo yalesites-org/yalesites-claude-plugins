@@ -280,7 +280,7 @@ function renderContext(qi, ctx, ci) {
     sec.append(renderShot(qi, ci, 0, ctx));
   } else if (ctx.type === 'compare') {
     const grid = h('div', { class: 'compare' });
-    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || ''), renderShot(qi, ci, k, img))));
+    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || '', img.url ? h('a', { href: img.url, target: '_blank', rel: 'noopener', style: 'margin-left:8px;white-space:nowrap' }, 'Open ↗') : null), renderShot(qi, ci, k, img))));
     sec.append(grid);
   } else if (ctx.type === 'video') {
     sec.append(renderClip(qi, ci, ctx));

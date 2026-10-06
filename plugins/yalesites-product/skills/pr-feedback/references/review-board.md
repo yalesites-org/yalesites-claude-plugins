@@ -86,9 +86,25 @@ Context blocks, any number per question, shown in order:
 | `type` | Fields | Use it for |
 |---|---|---|
 | `image` | `src`, `caption`, `label`, `marks[]`, optional `url` | One screenshot. An `ask` row from drive-it, or a `fail` that needs a ruling |
-| `compare` | `label`, `images[]` (each with `src`, `caption`, `marks[]`) | Side by side: multidev against `dev`, two layouts, two roles, two widths |
+| `compare` | `label`, `images[]` (each with `src`, `caption`, `marks[]`, optional `url`) | Side by side: multidev against `dev`, two layouts, two roles, two widths |
 | `video` | `src`, `caption`, `label`, `moments[]`, optional `poster`, optional `url` | One clip from drive-it ("Clips: when a still is not enough"). Behavior over time: a dialog, focus order, an AJAX rebuild, a flicker |
 | `text` | `label`, `body` (light markdown: `###`, `-` lists, `**bold**`, `` `code` ``, links), `highlight[]`, optional `url` | Ticket acceptance criteria, the PR description, the brief's evidence for the call |
+
+**Link every screenshot and clip to the live page it shows.** A block-level `url` puts one
+"Open ↗" link on the block; on a `compare` block, give each image its own `url` instead, so each
+side opens its own environment (the same story on the published Storybook and on the deploy
+preview, the same path on two multidevs). The reviewer uses these to check a finding with their
+own eyes before ruling on it, which is the point of a human review. Link the exact story,
+docs page, or path, not a home page. For a finding read from code, link the file the site
+actually serves (the compiled JS, CSS, or sprite). Leave `url` off only when there is no live
+page, such as a simulated deploy, and say so in the caption. A link is only useful if what it
+shows still exists, which is one reason Step D5 of `drive-it.md` keeps test content on PR
+multidevs.
+
+**Name each side by what it is, never "A" and "B".** Captions, labels, notes, and question text
+use the environment's own name: `Develop:` and `Vite:`, `pr-1612:` and `pr-1413:`, `Published:`
+and `Preview:`. The reviewer reads one question at a time and should never have to remember
+which letter is which. Put the left side first in every caption pair, the same way every time.
 
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
 and `h` is a box, and one without is a pin. Look at the screenshot before placing marks, and put
