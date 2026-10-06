@@ -299,6 +299,13 @@ the step's screenshot, with `.webm`. What we learned in trial runs:
 
 - **Resize first, and pass a matching `--size`.** The default frame fits 800x800, which shrinks
   a desktop page until text is hard to read.
+- **Fit the whole component in the frame, for the whole clip.** Measure the element first
+  (`boundingBox()` on it) and size the viewport to its height plus a little margin, keeping the
+  width you are testing at. Then scroll its top edge to the top of the frame before
+  `video-start`. 1280x720 is not a default to reach for: a month calendar is about 1,100px tall
+  at 1280px wide, and a 720px clip of it cut off the rows and the month controls the bug
+  depended on, so the reviewer could not follow it. If the component is taller than a sensible
+  frame, record the part the bug happens in and say so in the caption.
 - **Drive the steps you want seen with CLI commands** (`click <ref>`, `press`, `fill`).
   `--cursor` draws a pointer that travels to each action and paces it by 800ms, so a viewer can
   follow. Actions inside one `run-code` call run at machine speed: add a
