@@ -116,8 +116,12 @@ site itself; a PR multidev is a disposable copy. Still, ask the user once per PR
 - creating `qa-<role>` users
 - changing a setting
 
-Only these kinds, because Step D5 has a removal or revert step for each. Anything else a step
-would need is out of bounds: say so and hand that step off.
+Only these kinds, because Step D5 knows how to handle each one. Anything else a step would
+need is out of bounds: say so and hand that step off.
+
+Say in the same question what happens afterwards: on a `pr-<N>` multidev the test content
+stays after the run, so the reviewer can open it and check the findings by hand, and settings
+go back to their original values. See Step D5.
 
 Offer the alternative in the same question: test on an existing page such as
 `/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
@@ -295,6 +299,13 @@ the step's screenshot, with `.webm`. What we learned in trial runs:
 
 - **Resize first, and pass a matching `--size`.** The default frame fits 800x800, which shrinks
   a desktop page until text is hard to read.
+- **Fit the whole component in the frame, for the whole clip.** Measure the element first
+  (`boundingBox()` on it) and size the viewport to its height plus a little margin, keeping the
+  width you are testing at. Then scroll its top edge to the top of the frame before
+  `video-start`. 1280x720 is not a default to reach for: a month calendar is about 1,100px tall
+  at 1280px wide, and a 720px clip of it cut off the rows and the month controls the bug
+  depended on, so the reviewer could not follow it. If the component is taller than a sensible
+  frame, record the part the bug happens in and say so in the caption.
 - **Drive the steps you want seen with CLI commands** (`click <ref>`, `press`, `fill`).
   `--cursor` draws a pointer that travels to each action and paces it by 800ms, so a viewer can
   follow. Actions inside one `run-code` call run at machine speed: add a
@@ -356,8 +367,33 @@ reviewer) shows up in the same log, and its access-denied entries are not the ru
 
 ## Step D5: Clean up
 
-Remove exactly what `.created` lists, and nothing else. Check each target before removing it
-(its title, name, or current value), and work through the kinds in this order:
+**On a `pr-<N>` multidev, keep the test content and revert only the settings.** Pantheon
+deletes a PR multidev when the PR merges, so leftover test pages cost nothing. Deleting them
+costs a lot: the review board links straight to those pages, and a finding the reviewer cannot
+reproduce by hand is one they cannot confirm. This is not hypothetical. On the 1435 Vite
+parity run, cleanup deleted the four calendar events that the top finding needed, and the
+reviewer opened the board link to an empty calendar.
+
+| Kind | On `pr-<N>` | Anywhere else |
+|---|---|---|
+| Setting | Revert it | Revert it |
+| Test page, reusable block, media, file | **Keep it** | Remove it |
+| `qa-<role>` user | **Keep it**, so role checks can be repeated with `uli` | Remove it |
+| Browser sessions | Close them | Close them |
+
+Revert settings even on `pr-<N>`: a changed setting alters every page for the next tester,
+who has no way to know it was changed. Kept content does not do that.
+
+For kept items, mark them in `.created` (`node 84 kept`) and list them in the report with
+their URLs, so the reviewer can find them.
+
+"Anywhere else" covers `dev`, `test`, `live`, and any multidev that is not a PR's own
+(a shared or long-lived one). If you are unsure which kind of environment it is, ask before
+leaving anything behind.
+
+When removing, remove exactly what `.created` lists, and nothing else. Check each target
+before removing or reverting it (its title, name, or current value), and work through the
+kinds in this order:
 
 | Kind | Check | Remove | Confirm |
 |---|---|---|---|
@@ -374,8 +410,9 @@ an unsaved Layout Builder draft for it either. After deleting the node, clear it
 `sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND (name = 'node.<nid>' OR name LIKE 'node.<nid>.%')"`. Then close every browser session
 (`npx -y @playwright/cli@0.1.22 -s=<session> close`).
 
-Report cleanup item by item. If anything could not be removed, say which item and why. Do not
-report cleanup as done while `.created` lists something still on the multidev. Leave the
+Report cleanup item by item, kept items included. If anything could not be removed or
+reverted, say which item and why. Do not report cleanup as done while `.created` lists a
+setting that has not been reverted, or, off a `pr-<N>` multidev, anything still in place. Leave the
 screenshots, clips, and `results.md`: they are the evidence for the review.
 
 ## Handing results to the rest of the skill

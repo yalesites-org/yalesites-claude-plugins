@@ -249,7 +249,8 @@ it: preflight (including proof the server runs the branch, since green CI does n
 the brief and plan before any testing, ask once before creating anything, log in per role with
 `drush uli`, run each step in a visible Playwright browser while the user watches, screenshot
 every result (pass, fail, ask, or blocked), record a short clip where the step is about
-behavior over time (a dialog, focus order, an AJAX rebuild), check the Drupal log, and clean up. Show the
+behavior over time (a dialog, focus order, an AJAX rebuild), check the Drupal log, and clean up (settings reverted, test content kept on a PR multidev so the
+reviewer can recheck it). Show the
 screenshots as the run goes, failures first. Checks marked `ask` in
 `references/beyond-ac-checks.md` are never ruled on by the browser run; they go to Step 3b with
 their screenshots.
