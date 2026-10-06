@@ -48,6 +48,8 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json title -q .title
    ```
 
+   **ADR check:** if the branch adds or edits an ADR (architecture decision record) in yalesites-project, component-library-twig, atomic, or tokens, for example `docs/adr-*.md` or anything under an `adr/` folder, **stop and warn the user.** ADRs belong in `yalesites-org/YaleSites-Internal` under `docs/adr/`, not in the product repos. Offer to move the file to a matching branch in YaleSites-Internal and open the PR there instead. Only continue in the product repo if the user explicitly says to.
+
 3. **Detect cross-repo changes**
    - Check if the same branch exists with commits in any other repos (atomic, component-library-twig, tokens)
    - If so, those repos get PRs first — yalesites-project is always last (its CI/CD picks up companion branches during build)
