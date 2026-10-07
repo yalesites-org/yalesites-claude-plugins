@@ -79,7 +79,8 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
    Each PR must include:
    - `--assignee @me`
-   - `--base develop`
+   - `--base <branch>`: the parent sub-issue branch when the work is stacked on one (the caller decides, not the script). Otherwise the output of `scripts/epic-branch.sh <issue> <repo> --ensure`, run per repo, companion repos first. It prints the epic branch (creating it and its draft Epic PR if missing) for epic work, and `develop` (`main` in tokens) for standalone or epic-level issues.
+   - When the base is an epic branch, add to Description of work: `- Part of epic yalesites-org/YaleSites-Internal#<epic> ; targets the epic branch <branch>.`
    - Title format: `{issue number}: {issue title}` — identical to the H2 link text in the PR body (e.g. `1025: Ensure Event Date/Time Changes in Campus Groups Sync to Website`). Do not use conventional commit style for the PR title.
    - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
    - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
