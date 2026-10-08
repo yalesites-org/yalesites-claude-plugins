@@ -1,7 +1,7 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'."
-argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product]"
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
+argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product] [--prep]"
 ---
 
 # YaleSites PR Feedback Skill
@@ -29,6 +29,11 @@ per unit of work, assembles a single testing sitting grouped by environment, and
 held product calls. What it deliberately does not batch is the approve or request-changes call:
 that stays one explicit ruling per unit of work, because a blanket approval posted across six
 PRs under the user's account is the worst thing this skill can do.
+
+**Running with `--prep`?** Read `references/prep-mode.md` and follow it instead of the steps
+below. Prep mode runs unattended, usually on a schedule: it does Steps 0 to 3 ahead of time,
+drives the multidev headless, and leaves a review board packet for each PR. It never posts to
+GitHub. A later review on the same PR picks the packet up at Step 1.
 
 ---
 
@@ -134,6 +139,8 @@ brief, not from the diff.** Re-deriving it is the single biggest waste in this r
    gh pr view NUMBER --repo yalesites-org/REPO \
      --json title,url,headRefOid,author,assignees,labels,isDraft
    ```
+   Then check for a prepped board first (see "Start from a prepped board" below). When there is
+   a current one, it already covers this step, Step 2, and the browser run in Step 3.
 2. Read the brief at `~/.claude/yalesites/pr-prereview/briefs/{repo}-{number}.md`.
 3. Compare the brief's **Brief written against SHA** line to the PR's `headRefOid`.
 
@@ -146,6 +153,30 @@ brief, not from the diff.** Re-deriving it is the single biggest waste in this r
 The dry-run fallback matters: it means this skill has exactly one deep-dive implementation
 to maintain, living in `pr-prereview`, and a PR the schedule never saw still gets reviewed
 properly rather than shallowly.
+
+### Start from a prepped board
+
+Prep mode (`references/prep-mode.md`) may already have done Steps 1 to 3 for this PR, including
+the driven run. Check before loading anything else:
+
+```bash
+python3 <skill-dir>/scripts/review-prep/prep_status.py get REPO#NUMBER --head <headRefOid>
+```
+
+| `state` | What to do |
+|---|---|
+| `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir`, and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done |
+| `running` | A prep run is working on it now. Say so, and offer to wait for it or to review now. Never drive the same multidev from two sessions at once |
+| `stale` | The developer pushed after the prep. Say so, then run the review the normal way. The old packet is not reused |
+| `failed` | Say the recorded reason in one line, then run the review the normal way. A failure from the environment (no multidev, branch not deployed) usually fails the live run too, so check it first |
+| `none`, or the script is missing | Run the review the normal way, without comment |
+
+If `prep.json` says cleanup failed, name the items still on the multidev before anything else.
+They were left by the prep run and need removing (`drive-it.md` Step D5).
+
+On the `ready` path, the review still owes everything after Step 3b: the reviewer's rulings,
+Steps 4 to 10, and one explicit approve or request-changes call. A prepped board saves the wait,
+not the review.
 
 **The brief is local and stays local.** It contains the product calls the audit is forbidden
 to publish. Nothing from its "Your calls" or "Not checked here" sections goes onto GitHub
@@ -240,7 +271,8 @@ once the behavior is settled.)
 
 ### Then drive it, or hand it off
 
-**Every `yalesites-project` review gets a driven browser run.** This is not optional, and it
+**Every `yalesites-project` review gets a driven browser run.** A current prepped board
+(Step 1) already carries one, so it is not repeated. Otherwise it is not optional, and it
 does not depend on where the brief came from. A brief the scheduled `pr-prereview` pass wrote,
 a stale one refreshed from the new commits, and one written at the start of this session by
 the Step 1 dry-run fallback all lead to the same run. Do not offer the hand-off walkthrough as
@@ -278,6 +310,8 @@ option cards. The reviewer can pin, box, and comment on what they see, and one c
 back. Both parts below go on it, Part 2 as the last page. `AskUserQuestion` is the fallback for
 the cases that reference lists (no in-lane calls, no local browser, or a reviewer who prefers
 chat). The sorting rules below decide what goes on the board, and they do not change.
+When Step 1 found a current prepped board, the packet is already built: start the board on it
+(`review-board.md` Step R2) instead of building a new one.
 
 **Part 1, the held calls.** Put the brief's **Your calls** items to the user. They
 are already scoped to real product decisions (copy, defaults, role gating, scope) because the

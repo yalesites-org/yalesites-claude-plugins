@@ -116,6 +116,11 @@ One subagent per **unit of work**, not per PR. Siblings go to the same agent so 
 acceptance-criteria coverage across all the repos the ticket touches. Send every agent in a
 single message so they run concurrently.
 
+**Check for prepped boards first.** Run `SKILL.md` Step 1's status check on every PR in the work
+set. A unit whose PRs all read `ready` was prepped against its current heads
+(`references/prep-mode.md`), so it gets no subagent: its plan, driven results, and questions are
+already in its packet. Say in the work-set table which units are prepped.
+
 Use the `general-purpose` agent type. Each prompt must state these limits, because a subagent
 cannot ask and will otherwise improvise:
 
@@ -240,7 +245,8 @@ Rules that keep this useful instead of noise:
 ## Step B4: Batch the held calls
 
 **On the review board** (`references/review-board.md`), build one `batch-<yyyy-mm-dd>` packet
-for every unit. Set `pr` on each question so its page is tagged with the PR, keep a unit's
+for every unit. For a prepped unit, copy its questions out of its `packet.json` (setting `pr` on
+each) and its images into the batch folder, rather than writing them again. Set `pr` on each question so its page is tagged with the PR, keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.
 
