@@ -214,6 +214,7 @@ If the user agrees to deviate from a ticket, offer to update the AC. Rewrite it 
 ## Related skills
 
 - `release-prep`: its Feature Documentation phase should hand off to this skill for the actual drafting
+- `yalesites-docs-board`: runs this skill's drafting for a batch of tickets and puts each draft on a side-by-side review board before anything is built
 - `ticket`: for writing the ticket, rather than the page
 - `ux-research`: the archetypes referenced above
 - `yalesites` (platform reference): `blocks-reference.md` and `views-reference.md` for suggesting Layout Builder components
