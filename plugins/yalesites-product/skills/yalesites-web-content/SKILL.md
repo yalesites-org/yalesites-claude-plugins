@@ -140,7 +140,7 @@ As you draft, note which block fits each section rather than leaving the user to
 
 Put this in the **Suggested blocks** line of the config block, not scattered through the copy, so it reads as build guidance rather than clutter.
 
-When the page is new (not a revision), also use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, skip this step): consult its `references/page-patterns.md` for the block sequence and length norms the community actually uses, and its `references/exemplars.md` when you want to point the user at a live page that uses a suggested block well. Keep it to a sentence in the Suggested blocks line; the portfolio data is there to make the suggestion grounded, not to pad the draft.
+When the page is new (not a revision), also use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, skip this step): consult its `references/page-patterns.md` for the tagged page-building rules and length norms (its block sequences follow the crawler's order, not page order, and are not to be cited until the page-order recount lands), and its `references/exemplars.md` when you want to point the user at a live page that uses a suggested block well. Keep it to a sentence in the Suggested blocks line; the portfolio data is there to make the suggestion grounded, not to pad the draft.
 
 ### Reuse what the site already does
 
