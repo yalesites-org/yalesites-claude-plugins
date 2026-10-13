@@ -147,12 +147,22 @@ run on the same PR finds them already there. Before creating a user, check for i
 (`terminus drush ... -- user:information qa-<role>`) and reuse it if it exists, since
 `user:create` fails on a duplicate name. Before creating content, read the `.created` files of
 earlier run folders for the same PR (`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-*/`) and
-reuse a `kept` item that still exists, is still ours, and fits the step. Still ours means its
-title still starts with `QA pr-<N> ` with the trailing space (check with the `sqlq` title query
-from D5; `QA pr-141` must not match `QA pr-1413 ...`) or, for a user, its name still starts
-with `qa-`: a multidev rebuilt from `dev` can reuse a node id for real content. Write a reused
-item into this run's `.created` as `pr-<N> node 84 reused`, so D5 knows this run did not make it
-and must never remove it.
+reuse a `kept` item that still exists, is still ours, and fits the step. Only nodes and users
+can be shown to be ours, so only they are reused; kept media, files, and reusable blocks have no
+ownership check and are recreated instead. A node is still ours when its title still starts
+with `QA pr-<N> ` with the trailing space (check with the `sqlq` title query from D5;
+`QA pr-141` must not match `QA pr-1413 ...`). A user is still ours when `user:information`
+shows its roles are exactly `<role>` plus authenticated; the name alone proves nothing, since
+you looked it up by name, and a multidev rebuilt from `dev` can carry someone else's
+`qa-editor` with other roles, or reuse a node id for real content. A user with any other role
+set means stop and ask. Write a reused item into this run's `.created` as
+`pr-<N> node 84 reused`, so D5 knows this run did not make it and must never remove it.
+
+An earlier run folder for this PR whose `.created` has no `kept` or `reused` markers is a run
+that stopped before D5 (a crash, a preflight failure, a user stop). Its lines for this PR's own
+multidev are kept candidates under the same ownership checks: a node or user that passes is
+reusable and becomes `kept` at this run's D5; one that fails is reported, not touched; its media,
+files, and reusable blocks are reported as leftovers for the user to decide on.
 
 Reuse only what the step reads. A step that tests creating or saving (and any step whose
 earlier finding was a create or save bug) runs against the new code only if it creates the

@@ -83,7 +83,10 @@ and run the same steps in each.
     || { terminus drush <site>.<env> -- user:create qa-editor --mail=qa-editor@example.invalid \
          && terminus drush <site>.<env> -- user:role:add editor qa-editor; }
   ```
-  A reused user is recorded as `user qa-editor reused` in `.created`.
+  A reused user is recorded as `pr-<N> user qa-editor reused` in `.created` (the environment
+  column first, as every `.created` line has it), and only after `user:information` shows its
+  roles are exactly `editor` plus authenticated; a different role set means it is not ours, so
+  stop and ask rather than reuse.
 
   Anywhere else (`dev`, a shared multidev, another PR's multidev used as a baseline), an
   existing `qa-<role>` is not ours. Run `user:information qa-editor` first: if it finds a user,
