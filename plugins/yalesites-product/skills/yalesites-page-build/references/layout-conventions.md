@@ -46,4 +46,4 @@ A new block lands at the end of its region. Move it into place in the same pass,
 
 ## Screenshots on the page
 
-Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots): shoot only what words can't carry, capture block forms from the Layout Builder off-canvas modal (never `/layout_builder/add/block/...` on its own page), circle and arrow any control the text calls out, and treat PR multidev shots as placeholders. When a page goes up with a placeholder shot, list it under "screenshots still owed" in the handoff so the RC pass replaces it.
+Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). List placeholder shots and shots not yet taken under "screenshots still owed" in the handoff, so the RC pass takes or replaces them.

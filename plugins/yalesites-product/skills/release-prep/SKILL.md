@@ -258,7 +258,7 @@ Filter client-side for items whose Status is "Done", then keep only the open iss
 
 **Timing is the whole point of this phase.** Run it as soon as the first RC is cut, immediately after the first pass of Phase 1 confirms the PR list. Testers work the RC against these issues, so steps that arrive later than the RC are steps nobody used. If you reach this phase and QA is already underway, you are late: say so, and prioritise the issues still untested rather than working through the list in order.
 
-**Swap placeholder doc screenshots in the same window.** Docs drafted before the RC often carry screenshots from a PR multidev, marked `*[SCREENSHOT (placeholder, PR multidev): ...]*` or listed as placeholders in the draft's notes. Once the RC multidev (the yalesites website RC) is up, retake each one there so it matches the live site, following the screenshot rules in `yalesites-web-content`, and update the staged draft. List any left over in the Step 5 report.
+**Take and swap doc screenshots in the same window.** Docs drafted before the RC carry two kinds of marker: `*[SCREENSHOT: ...]*` for a shot never taken (the common case, since `yalesites-web-content` defers them to the RC), and `*[SCREENSHOT (placeholder, PR multidev): ...]*` for a shot taken early on a PR multidev. Once the RC multidev of the yalesites website is up (named after the release branch on the `yalesites-yale-edu` Pantheon site, for example `https://v2260-yalesites-yale-edu.pantheonsite.io`; the release PR's "Environments ready for review" comment lists the exact URL), take the missing ones and retake the placeholders there, following the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). Then hand the shots to `yalesites-page-build` to update the staged draft: it owns the production safety rules (never publish, the user logs in with CAS, no `drush uli`), so release-prep never edits the draft on yalesites.yale.edu directly. List what was taken, retaken, and still owed in the Step 5 report.
 
 ### Step 1: Extract linked issues from PRs
 
@@ -321,6 +321,7 @@ After processing all issues, report a summary:
 - How many issues were updated with new testing steps
 - How many already had sufficient steps (no action needed)
 - Any issues where the PR description lacked enough detail to write confident testing steps (flag these for review)
+- Doc screenshots taken or retaken on the RC multidev, and any still owed
 
 ---
 

@@ -191,14 +191,30 @@ Mark them inline with the alt text written, so nothing gets published without it
 *Alt text: The Dashboard Settings form, with the Announcements section open.*
 ```
 
-Screenshots usually come later, during release testing on a stable environment. Say so in the handoff notes rather than blocking the draft.
+Take them on the RC multidev of the yalesites website during release testing. It is named after the release branch on the `yalesites-yale-edu` Pantheon site, for example `https://v2260-yalesites-yale-edu.pantheonsite.io`, and the release PR's "Environments ready for review" comment lists the exact URL. The draft does not block on them: leave the marker in place and say in the handoff notes which shots are still owed. If you shoot earlier on a PR multidev, mark the shot as a placeholder (last rule below).
 
-Rules for every docs screenshot (from our review of the 12-01-26 release docs):
+Rules for every docs screenshot:
 
 - **Use discretion.** A new field the text already describes does not need a screenshot. Shoot what words can't carry: rendered output, layouts, and UI in a place nobody would think to look.
-- **Shoot block forms the way editors see them.** Go to `/node/<nid>/layout`, click **Add block**, and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form.
-- **Annotate the control.** When the text calls out a specific button or admin control, circle it on the screenshot and add an arrow pointing to it.
-- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the RC phase, retake it on the RC multidev (the yalesites website RC) so it matches the live site. `release-prep` swaps them.
+- **Shoot block forms the way editors see them.** On a multidev or the RC, never on yalesites.yale.edu, go to `/node/<nid>/layout` for a page you created there, click **Add block**, and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form. Close the off-canvas form without saving (Cancel or the X), so the node is not left with an unsaved layout draft that locks the next editor out.
+- **Annotate the control.** When the text calls out a specific button or admin control, circle it and point an arrow at it. The Playwright CLI has no drawing tool, so inject the markup before the shot with `pw run-code` (the `pw` wrapper from `pr-feedback`'s `references/drive-it.md`), then take the screenshot:
+
+  ```bash
+  pw run-code "async page => { await page.evaluate(sel => {
+    const el = document.querySelector(sel); el.scrollIntoView({block: 'center'});
+    const r = el.getBoundingClientRect();
+    const ring = document.createElement('div');
+    ring.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;border:3px solid #d8262c;border-radius:999px;' +
+      'left:' + (r.left + scrollX - 10) + 'px;top:' + (r.top + scrollY - 10) + 'px;width:' + (r.width + 20) + 'px;height:' + (r.height + 20) + 'px';
+    const arrow = document.createElement('div'); arrow.textContent = '\u2190';
+    arrow.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;color:#d8262c;font:bold 48px/1 sans-serif;' +
+      'left:' + (r.right + scrollX + 16) + 'px;top:' + (r.top + scrollY + r.height / 2 - 24) + 'px';
+    document.body.append(ring, arrow);
+  }, '<css selector of the control>'); }"
+  ```
+
+  Reload the page afterwards so the markup does not leak into the next shot. If the shot is taken by hand instead, list the annotation as a manual step for the editor in the handoff notes rather than claiming it was done.
+- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the RC phase, retake it on the RC multidev named above so it matches the live site. `release-prep` swaps them.
 
 ## Step 5: Check the draft mechanically
 
