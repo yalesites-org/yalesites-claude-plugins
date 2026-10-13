@@ -10,6 +10,9 @@ allowed-tools:
   - Bash(git -C * push *)
   - Bash(git diff *)
   - Bash(git -C * diff *)
+  - Bash(git -C * fetch *)
+  - Bash(git -C * grep *)
+  - Bash(grep *)
   - Bash(git -C * checkout *)
   - Bash(git -C * add *)
   - Bash(git -C * rm *)
@@ -65,27 +68,27 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
 4. **ADR check** (always runs, with or without an issue, in every repo step 3 found)
 
-   ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. The convention, including how to recognize one, lives in the `yalesites` skill's `references/adr-conventions.md`. In each repo that has the branch, list the files the branch **adds** and match them by path or by first heading:
+   ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. The convention, including how to recognize one, lives in the `yalesites` skill's `references/adr-conventions.md` (if that plugin is installed; the rule itself is stated here). In each repo that has the branch, list the Markdown files the branch **adds** against the PR's base for that repo (`{base}` is `develop` for yalesites-project, atomic, and component-library-twig, `main` for tokens, or the epic branch when step 6 targets one), and match them by path segment or by H1 heading. Use `{branch}`, never `HEAD`: a companion checkout may have something else checked out.
 
    ```bash
-   git -C {repo} diff --name-only --diff-filter=A develop...HEAD | grep -iE 'adr|decision'
-   for f in $(git -C {repo} diff --name-only --diff-filter=A develop...HEAD -- '*.md'); do
-     grep -liE '^#.*(\bADR\b|decision record)' "{repo}/$f"
-   done
+   git -C {repo} fetch -q origin {base}
+   git -C {repo} diff --name-only --diff-filter=A origin/{base}...{branch} -- '*.md' | grep -iE '(^|/)(adr|decisions?)/|(^|/)adr([-_][^/]*)?\.md$'
+   git -C {repo} grep -l -iE '^# .*(\bADR\b|decision record)' {branch} -- '*.md'
    ```
 
-   Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+   A path match is any line from the second command. A heading match is a file that appears in both the added list (the second command without the `grep`) and the third command's output, so a `## Decision record` section in a README does not count. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
 
    - **No match:** continue.
-   - **Match, with a user present:** stop, show the file and repo, and offer to move it (below) and open the ADR PR in YaleSites-Internal instead. Only continue with the file in the product repo if the user explicitly says to.
-   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): do the move without asking, since that is the answer every time, and say so in the body of every PR this run opens.
+   - **Match, with a user present:** stop, show the file and repo, and offer to move it (below) and open the ADR PR in YaleSites-Internal instead. More than one match: show them all and ask which to move; each gets its own name. Only continue with the file in the product repo if the user explicitly says to.
+   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): move only on a strong signal, meaning exactly one added `.md` under an `adr/` or `decisions/` directory or with a basename starting `adr-`. A heading-only match, or more than one strong match, is left in place and flagged in the PR body for the reviewer. Say in every PR body this run opens what was moved or flagged.
 
-   The move needs a local YaleSites-Internal checkout. There usually is none, so clone one into the session scratchpad:
+   The move needs a local YaleSites-Internal checkout. There usually is none, so clone one into `{scratch}`, the session's scratchpad folder named in the environment block (never the repo). Check the branch out in the product repo first, so `cp` and `git rm` read the right tree:
 
    ```bash
    gh repo clone yalesites-org/YaleSites-Internal {scratch}/YaleSites-Internal
    git -C {scratch}/YaleSites-Internal checkout -b {issue}-{slug} main
    mkdir -p {scratch}/YaleSites-Internal/docs/adr
+   git -C {repo} checkout {branch}
    cp {repo}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{slug}.md
    git -C {scratch}/YaleSites-Internal add docs/adr
    git -C {scratch}/YaleSites-Internal commit -m "docs(adr): {issue} {short title}"
@@ -93,12 +96,13 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    git -C {repo} commit -m "chore({issue}): move ADR to YaleSites-Internal"
    ```
 
-   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`) and removed from the product branch, so the product PR no longer ships it. With no issue number, use the branch slug and say so. If the product branch held nothing but the ADR, skip its PR. Step 5 pushes both branches; step 6 opens the ADR PR against `main`.
+   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`) and removed from the product branch, so the product PR no longer ships it. With no issue number, use the branch slug and say so. If the product branch held nothing but the ADR: skip its PR, delete the remote branch if step 5 already pushed it (`git -C {repo} push origin --delete {branch}`), and leave that repo out of the step 7 cross-links. Step 5 pushes the remaining branches; step 6 opens the ADR PR against `main`.
 
-5. **Push the branch** in each affected repo if not already pushed
+5. **Push the branch** in each affected repo if not already pushed, and the ADR branch when step 4 made one
    ```bash
    git push -u origin {branch}
    git -C {repo-path} push -u origin {branch}
+   git -C {scratch}/YaleSites-Internal push -u origin {issue}-{slug}
    ```
 
 6. **Draft and create PRs** — companion repos first, yalesites-project last

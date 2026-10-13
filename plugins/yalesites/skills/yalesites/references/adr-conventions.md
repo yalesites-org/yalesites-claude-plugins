@@ -16,8 +16,10 @@ If the same issue also needs code changes, those still go in the product repos a
 
 Treat an **added** Markdown file as an ADR when either holds:
 
-- its path contains `adr` or `decision` (`docs/adr-foo.md`, `docs/adr/0002-x.md`, `docs/decisions/0002-search.md`, `ADR-001.md`, `docs/architecture/0001-x.md` with an ADR heading)
-- its first heading contains `ADR` or `decision record`
+- a path segment is `adr` or `decisions`, or the file name starts with `adr-` (`docs/adr-foo.md`, `docs/adr/0002-x.md`, `docs/decisions/0002-search.md`, `ADR-001.md`). Segment matches only: `loadRoutes.js` or a `decision-tree` component do not count
+- its H1 heading contains `ADR` or `decision record` (`docs/architecture/0001-x.md` with `# ADR 1: ...` at the top). A `## Decision record` section inside a README is not an ADR
+
+The first kind is a strong signal an unattended run may act on; the second only gets flagged for a person.
 
 Only added files count. An edit to an ADR that already exists in a product repo is not blocked; note it and leave the move to a follow-up.
 
