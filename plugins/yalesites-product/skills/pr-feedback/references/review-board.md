@@ -46,8 +46,13 @@ usual and put a symlink in it that points at the prepped packet:
 
 ```bash
 mkdir -p <scratchpad>/review-board/packets
-ln -s <packetDir> <scratchpad>/review-board/packets/<id>
+ln -sfn <packetDir> <scratchpad>/review-board/packets/<id>
 ```
+
+`-sfn` replaces an existing link in place. Without it, `ln` follows an old `packets/<id>` link and
+drops the new link inside the old packet folder, exits 0, and the board keeps serving the old
+packet. `-n` does not replace a real folder, so a non-link `packets/<id>` left by a packet built
+live earlier in the session has to be moved aside first (`mv packets/<id> packets/<id>-live-<time>`).
 
 `<packetDir>` is the versioned folder on the status entry Step 1 read
 (`~/.claude/yalesites/pr-review-prep/packets/<id>-<sha7>-<builtAt>`), never a path built from
