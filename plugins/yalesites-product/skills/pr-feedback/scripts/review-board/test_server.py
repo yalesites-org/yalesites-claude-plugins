@@ -210,6 +210,9 @@ class PortChoiceTest(unittest.TestCase):
                                     "--out", "decisions.json", "--app", "docs-board")
         self.assertIsNone(code)
         self.assertTrue(out.startswith("REVIEW_BOARD_URL http://localhost:"), out)
+        # --port 0 lets the OS pick, and the line has to carry the port it picked.
+        port = int(out.strip().rsplit(":", 1)[1])
+        self.assertGreater(port, 0, out)
 
     def test_refuses_a_board_dir_without_an_index(self):
         with tempfile.TemporaryDirectory() as empty:

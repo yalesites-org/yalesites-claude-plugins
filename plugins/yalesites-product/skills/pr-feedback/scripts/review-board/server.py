@@ -189,7 +189,8 @@ def main():
             continue
     else:
         sys.exit(f"No free port between {args.port} and {last}")
-    print(f"REVIEW_BOARD_URL http://localhost:{port}", flush=True)
+    # The bound port, not the loop variable: --port 0 asks the OS for one.
+    print(f"REVIEW_BOARD_URL http://localhost:{server.server_address[1]}", flush=True)
     server.serve_forever()
 
 
