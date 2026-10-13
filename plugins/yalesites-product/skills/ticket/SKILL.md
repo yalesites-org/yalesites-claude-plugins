@@ -265,7 +265,7 @@ Where this lands in the ticket: name the affected archetypes and the reasoning i
 
 ### Step 1c: Check how much it's actually used
 
-**Do this when the ticket names a specific block, section layout, or sitewide setting.** Skip it (silently) for everything else: usage data on a ticket that isn't about a measurable feature is fodder.
+**Do this when the ticket names a specific block, section layout, or sitewide setting.** Skip it (silently) for everything else: usage data on a ticket that isn't about a measurable feature is noise.
 
 Use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, skip this step silently and don't estimate usage numbers). Pull two things:
 
@@ -548,6 +548,7 @@ Before submitting or updating an issue, check:
 - [ ] Description is jargon-free and makes sense to a non-developer
 - [ ] Acceptance criteria covers dev, UX, accessibility, and docs angles
 - [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
+- [ ] For a ticket that names a specific block, section layout, or sitewide setting, the one-line adoption figure with its crawl vintage is in the Background and analysis block (Step 1c), or the `yalesites-portfolio` skill was unavailable and no number was estimated
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
 - [ ] Size is realistic — if unsure, err toward larger
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
