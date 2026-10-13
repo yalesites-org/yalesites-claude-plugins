@@ -150,5 +150,6 @@ Only when the user asks. For a new node, delete it from its Tasks sidebar (**Del
 ## Related skills
 
 - `yalesites-web-content`: writes the page draft this skill builds
+- `yalesites-docs-board`: sends approved drafts here in a batch, each with a block-by-block build plan (its ops)
 - `pr-feedback`: `references/drive-it.md` has the shared Playwright CLI setup and the screenshot discipline this skill borrows
 - `release-prep`: publishes the staged drafts on release day

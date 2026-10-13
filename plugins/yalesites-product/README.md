@@ -32,6 +32,11 @@ team with:
   (user guides, resource pages, release documentation), researched from the
   merged code and written in ASD-STE100 Simplified Technical English, with the
   Layout Builder blocks and config decisions handed over alongside the copy
+- **Docs board**: a batch of docs tickets at once, each matched against the
+  live sitemap and shown on a local side-by-side board (the live page's
+  screenshot beside the proposed blocks, with every addition, edit, and removal
+  highlighted). Approved site pages are built as unpublished drafts, and
+  approved internal docs are committed on a branch
 - **UX research** — the six current user archetypes, top pain points, delights,
   and platform usage data from the 2026 YaleSites UX Report for informing
   product decisions
@@ -74,6 +79,7 @@ knowledge that the workflow skills reference:
 | `ux-research` | Product decisions and feature evaluation |
 | `yalesites-web-content` | Writing or revising a page that will live on yalesites.yale.edu |
 | `yalesites-page-build` | Building a drafted page on yalesites.yale.edu in Layout Builder with Playwright, as an unpublished draft or a forward draft revision |
+| `yalesites-docs-board` | Working through a batch of docs tickets: match each to the live site, review every proposed change beside a screenshot of the page on a local board, then build only what was approved |
 | `beacon-question-set` | A quick content-accuracy question set for testing Beacon against one site |
 | `beacon-test-bank` | A full tiered test bank with guardrails, safety, and edge-case coverage |
 | `beacon-comparison-review` | Analyzing a Beacon AI Tester A/B comparison JSON export |
