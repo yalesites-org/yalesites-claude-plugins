@@ -221,7 +221,7 @@ def effective(entry, head=None, scope=None):
             entry["reason"] = "interrupted: the prep run stopped without finishing"
     if head and not sha_matches(entry.get("headSha"), head):
         return _stale(entry, f"recorded against {entry.get('headSha')}, the head is now {head}")
-    if scope and entry.get("scope") and entry["state"] in ("ready", "running") \
+    if scope and entry.get("scope") and entry["state"] in ("ready", "running", "failed") \
             and parse_scope(",".join(entry["scope"])) != parse_scope(",".join(scope)):
         return _stale(entry, f"prepped for scope {','.join(entry['scope'])}, "
                              f"this review is scoped to {','.join(scope)}")
@@ -285,11 +285,11 @@ def under_claim(data, prs, token):
 
 
 def carried(data, prs):
-    """`packetDir` and `runDir` as the claim recorded them, for ready and fail to keep."""
+    """`packetDir`, `runDir` and `scope` as the claim recorded them, for ready and fail to keep."""
     fields = {}
     for key, _ in prs:
         stored = data["prs"].get(key) or {}
-        for field in ("packetDir", "runDir"):
+        for field in ("packetDir", "runDir", "scope"):
             if stored.get(field) and field not in fields:
                 fields[field] = stored[field]
     return fields
@@ -425,7 +425,22 @@ def main(argv=None):
                                       f"this run's claim is lost, so its result is not recorded"}))
                     return EXIT_REFUSED
                 prs = under_claim(data, prs, token)
+                # A claim is only good inside the TTL. Past it, a live review may already
+                # have read the entry as failed, cleaned up, and started its own drive, so a
+                # late ready or fail must not turn the entry back over to this run.
+                expired = [key for key, _ in prs
+                           if (data["prs"].get(key) or {}).get("state") == "running"
+                           and effective(data["prs"][key])["state"] != "running"]
+                if expired:
+                    print(json.dumps({"recorded": False, "prs": [key for key, _ in prs], "reason":
+                                      f"the claim on {', '.join(expired)} expired (no heartbeat inside "
+                                      f"{int(RUNNING_TTL.total_seconds() // 60)} minutes); this run's result "
+                                      f"is not recorded, and its multidev content needs D5 cleanup"}))
+                    return EXIT_REFUSED
                 folders = carried(data, prs)
+                claimed_scope = folders.pop("scope", None)
+                if args.cmd == "fail":
+                    scope = claimed_scope
                 if args.cmd == "ready":
                     if args.packet_dir:
                         folders["packetDir"] = args.packet_dir
@@ -442,6 +457,8 @@ def main(argv=None):
                     entry["claim"] = token
                 if args.cmd in ("start", "ready"):
                     entry["packetId"] = args.packet
+                    entry["scope"] = scope
+                elif scope:
                     entry["scope"] = scope
                 if args.cmd == "ready":
                     entry.update(questions=args.questions, driven=args.driven,

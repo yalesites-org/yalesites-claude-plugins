@@ -500,6 +500,34 @@ class PrepStatusTest(unittest.TestCase):
         # The unit is free for the next run, which the zombie's heartbeat must not take back.
         self.assertEqual(self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")[0], 0)
 
+    def test_ready_or_fail_after_the_ttl_is_refused(self):
+        self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=5))
+        self.age("component-library-twig#774", prep_status.RUNNING_TTL + timedelta(minutes=5))
+        before = self.status()
+        code, out = self.run_cmd("ready", "--pr", f"yalesites-project#1608={SHA}", "--packet", "ysp-1608",
+                                 "--scope", SCOPE, "--claim", self.claim, "--questions", "3")
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        self.assertIn("expired", json.loads(out)["reason"])
+        code, out = self.run_cmd("fail", "--pr", f"yalesites-project#1608={SHA}", "--reason", "late",
+                                 "--claim", self.claim)
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        self.assertEqual(self.status(), before)
+        self.assertEqual(self.get("yalesites-project#1608")[1]["state"], "failed")
+
+    def test_fail_keeps_the_scope_and_another_scope_reads_stale(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        code, _ = self.run_cmd("fail", "--pr", f"yalesites-project#1608={SHA}", "--reason", "chrome died",
+                               "--claim", self.claim)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["scope"], prep_status.parse_scope(SCOPE))
+        same = self.get("yalesites-project#1608", head=SHA, scope=SCOPE)[1]
+        self.assertEqual(same["state"], "failed")
+        other = self.get("yalesites-project#1608", head=SHA, scope="code")[1]
+        self.assertEqual((other["state"], other["previousState"]), ("stale", "failed"))
+        # A differently scoped reviewer can claim the same head.
+        self.assertEqual(self.start(f"yalesites-project#1608={SHA}", scope="code")[0], 0)
+
     def test_heartbeat_under_another_runs_claim_fails(self):
         _, a = self.start(f"yalesites-project#1608={SHA}")
         self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
