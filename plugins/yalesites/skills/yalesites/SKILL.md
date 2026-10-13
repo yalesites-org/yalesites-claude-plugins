@@ -21,6 +21,8 @@ This skill gives you deep platform context. For most questions, the information 
 | Sitewide settings (Manage Settings page) | `references/settings-reference.md` |
 | User roles and editorial workflow | `references/user-roles-reference.md` |
 
+For *measured* usage across the live portfolio: block adoption percentages, config trends, exemplar sites ("who uses X best"), and real page-building patterns: use the `yalesites-portfolio` skill instead of estimating.
+
 ---
 
 ## Platform Architecture

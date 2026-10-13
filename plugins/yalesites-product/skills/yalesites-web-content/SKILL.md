@@ -140,6 +140,8 @@ As you draft, note which block fits each section rather than leaving the user to
 
 Put this in the **Suggested blocks** line of the config block, not scattered through the copy, so it reads as build guidance rather than clutter.
 
+When the page is new (not a revision), also use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, skip this step): consult its `references/page-patterns.md` for the tagged page-building rules and length norms (its block sequences follow the crawler's order, not page order, and are not to be cited until the page-order recount lands), and its `references/exemplars.md` when you want to point the user at a live page that uses a suggested block well. Keep it to a sentence in the Suggested blocks line; the portfolio data is there to make the suggestion grounded, not to pad the draft.
+
 ### Reuse what the site already does
 
 Some patterns repeat across YaleSites pages by design: a support callout with links to Office Hours and the team's email, a "Related Resources" list at the end of a page, a video demo embed. Before writing a new version of one of these from scratch, check `references/reusable-patterns.md` for the verified real examples and reuse the pattern rather than inventing a new phrasing.
@@ -191,7 +193,38 @@ Mark them inline with the alt text written, so nothing gets published without it
 *Alt text: The Dashboard Settings form, with the Announcements section open.*
 ```
 
-Screenshots usually come later, during release testing on a stable environment. Say so in the handoff notes rather than blocking the draft.
+Take them on the RC multidev of the yalesites website during release testing: `https://<rc>-yalesites-yale-edu.pantheonsite.io`, where `<rc>` is `v` plus the version digits (`v2260` for v2.26.0); copy it from the release PR's "Environments ready for review" comment. The URL table in the `yalesites-pr` skill's `references/preview-urls.md` is the one place that pattern is maintained. The draft does not block on them: leave the marker in place and say in the handoff notes which shots are still owed. If you shoot earlier on a PR multidev, mark the shot as a placeholder (last rule below).
+
+Rules for every docs screenshot:
+
+- **Use discretion.** A new field the text already describes does not need a screenshot. Shoot what words can't carry: rendered output, layouts, and UI in a place nobody would think to look.
+- **Shoot block forms the way editors see them.** Never on yalesites.yale.edu. Go to `/node/<nid>/layout` on a throwaway page on a PR multidev, or on an existing page on the RC. Before clicking **Add block**, look for a "You have unsaved changes" message or a "being edited by" lock already on the page: if either is there, that layout is someone else's work in progress, so pick a different page and never discard it. Then click **Add block** and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form. Leave the layout the way you found it: close the off-canvas form with Cancel or the X, and if the "You have unsaved changes" message appeared only after your own Add block, click **Discard changes**. Cancel alone does not clear an unsaved layout, and a leftover one locks the page for the next editor. Where the page comes from depends on the environment. On a PR multidev, a throwaway page is fine: the red "DO NOT CHANGE CONTENT" banner protects the visual regression site itself, and a PR multidev is a disposable copy of it. Follow `pr-feedback`'s `references/drive-it.md` Steps D0 through D5 as a whole for it: finish the D0 preflight (Terminus auth, the multidev exists, a browser launches) before anything is written, ask the user once with `AskUserQuestion` before creating anything, title it `QA pr-<N> <YYYY-MM-DD>:`, record it in a run folder's `.created`, and when the shots are done delete the throwaway page and keep the screenshots. On the RC multidev, which is the shared QA environment, create nothing: open **Add block** on an existing page, capture the form, then Cancel and Discard changes as above, so the page is left as found. Never create a page on the visreg site's `dev`, `test`, or `live`.
+- **Annotate the control.** When the text calls out a specific button or admin control, circle it and point an arrow at it. For a shot that only a reviewer will see, `pw highlight <ref>` before the shot and `pw highlight --hide` after is enough (the `pw` wrapper from `pr-feedback`'s `references/drive-it.md`). Docs shots are published, and the circle and arrow are the rule for them, which `highlight` cannot draw, so inject the markup with `pw run-code` before the shot. Resolve the control with a locator, so a selector that matches nothing fails with a clear error instead of a null dereference, and prefer `page.getByRole('button', { name: '...' })` over ids, which Drupal rebuilds (`edit-submit` becomes `edit-submit--2`). The selector sits inside a single-quoted JS string inside a double-quoted bash string, so it can hold neither kind of quote: write attribute values bare (`[data-drupal-selector=edit-actions-submit]`, valid CSS when the value is a plain identifier), or use `page.getByRole('button', { name: 'Add block' })` in place of `page.locator(...)`.
+
+  ```bash
+  pw run-code "async page => { await page.locator('<css selector>').first().evaluate(el => {
+    el.scrollIntoView({block: 'center'});
+    const r = el.getBoundingClientRect();
+    const ring = document.createElement('div'); ring.id = 'ys-doc-ring';
+    ring.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;border:3px solid #d8262c;border-radius:999px;' +
+      'left:' + (r.left + scrollX - 10) + 'px;top:' + (r.top + scrollY - 10) + 'px;width:' + (r.width + 20) + 'px;height:' + (r.height + 20) + 'px';
+    const onRight = r.right + 80 <= innerWidth;
+    const arrow = document.createElement('div'); arrow.id = 'ys-doc-arrow';
+    arrow.textContent = onRight ? '\u2190' : '\u2192';
+    arrow.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;color:#d8262c;font:bold 48px/1 sans-serif;' +
+      'left:' + (onRight ? r.right + scrollX + 16 : Math.max(scrollX + 8, r.left + scrollX - 64)) + 'px;top:' + (r.top + scrollY + r.height / 2 - 24) + 'px';
+    document.body.append(ring, arrow);
+  }); }"
+  ```
+
+  The arrow sits to the right of the control unless that would leave the viewport, which it does for most controls in the right-docked off-canvas tray; then it sits to the left, clamped so it cannot fall off the left edge either. After the shot, remove the markup rather than reloading, so an open tray is not dropped mid-edit:
+
+  ```bash
+  pw run-code "async page => { await page.evaluate(() => document.querySelectorAll('#ys-doc-ring, #ys-doc-arrow').forEach(n => n.remove())); }"
+  ```
+
+  Then close the tray with Cancel as the block-form rule says. If the shot is taken by hand instead, list the annotation as a manual step for the editor in the handoff notes rather than claiming it was done.
+- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the QA period, retake it on the RC multidev named above so it matches the live site. `release-prep` (Phase 2, Screenshots) retakes them and hands them to the user to place; nothing on the page changes until the user places them.
 
 ## Step 5: Check the draft mechanically
 
@@ -214,6 +247,7 @@ If the user agrees to deviate from a ticket, offer to update the AC. Rewrite it 
 ## Related skills
 
 - `release-prep`: its Feature Documentation phase should hand off to this skill for the actual drafting
+- `yalesites-docs-board`: runs this skill's drafting for a batch of tickets and puts each draft on a side-by-side review board before anything is built
 - `ticket`: for writing the ticket, rather than the page
 - `ux-research`: the archetypes referenced above
 - `yalesites` (platform reference): `blocks-reference.md` and `views-reference.md` for suggesting Layout Builder components

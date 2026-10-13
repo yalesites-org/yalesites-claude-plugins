@@ -40,10 +40,47 @@ One packet per review, or one per batch. The packet folder lives in the session 
   06-fail-editor-escape-focus.webm
 ```
 
+**A prepped packet is already built.** When `SKILL.md` Step 1 found one, do not write a packet,
+and do not start the server on the shared prep folder. Make this session's packets folder as
+usual and put a symlink in it that points at the prepped packet:
+
+```bash
+mkdir -p <scratchpad>/review-board/packets
+ln -sfn <packetDir> <scratchpad>/review-board/packets/<id>
+```
+
+`-sfn` replaces an existing link in place. Without it, `ln` follows an old `packets/<id>` link and
+drops the new link inside the old packet folder, exits 0, and the board keeps serving the old
+packet. `-n` does not replace a real folder, so a non-link `packets/<id>` left by a packet built
+live earlier in the session has to be moved aside first (`mv packets/<id> packets/<id>-live-<time>`).
+
+`<packetDir>` is the versioned folder on the status entry Step 1 read
+(`~/.claude/yalesites/pr-review-prep/packets/<id>-<sha7>-<builtAt>`), never a path built from
+the id: prep mode builds every run into its own folder and leaves the older ones in place, so
+the link is what pins this review to the packet it opened. A rebuild while the board is open
+lands in a new folder and does not touch this one.
+
+Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
+built here. The server follows the link, so the board reads the prepped files, and `answers.json`
+still lands inside the prepped packet, where Step R4 expects it. Archive a leftover `answers.json`
+there first, as below, never delete it: in a prepped packet it is an earlier reviewer's record.
+The per-session folder is what keeps Step R2's health check honest: a
+server started on the shared folder would answer every session's check with the same `packets`
+path. Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
+
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
 batch. Copy every screenshot and clip the packet names into the folder. Use the `.webm` for clips:
-the board plays it in the browser. If an `answers.json` is already
-there from an earlier pass, delete it first, or the wait in Step R3 ends at once on stale answers.
+the board plays it in the browser. If an `answers.json` is already there from an earlier pass,
+rename it to `answers-<timestamp>.json` first, with the time now in ISO basic form, or the wait
+in Step R3 ends at once on stale answers:
+
+```bash
+mv <packet-dir>/answers.json "<packet-dir>/answers-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+That gives `answers-20261013T161200Z.json`. The archived file is the record of that pass and
+stays with the packet (Step R4, and `references/prep-mode.md` Step P4 for a prepped one). Never
+delete it.
 
 ### packet.json
 
@@ -86,9 +123,49 @@ Context blocks, any number per question, shown in order:
 | `type` | Fields | Use it for |
 |---|---|---|
 | `image` | `src`, `caption`, `label`, `marks[]`, optional `url` | One screenshot. An `ask` row from drive-it, or a `fail` that needs a ruling |
-| `compare` | `label`, `images[]` (each with `src`, `caption`, `marks[]`) | Side by side: multidev against `dev`, two layouts, two roles, two widths |
+| `compare` | `label`, `images[]` (each with `src`, `caption`, `marks[]`, optional `url`) | Side by side: multidev against `dev`, two layouts, two roles, two widths |
 | `video` | `src`, `caption`, `label`, `moments[]`, optional `poster`, optional `url` | One clip from drive-it ("Clips: when a still is not enough"). Behavior over time: a dialog, focus order, an AJAX rebuild, a flicker |
 | `text` | `label`, `body` (light markdown: `###`, `-` lists, `**bold**`, `` `code` ``, links), `highlight[]`, optional `url` | Ticket acceptance criteria, the PR description, the brief's evidence for the call |
+
+**Link every screenshot and clip to the live page it shows.** A block-level `url` puts one
+"Open ↗" link on the block; on a `compare` block, give each image its own `url` instead, so each
+side opens its own environment (the same story on the published Storybook and on the deploy
+preview, the same path on two multidevs). The reviewer uses these to check a finding with their
+own eyes before ruling on it, which is the point of a human review. Link the exact story,
+docs page, or path, not a home page. For a finding read from code, link the file the site
+actually serves (the compiled JS, CSS, or sprite). Leave `url` off only when there is no live
+page, such as a simulated deploy, and say so in the caption. A link is only useful if what it
+shows still exists, which is one reason Step D5 of `drive-it.md` keeps test content on PR
+multidevs.
+
+**Label each side by what differs between them, never "A" and "B".** Any side-by-side, a
+two-environment parity run or a single `compare` block, gets labels that say what is being
+compared. The reviewer reads one question at a time and should never have to remember which
+letter, or which multidev number, means which. Pick the one thing that differs and name it in
+a word or two:
+
+| Comparing | Label the sides | Not |
+|---|---|---|
+| Current code against a PR | `Develop:` / `This PR:`, or the change itself (`Webpack:` / `Vite:`) | `A:` / `B:`, `pr-1612:` / `pr-1413:` |
+| Published Storybook against a deploy preview | `Published:` / `Preview:`, or the change itself | `Prod:` / `Netlify:` |
+| Two roles | `Editor:` / `Site admin:` | `User 1:` / `User 2:` |
+| Two widths | `1440px:` / `360px:` | `Desktop:` / `Small:` |
+| Two layouts or themes | `33/67:` / `50/50:`, `Theme One:` / `Theme Four:` | `Left:` / `Right:` |
+| Before and after an action | `Before Save:` / `After Save:` | `1:` / `2:` |
+
+Environment IDs, URLs, and commits are what the labels stand for, not the labels themselves.
+Put them in a legend in the packet `subtitle`, one entry per label, so the mapping is stated
+once at the top of every page:
+
+```
+Develop = pr-1612, develop at 41ed37c (Storybook 8, webpack) | Vite = pr-1413, 1435 branch at b556763 (Storybook 10, Vite)
+```
+
+Separate legend entries with ` | `, not ` · `: the board header joins the PR ref, the issue
+link, and the subtitle with ` · `, so a legend using the same mark reads as more header items.
+
+Use the same labels everywhere in the packet: captions, block labels, mark notes, question
+text, and option details. Put the same side on the left in every pair, the baseline first.
 
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
 and `h` is a box, and one without is a pin. Look at the screenshot before placing marks, and put
@@ -144,6 +221,11 @@ there:
 | `{"app": "pr-feedback-review-board", "packets": "<this session's packets folder>"}` | This session's board is already running. Reuse it and skip starting one |
 | Anything else (another session's board, another app) | Taken. Try the next port up |
 
+The `packets` path in the health check is only proof of ownership because it is this session's
+scratchpad folder, which no other session serves. A match on a shared folder, such as the prep
+packets folder, is not proof the server belongs to this session, which is why Step R1 never
+serves that folder directly.
+
 **In the Claude desktop app, with the Browser pane tools,** let the pane run the server. Add this
 to `configurations` in the project's `.claude/launch.json` (create the file with
 `"version": "0.0.1"` if there is none):
@@ -186,14 +268,21 @@ message, per Step 3b.
 
 ## Step R3: Wait for the answers, then read them back
 
-Arm one background wait. It ends the moment they press Send:
+Arm one wait with the `Monitor` tool. It ends the moment they press Send:
 
-```bash
-until [ -f <packet-dir>/answers.json ]; do sleep 1; done; cat <packet-dir>/answers.json
+```
+Monitor({
+  command: 'until [ -f "<packet-dir>/answers.json" ]; do sleep 1; done; echo "answers.json written"',
+  description: "review board answers for <packet-id>",
+  timeout_ms: 1800000
+})
 ```
 
-Do not poll in a loop and do not ask "are you done?" The wait wakes the session. If the reviewer
-types their answers in chat instead, use those and leave the wait to expire.
+That `until` loop belongs in `Monitor`, never in Bash, foreground or `run_in_background`: a
+sleep-based wait in Bash is blocked, and `Monitor` is the tool made for waiting on a file. Its
+single event wakes the session; read `<packet-dir>/answers.json` then. If it expires before the
+reviewer is done, arm it again. Do not poll in a loop and do not ask "are you done?" If the
+reviewer types their answers in chat instead, use those and `TaskStop` the monitor.
 
 `answers.json` looks like this:
 
@@ -245,4 +334,9 @@ When the review is posted, or abandoned:
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
 - Leave the packet folder. Like the drive-it screenshots and clips, it is the evidence for the
-  review.
+  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it,
+  along with any `answers-<timestamp>.json` an earlier pass left behind (Step R1): the next
+  review on the same packet archives, never deletes. When the developer pushes and prep rebuilds
+  the packet, the new build goes into its own versioned folder and this one stays exactly as it
+  is (`references/prep-mode.md` Step P4); nothing is renamed. The symlink in this session's
+  packets folder holds nothing and goes with the scratchpad.

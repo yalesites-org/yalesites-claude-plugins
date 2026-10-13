@@ -43,3 +43,11 @@ On an existing page, read the blocks around the insertion point before adding an
 ## Placement order
 
 A new block lands at the end of its region. Move it into place in the same pass, before saving the layout, so the saved draft never has a block stranded under the page's closing block.
+
+## Screenshots on the page
+
+Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). List placeholder shots and shots not yet taken under "screenshots still owed" in the handoff, as an RC task (Step 7, item 4), so they are taken on the RC multidev during the QA period rather than on release day.
+
+## Composing a new page
+
+The conventions above cover editing an existing page. When composing a new page or a new section from scratch, use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, build from the conventions on this page alone). Read its `references/page-patterns.md` first: it holds the page-length norms and the reviewer-checked page-building guidance (its block sequences follow the crawler's order, not page order, and are not to be cited until the page-order recount lands) (open with a hero then tasks, color-band chapters, proof early, no blank gaps) drawn from the live portfolio, with each rule tagged as recommended or merely common. Its `exemplars.md` names live pages to model a block on. The conventions on this page win where the two disagree.
