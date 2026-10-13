@@ -14,7 +14,7 @@ This skill runs the full release workflow. Each phase produces a distinct delive
 | When | Phases |
 |---|---|
 | At the first RC cut | 1 (first draft), then 5 immediately |
-| During the QA period | 2, 3, 4, 6 |
+| During the QA period | 2, 3, 4, 6. Phase 2 includes taking the doc screenshots on the RC multidev once it is up |
 | Right before the release goes out | 1 again (refresh), then publish 2, 3, 4 |
 | After the release ships | 7 |
 
@@ -164,8 +164,14 @@ Announcement title uses short form: v2.22.0 in code → "v2.22" in title. URL sl
 - Steps should be numbered and scannable
 - Reference Yale's web writing best practices: short sentences, active voice, front-load the key information
 
+### Screenshots
+
+Drafts carry two kinds of marker: `*[SCREENSHOT: ...]*` for a shot never taken (the common case, since `yalesites-web-content` defers them to the RC), and `*[SCREENSHOT (placeholder, PR multidev): ...]*` for a shot taken early on a PR multidev. During the QA period, once the RC multidev of the yalesites website is up (the URL pattern and where to find it are in `yalesites-web-content`, Step 4, Screenshots), take the missing ones and retake the placeholders there, following that skill's screenshot rules.
+
+Then give the shots to the user to place. `yalesites-page-build` has no step for uploading media or placing an image, and improvising that on production is not an option, so the handoff is a list: for each shot, the file, the page and the marker it replaces, and the alt text from the marker. The user places them in the staged draft (page-build's Step 3 covers editing our own staged draft in place). List what was taken, retaken, placed, and still owed in the Output.
+
 ### Output
-Save as `feature-doc-[feature-name]-draft.md` in the workspace folder.
+Save as `feature-doc-[feature-name]-draft.md` in the workspace folder, with a "screenshots" section listing what was taken, retaken, handed to the user to place, and still owed.
 
 ---
 
@@ -258,8 +264,6 @@ Filter client-side for items whose Status is "Done", then keep only the open iss
 
 **Timing is the whole point of this phase.** Run it as soon as the first RC is cut, immediately after the first pass of Phase 1 confirms the PR list. Testers work the RC against these issues, so steps that arrive later than the RC are steps nobody used. If you reach this phase and QA is already underway, you are late: say so, and prioritise the issues still untested rather than working through the list in order.
 
-**Take and swap doc screenshots in the same window.** Docs drafted before the RC carry two kinds of marker: `*[SCREENSHOT: ...]*` for a shot never taken (the common case, since `yalesites-web-content` defers them to the RC), and `*[SCREENSHOT (placeholder, PR multidev): ...]*` for a shot taken early on a PR multidev. Once the RC multidev of the yalesites website is up (named after the release branch on the `yalesites-yale-edu` Pantheon site, for example `https://v2260-yalesites-yale-edu.pantheonsite.io`; the release PR's "Environments ready for review" comment lists the exact URL), take the missing ones and retake the placeholders there, following the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). Then hand the shots to `yalesites-page-build` to update the staged draft: it owns the production safety rules (never publish, the user logs in with CAS, no `drush uli`), so release-prep never edits the draft on yalesites.yale.edu directly. List what was taken, retaken, and still owed in the Step 5 report.
-
 ### Step 1: Extract linked issues from PRs
 
 Each PR in the release links to one or more issues in `yalesites-org/YaleSites-Internal`. Extract these from the PR body — they typically appear as GitHub issue URLs or `#XXXX` references near the top of the description.
@@ -321,7 +325,6 @@ After processing all issues, report a summary:
 - How many issues were updated with new testing steps
 - How many already had sufficient steps (no action needed)
 - Any issues where the PR description lacked enough detail to write confident testing steps (flag these for review)
-- Doc screenshots taken or retaken on the RC multidev, and any still owed
 
 ---
 

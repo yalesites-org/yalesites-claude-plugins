@@ -60,6 +60,7 @@ Then ask the user to log in with CAS in that window, and wait for them to say so
 | The page does not exist yet | New node: `/node/add/page`, saved with **Create New Draft** |
 | The page exists and is published, and the change is for a future release | Forward draft through the **Tasks** sidebar (Step 4b). The live revision stays up. Release day is one Publish. |
 | The page exists and the Tasks sidebar says `Status: Draft` | **Stop and ask.** Someone already has unpublished work on it. Building on top would mix their draft with ours. |
+| The page exists and `Status: Draft` is **our own staged draft**: its node is in a run folder's `.created`, or its latest revision carries our `DRAFT for <release> release:` log message (Step 4b) | Edit it in place on `/node/<nid>/latest`. No new draft, no new node. This is the case when a later pass adds screenshots or copy to a page we staged earlier. |
 | The draft replaces a published page with a new URL | Build it as a new node. The swap (publish, redirect, unpublish the old one) is a release-day task. List it in the handoff. |
 
 Before creating a new node, check `/admin/content?title=<title>` for a node you (or a failed earlier attempt) already made. A save that looks like it did nothing may still have created a node.
@@ -135,9 +136,10 @@ Report, in this order:
 1. The draft URL and node ID, and that it is unpublished (with the 403 or the unchanged-live proof)
 2. What was built, block by block, with the Layout Builder labels used
 3. Anything that differs from the page draft, and why
-4. Release-day steps: publish, redirects, unpublishing a replaced page, cross-links on other pages, screenshots still owed
-5. Pre-existing problems noticed on the page (broken links, old Editoria11y alerts), offered as separate fixes rather than slipped into this draft
-6. Where the screenshots are
+4. RC task: screenshots still owed, to be taken on the RC multidev during the QA period (`yalesites-web-content`, Step 4, Screenshots), not on release day
+5. Release-day steps: publish, redirects, unpublishing a replaced page, cross-links on other pages
+6. Pre-existing problems noticed on the page (broken links, old Editoria11y alerts), offered as separate fixes rather than slipped into this draft
+7. Where the screenshots are
 
 Update the page draft `.md` so it matches what was built. Then close the browser (`$RUN/pw close`). Leave `.created` and the screenshots in the run folder.
 

@@ -191,30 +191,38 @@ Mark them inline with the alt text written, so nothing gets published without it
 *Alt text: The Dashboard Settings form, with the Announcements section open.*
 ```
 
-Take them on the RC multidev of the yalesites website during release testing. It is named after the release branch on the `yalesites-yale-edu` Pantheon site, for example `https://v2260-yalesites-yale-edu.pantheonsite.io`, and the release PR's "Environments ready for review" comment lists the exact URL. The draft does not block on them: leave the marker in place and say in the handoff notes which shots are still owed. If you shoot earlier on a PR multidev, mark the shot as a placeholder (last rule below).
+Take them on the RC multidev of the yalesites website during release testing: `https://<release-branch>-yalesites-yale-edu.pantheonsite.io`, listed in the release PR's "Environments ready for review" comment. The URL table in the `yalesites-pr` skill's `references/preview-urls.md` is the one place that pattern is maintained. The draft does not block on them: leave the marker in place and say in the handoff notes which shots are still owed. If you shoot earlier on a PR multidev, mark the shot as a placeholder (last rule below).
 
 Rules for every docs screenshot:
 
 - **Use discretion.** A new field the text already describes does not need a screenshot. Shoot what words can't carry: rendered output, layouts, and UI in a place nobody would think to look.
-- **Shoot block forms the way editors see them.** On a multidev or the RC, never on yalesites.yale.edu, go to `/node/<nid>/layout` for a page you created there, click **Add block**, and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form. Close the off-canvas form without saving (Cancel or the X), so the node is not left with an unsaved layout draft that locks the next editor out.
-- **Annotate the control.** When the text calls out a specific button or admin control, circle it and point an arrow at it. The Playwright CLI has no drawing tool, so inject the markup before the shot with `pw run-code` (the `pw` wrapper from `pr-feedback`'s `references/drive-it.md`), then take the screenshot:
+- **Shoot block forms the way editors see them.** On a multidev or the RC, never on yalesites.yale.edu, go to `/node/<nid>/layout` for a page you created there, click **Add block**, and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form. Leave the layout the way you found it: close the off-canvas form with Cancel or the X, then look for the "You have unsaved changes" message at the top of the layout and click **Discard changes** if it is there. Cancel alone does not clear an unsaved layout, and a leftover one locks the page for the next editor.
+- **Annotate the control.** When the text calls out a specific button or admin control, circle it and point an arrow at it. For a shot that only a reviewer will see, `pw highlight <ref>` before the shot and `pw highlight --hide` after is enough (the `pw` wrapper from `pr-feedback`'s `references/drive-it.md`). Docs shots are published, and the circle and arrow are the rule for them, which `highlight` cannot draw, so inject the markup with `pw run-code` before the shot. Resolve the control with a locator, so a selector that matches nothing fails with a clear error instead of a null dereference, and prefer `page.getByRole('button', { name: '...' })` over ids, which Drupal rebuilds (`edit-submit` becomes `edit-submit--2`). Keep CSS attribute values single-quoted (`[data-drupal-selector='edit-actions-submit']`): the script sits inside a double-quoted bash string, and an inner double quote ends it early.
 
   ```bash
-  pw run-code "async page => { await page.evaluate(sel => {
-    const el = document.querySelector(sel); el.scrollIntoView({block: 'center'});
+  pw run-code "async page => { await page.locator('<css selector>').first().evaluate(el => {
+    el.scrollIntoView({block: 'center'});
     const r = el.getBoundingClientRect();
-    const ring = document.createElement('div');
+    const ring = document.createElement('div'); ring.id = 'ys-doc-ring';
     ring.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;border:3px solid #d8262c;border-radius:999px;' +
       'left:' + (r.left + scrollX - 10) + 'px;top:' + (r.top + scrollY - 10) + 'px;width:' + (r.width + 20) + 'px;height:' + (r.height + 20) + 'px';
-    const arrow = document.createElement('div'); arrow.textContent = '\u2190';
+    const onRight = r.right + 80 <= innerWidth;
+    const arrow = document.createElement('div'); arrow.id = 'ys-doc-arrow';
+    arrow.textContent = onRight ? '\u2190' : '\u2192';
     arrow.style.cssText = 'position:absolute;pointer-events:none;z-index:99999;color:#d8262c;font:bold 48px/1 sans-serif;' +
-      'left:' + (r.right + scrollX + 16) + 'px;top:' + (r.top + scrollY + r.height / 2 - 24) + 'px';
+      'left:' + (onRight ? r.right + scrollX + 16 : r.left + scrollX - 64) + 'px;top:' + (r.top + scrollY + r.height / 2 - 24) + 'px';
     document.body.append(ring, arrow);
-  }, '<css selector of the control>'); }"
+  }); }"
   ```
 
-  Reload the page afterwards so the markup does not leak into the next shot. If the shot is taken by hand instead, list the annotation as a manual step for the editor in the handoff notes rather than claiming it was done.
-- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the RC phase, retake it on the RC multidev named above so it matches the live site. `release-prep` swaps them.
+  The arrow sits to the right of the control unless that would leave the viewport, which it does for most controls in the right-docked off-canvas tray; then it sits to the left. After the shot, remove the markup rather than reloading, so an open tray is not dropped mid-edit:
+
+  ```bash
+  pw run-code "async page => { await page.evaluate(() => document.querySelectorAll('#ys-doc-ring, #ys-doc-arrow').forEach(n => n.remove())); }"
+  ```
+
+  Then close the tray with Cancel as the block-form rule says. If the shot is taken by hand instead, list the annotation as a manual step for the editor in the handoff notes rather than claiming it was done.
+- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the QA period, retake it on the RC multidev named above so it matches the live site. `release-prep` (Phase 2, Screenshots) swaps them.
 
 ## Step 5: Check the draft mechanically
 

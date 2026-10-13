@@ -16,6 +16,7 @@ errors" has nowhere to point — but the step that starts the job almost always 
 | `component-library-twig` | Netlify deploy preview of Storybook | `https://deploy-preview-<N>--dev-component-library-twig.netlify.app` |
 | `atomic` | the multidev of its **cross-linked yalesites-project PR** | that PR's multidev URL |
 | `tokens` | usually nothing — see below | often no link to give |
+| a release candidate (any repo) | the RC multidev, named after the release branch on each site in the release PR's `RELEASE_SITES` list; for docs screenshots, the yalesites website's own | `https://<release-branch>-yalesites-yale-edu.pantheonsite.io` (for example `https://v2260-yalesites-yale-edu.pantheonsite.io`); the release PR's "Environments ready for review" comment lists every URL |
 
 **Only yalesites-project and component-library-twig build a preview of their own.** Neither
 `atomic` nor `tokens` has a deploy workflow, so a change there is seen through a companion

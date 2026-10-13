@@ -46,4 +46,4 @@ A new block lands at the end of its region. Move it into place in the same pass,
 
 ## Screenshots on the page
 
-Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). List placeholder shots and shots not yet taken under "screenshots still owed" in the handoff, so the RC pass takes or replaces them.
+Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). List placeholder shots and shots not yet taken under "screenshots still owed" in the handoff, as an RC task (Step 7, item 4), so they are taken on the RC multidev during the QA period rather than on release day.
