@@ -372,6 +372,7 @@ A single bulleted list of everything required to close the issue. Cover all rele
 - UX considerations (field labels, design option names, UI behavior). Where Step 1b identified an affected archetype, write the expectation as a testable criterion rather than a general aspiration — "a New Recruit can complete this without asking a teammate" is checkable, "should be intuitive" isn't.
 - Accessibility: flag anything that needs WCAG 2.1 AA validation for the accessibility engineer
 - Documentation: note if any existing docs need updating or new docs need to be created
+- Spikes and ADRs: when the deliverable is an ADR (architecture decision record), add the criterion that it lands in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, not in a product repo. This applies to a standalone spike ticket as much as to the first child of an epic, so the dev or their agent does not default to the repo the code lives in. The full convention is the `yalesites` skill's `references/adr-conventions.md`.
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over.
 
@@ -451,7 +452,7 @@ Stay within PM scope: these are product-goal and boundary questions, not impleme
 
 If the technical approach isn't settled, make the first child ticket a spike or ADR (architecture decision record) — audit the current state and propose a design, to be reviewed and approved before the rest of the child tickets are written or estimated. This was #1162 in the Views Rework epic, and it's why the later child tickets could be scoped accurately. Don't force full detail into every child ticket up front if the design is still an open question — scope what you can, and let the spike inform the rest.
 
-When the spike's deliverable is an ADR document, say in the ticket that the ADR goes in `yalesites-org/YaleSites-Internal` under `docs/adr/`, not in yalesites-project, component-library-twig, atomic, or tokens. Add it as an acceptance criterion so the dev (or their agent) does not default to the repo the code lives in.
+When the spike's deliverable is an ADR document, the spike ticket gets the ADR-location acceptance criterion from "2. Acceptance Criteria" above, like any other spike ticket.
 
 ### Step 3: Write the epic (parent ticket)
 

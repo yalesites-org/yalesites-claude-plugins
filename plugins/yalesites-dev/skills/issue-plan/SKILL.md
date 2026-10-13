@@ -36,7 +36,7 @@ Research GitHub issue #$ARGUMENTS in yalesites-org/YaleSites-Internal and the lo
    - **Issue** — title, type, full description, acceptance criteria
    - **Relevant files** — path + what each file does in this context
    - **Current implementation** — how the affected area works today
-   - **Suggested approach** — concrete direction for the implementation
+   - **Suggested approach** — concrete direction for the implementation. If the issue is a spike or ADR, or the approach includes writing an ADR, the ADR goes in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, never in a product repo (the `yalesites` skill's `references/adr-conventions.md`)
    - **Risks and unknowns** — anything that needs clarification or warrants care
 
 Be thorough in file reading — partial understanding leads to bad plans. Do not create or modify any files.
@@ -62,7 +62,7 @@ Apply YaleSites conventions throughout:
 
 ## ADRs go to YaleSites-Internal
 
-If the issue is a spike or ADR (architecture decision record), or the plan calls for writing one, the ADR file goes in `yalesites-org/YaleSites-Internal` under `docs/adr/`, named `{issue-number}-{short-description}.md`. Never put an ADR in yalesites-project, component-library-twig, atomic, or tokens, even when the decision is about code in that repo. Those repos ship to sites; YaleSites-Internal is where the team's decisions live. Open the ADR PR against YaleSites-Internal and link it from the issue. If the same issue also needs code changes, those still go in the product repos as usual.
+If the issue is a spike or ADR (architecture decision record), or the plan calls for writing one, the ADR file goes in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. Naming, the PR shape, and how the ADR is linked from the issue are in the `yalesites` skill's `references/adr-conventions.md`; follow that file rather than restating it in the plan. Code changes for the same issue still go in the product repos as usual.
 
 ## Cross-repo workflow
 

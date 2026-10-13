@@ -8,6 +8,17 @@ allowed-tools:
   - Bash(git -C * branch *)
   - Bash(git push *)
   - Bash(git -C * push *)
+  - Bash(git diff *)
+  - Bash(git -C * diff *)
+  - Bash(git -C * checkout *)
+  - Bash(git -C * add *)
+  - Bash(git -C * rm *)
+  - Bash(git -C * commit *)
+  - Bash(git rm *)
+  - Bash(git commit *)
+  - Bash(gh repo clone *)
+  - Bash(mkdir *)
+  - Bash(cp *)
   - Bash(gh issue view *)
   - Bash(gh issue create *)
   - Bash(gh issue edit *)
@@ -48,19 +59,49 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json title -q .title
    ```
 
-   **ADR check:** if the branch adds or edits an ADR (architecture decision record) in yalesites-project, component-library-twig, atomic, or tokens, for example `docs/adr-*.md` or anything under an `adr/` folder, **stop and warn the user.** ADRs belong in `yalesites-org/YaleSites-Internal` under `docs/adr/`, not in the product repos. Offer to move the file to a matching branch in YaleSites-Internal and open the PR there instead. Only continue in the product repo if the user explicitly says to.
-
 3. **Detect cross-repo changes**
    - Check if the same branch exists with commits in any other repos (atomic, component-library-twig, tokens)
    - If so, those repos get PRs first — yalesites-project is always last (its CI/CD picks up companion branches during build)
 
-4. **Push the branch** in each affected repo if not already pushed
+4. **ADR check** (always runs, with or without an issue, in every repo step 3 found)
+
+   ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. The convention, including how to recognize one, lives in the `yalesites` skill's `references/adr-conventions.md`. In each repo that has the branch, list the files the branch **adds** and match them by path or by first heading:
+
+   ```bash
+   git -C {repo} diff --name-only --diff-filter=A develop...HEAD | grep -iE 'adr|decision'
+   for f in $(git -C {repo} diff --name-only --diff-filter=A develop...HEAD -- '*.md'); do
+     grep -liE '^#.*(\bADR\b|decision record)' "{repo}/$f"
+   done
+   ```
+
+   Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+
+   - **No match:** continue.
+   - **Match, with a user present:** stop, show the file and repo, and offer to move it (below) and open the ADR PR in YaleSites-Internal instead. Only continue with the file in the product repo if the user explicitly says to.
+   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): do the move without asking, since that is the answer every time, and say so in the body of every PR this run opens.
+
+   The move needs a local YaleSites-Internal checkout. There usually is none, so clone one into the session scratchpad:
+
+   ```bash
+   gh repo clone yalesites-org/YaleSites-Internal {scratch}/YaleSites-Internal
+   git -C {scratch}/YaleSites-Internal checkout -b {issue}-{slug} main
+   mkdir -p {scratch}/YaleSites-Internal/docs/adr
+   cp {repo}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{slug}.md
+   git -C {scratch}/YaleSites-Internal add docs/adr
+   git -C {scratch}/YaleSites-Internal commit -m "docs(adr): {issue} {short title}"
+   git -C {repo} rm {path}
+   git -C {repo} commit -m "chore({issue}): move ADR to YaleSites-Internal"
+   ```
+
+   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`) and removed from the product branch, so the product PR no longer ships it. With no issue number, use the branch slug and say so. If the product branch held nothing but the ADR, skip its PR. Step 5 pushes both branches; step 6 opens the ADR PR against `main`.
+
+5. **Push the branch** in each affected repo if not already pushed
    ```bash
    git push -u origin {branch}
    git -C {repo-path} push -u origin {branch}
    ```
 
-5. **Draft and create PRs** — companion repos first, yalesites-project last
+6. **Draft and create PRs** — companion repos first, yalesites-project last
    For each repo, draft the full PR title and body using the template from references/pr-template.md, then **show the draft to the user and wait for explicit approval before running `gh pr create`**. Do not create any PR without confirmation.
 
    The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
@@ -77,7 +118,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    reviewer lands on the change instead of hunting for it. references/preview-urls.md has the
    URL forms per repo, how to read a route out of a `*.routing.yml` and a Storybook slug out
    of a `.stories.js` `title`, and how to verify both. The PR numbers do not exist yet here,
-   so draft with `<N>` placeholders and tell the user Step 6 fills them in.
+   so draft with `<N>` placeholders and tell the user Step 7 fills them in.
 
    Each PR must include:
    - `--assignee @me`
@@ -87,7 +128,9 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
    - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
 
-6. **Update cross-links and fill in the preview URLs** — once all PRs exist, every number is
+   **An ADR PR from step 4 is the exception.** YaleSites-Internal has no `develop` branch and nothing deploys from it, so that PR uses `--repo yalesites-org/YaleSites-Internal --base main`, the same `{issue number}: {issue title}` title, and a body of a TL;DR line, a link to the ADR file on the branch, and the `References` line. No multidev, Netlify, or testing-step links. Once it exists, link it from the issue with `gh issue comment`. The full shape is in the `yalesites` skill's `references/adr-conventions.md`.
+
+7. **Update cross-links and fill in the preview URLs** — once all PRs exist, every number is
    known. In one `gh pr edit` per repo, add the companion links **and** replace every `<N>`
    placeholder in the testing-step URLs with the real number (yalesites-project's number in a
    multidev URL, component-library-twig's in a Netlify URL):
@@ -104,8 +147,8 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    No output (exit 1) is the pass. A published body containing `<N>` is a broken link in
    front of every reviewer.
 
-7. **Check whether the issue needs to catch up** (only if an issue number was found, and the `yalesites-product` plugin's `ticket-sync` skill is available)
-   Load the `ticket-sync` skill and hand it the issue number and the PR body/bodies just created in Step 5 as the "what actually happened" input, to compare against the issue's Description and Acceptance Criteria. Fetch the full body first, since Step 2 only pulled the title:
+8. **Check whether the issue needs to catch up** (only if an issue number was found, and the `yalesites-product` plugin's `ticket-sync` skill is available)
+   Load the `ticket-sync` skill and hand it the issue number and the PR body/bodies just created in Step 6 as the "what actually happened" input, to compare against the issue's Description and Acceptance Criteria. Fetch the full body first, since Step 2 only pulled the title:
    ```bash
    gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json body -q .body
    ```
@@ -113,7 +156,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
    Non-blocking and silent if nothing has drifted. If something has, `ticket-sync` decides comment vs. edit and drafts the text for your approval — use `gh issue edit` for a scope/acceptance-criteria change or `gh issue comment` for context only. If the `ticket-sync` skill isn't available in this session, skip this step rather than attempting the comparison ad hoc.
 
-8. **Move the issue to "In review"** (only if an issue number was found)
+9. **Move the issue to "In review"** (only if an issue number was found)
    Once the PR(s) exist, the solution is ready for review, so set the issue's status to **In review** on the YaleSites Board (GitHub Projects v2, org `yalesites-org`, project number 6) — but only if it is not already there.
 
    Check the current status first, and only write if it differs:
