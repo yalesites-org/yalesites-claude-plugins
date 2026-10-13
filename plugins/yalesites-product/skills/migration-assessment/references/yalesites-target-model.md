@@ -243,5 +243,5 @@ possible and has been done, per-site and with custom code.
 
 When recommending target blocks or layouts, check the `yalesites-portfolio` skill for
 real adoption data: prefer mapping source content onto blocks the community demonstrably
-uses (and uses well — see its exemplars reference) over rarely-adopted ones, and flag it
+uses (and uses well: see its exemplars reference) over rarely-adopted ones, and flag it
 when a proposed mapping leans on a block with near-zero live usage.

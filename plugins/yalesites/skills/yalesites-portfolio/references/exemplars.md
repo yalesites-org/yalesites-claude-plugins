@@ -162,15 +162,6 @@ No exemplar met the bar in this review.
 
 **Good practices:** Use high-resolution wide landscape images; the banner crops tall subjects · Choose images that illustrate the page topic · Keep one visual style across sibling pages · Keep faces and key subjects in the middle band of the crop
 
-## Post Feed (`post_list`)
-
-1. **yjil** — https://yjil.yale.edu/  
-   Image-left list with a category eyebrow, bold headline, date, a colored symposium tag and a one-line summary, plus a Post Category filter and pagination. It reads like a real journal feed and is easy to scan across 12 pages of content. *Pattern: image-left list rows + category eyebrow + date + short summary, with category filter and pagination*
-2. **yso** — https://yso.yale.edu/concerts-and-ticketing  
-   A clean concerts list with an event-type filter and a clear primary Buy Tickets button next to a secondary Add to Calendar button. Hierarchy of title, date, format and actions makes the next step obvious. *Pattern: event list with filter + primary Buy Tickets + secondary Add to Calendar*
-
-**Good practices:** Pair a filter dropdown with the list when there are multiple categories · Use a primary and secondary button for the main and secondary event actions · Show an eyebrow category above the title so readers can scan by type · Keep teaser copy to one or two lines · Use pagination for long archives
-
 ## Pre-Built Form (`webform`)
 
 No exemplar met the bar in this review.

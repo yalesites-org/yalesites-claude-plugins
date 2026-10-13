@@ -40,7 +40,7 @@ homepages. Refresh pipeline and raw data: `~/code/yalesites-portfolio-data`
 - Under-used blocks we invest in: Facts and Figures 13%, Tabs 12%, Wrapped Text Callout 11%, Reference Card 11%, Directory 10%, Event Calendar 6%, Video Banner 4%, Related Content 1% (3 sites), Audio Player 0.3% (1 site).
 - Zero usage anywhere: Calendar List (verified against raw HTML of all 48k pages).
 - Config: global theme one 67%; left nav 71%, right 21%, center 7%; basic footer 68%; focus header on 1 site.
-- Built pages: median 2 blocks, 90th percentile 13. Text closes 65% of built pages (common), which is the opposite of the recommended ending (an action band).
+- Built pages: median 2 blocks, 90th percentile 13. Text closes 65% of built pages; that is fine and the house preference. Strong homepages often close on an action band instead.
 - 181 of 300 live sites are D7 migrations.
 
 ## Rules for using this data

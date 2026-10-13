@@ -265,11 +265,11 @@ Where this lands in the ticket: name the affected archetypes and the reasoning i
 
 ### Step 1c: Check how much it's actually used
 
-**Do this when the ticket names a specific block, section layout, or sitewide setting.** Skip it (silently) for everything else — usage data on a ticket that isn't about a measurable feature is fodder.
+**Do this when the ticket names a specific block, section layout, or sitewide setting.** Skip it (silently) for everything else: usage data on a ticket that isn't about a measurable feature is fodder.
 
 Load the `yalesites-portfolio` skill and pull two things:
 
-1. **One line of adoption data** for the collapsed Background and analysis block, with the crawl vintage: e.g. "Facts and Figures: used on 12.5% of live sites (37 sites, 166 instances) as of the 2026-10 portfolio crawl." This grounds the priority conversation — a change to a 70%-adoption block and one to a 5% block are different risks and different wins.
+1. **One line of adoption data** for the collapsed Background and analysis block, with the crawl vintage: e.g. "Facts and Figures: used on 12.5% of live sites (37 sites, 166 instances) as of the 2026-10 portfolio crawl." This grounds the priority conversation: a change to a 70%-adoption block and one to a 5% block are different risks and different wins.
 2. **For breaking or behavior-changing work** (template changes, update hooks, config migrations): name 2–3 heaviest-usage sites from `references/sites-index.csv` as QA targets in the acceptance criteria, so testing happens where the change actually bites.
 
 Keep it to those two. Never paste usage tables into a ticket.

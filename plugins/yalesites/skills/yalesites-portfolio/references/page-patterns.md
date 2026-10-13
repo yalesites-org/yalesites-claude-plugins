@@ -24,7 +24,7 @@
 - 299× Wrapped Image
 - 257× Image › Text
 
-### content page — 9,138 pages (18.9%), median 3.0 blocks
+### content page — 9,287 pages (19.2%), median 3 blocks
 - 2072× Wrapped Image
 - 333× Wrapped Image › Text
 - 300× Grand Hero › Text
@@ -44,7 +44,7 @@
 - 117× Accordion › Text
 - 62× Grand Hero › Quick Links › Accordion › Quote › Spotlight - Landscape › Button Link › Divider › Text
 
-### listing page — 1,680 pages (3.5%), median 2.0 blocks
+### listing page — 1,531 pages (3.2%), median 2 blocks
 - 465× View
 - 267× Text › View
 - 58× Divider › Text › View
@@ -115,16 +115,16 @@
 
 ## Page-building guidance
 
-Merged reviewer guidance, deduplicated and tagged against the crawl data and the team's layout conventions (end on a non-text block; pad adjacent Text blocks).
+Merged reviewer guidance, deduplicated and tagged against the crawl data and the team's own conventions (text endings are fine; pad adjacent Text blocks).
 
 - **[recommended]** Open with one hero, then give visitors their top 3-4 tasks as tiles, quick links or a link grid before any prose. *(Reviewers agree; the crawl shows Quick Links and Custom Cards are the two most common blocks directly after a Grand Hero.)*
 - **[recommended]** Put a 2-4 sentence orientation block (what this is, who it is for) right after the hero, not at the bottom of the page. *(Reviewers flagged buried explainers as a top homepage failure; Grand Hero followed by Text is the most common opening pair.)*
 - **[recommended, rare in practice]** Put proof within the first two screens: a Facts and Figures band or one attributed quote, not paragraphs. *(Reviewers' strongest pages all do this, but Facts and Figures is used on only 12.5% of sites.)*
 - **[recommended, uncommon]** Change the background color or theme between sections so each reads as a chapter; avoid more than two adjacent white sections. *(Every exemplar homepage alternates bands; most sites leave blocks on the default theme (component-theme one on 84% of grand heroes).)*
 - **[recommended]** Give every section one heading, one short blurb and one button; never stack three or more identical callouts or CTA bands. *(Reviewers called out repeated callouts and stacked CTAs on four of 24 homepages.)*
-- **[recommended]** Place news and events feeds in the lower middle of the page, limited to three items with a View all button, and do not let the page end on a feed. *(Ending on a View is the second most common page closer (12.6% of built pages); reviewers rated those endings weak.)*
-- **[recommended; the common pattern is the opposite]** End on a colored action band (subscribe, apply, contact, next step), never on plain text, a map or a bare form. *(Text closes 65% of built pages. This is the single biggest gap between what is common and what reviewers and the team's end-on-a-non-text-block convention recommend.)*
+- **[recommended]** Place news and events feeds in the lower middle of the page, limited to three items with a View all button. *(Reviewers rated feed-only endings on homepages weak; ending a page on a View is the second most common closer (12.6%).)*
+- **[common; a closing action band is an option, not a rule]** Ending on a Text block is fine and is the house preference. Strong homepages often close on a colored action band (subscribe, apply, contact) instead; either works. Avoid ending on a bare form, a map, an empty calendar or a blank gap. *(Text closes 65% of built pages. Reviewers preferred action-band endings on homepages; the product owner's preference is that text endings read fine, so this is not an anti-pattern.)*
 - **[recommended]** Never use stacked Dividers or empty blocks for spacing; check the rendered page logged out for blank gaps before the footer. *(Blank-gap pages were the most frequent compositional defect reviewers found.)*
 - **[recommended]** Cap a homepage at about 15 blocks and link out to deeper content; on any page past 12 blocks, add wayfinding (Accordion, Dividers with headings, Quick Links, In This Section). *(Long pages (12+ blocks) use Accordion on 46% and Divider on 41%; the strongest long pages use color bands as chapters.)*
 - **[recommended]** Keep Text blocks short and pair them with an image, card row or spotlight; avoid five or more consecutive Text blocks. *(Text is 99% adopted with 78k instances; reviewers' weakest pages were text stacks.)*
-- **[common, not recommended]** Opening a page with a plain Text block and closing it with Text. *(Text opens 26% and closes 65% of built pages; use a hero or banner to open and an action band to close instead.)*
+- **[common]** Opening a page with a plain Text block (26% of built pages). *(A hero or banner opening is what reviewers rated strongest on homepages; for interior pages a Text opening is normal.)*

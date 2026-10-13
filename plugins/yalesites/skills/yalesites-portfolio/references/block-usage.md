@@ -26,7 +26,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 | Quote | 39.5% | 117 | 999 | 1.0 | 0.16 | 46.7 | 0.4 |
 | Video | 36.5% | 108 | 1,774 | 1 | 0.28 | 36.6 | 17.8 |
 | Image Banner | 36.5% | 108 | 813 | 1 | 0.01 | 95.9 | 0.3 |
-| Post Feed | 30.4% | 90 | 178 | 1.0 | 0.78 | 22.5 | 100.0 |
+| Calendar List | 30.4% | 90 | 178 | 1.0 | 0.78 | 22.5 | 100.0 |
 | Pre-Built Form | 29.4% | 87 | 125 | 1 | 0.99 | 0.0 | 92.8 |
 | Link Grid | 24.7% | 73 | 780 | 1.0 | 0.16 | 52.8 | 3.8 |
 | Tiles | 24.0% | 71 | 324 | 1.0 | 0.87 | 3.5 | 65.4 |
@@ -43,7 +43,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 | Related Content | 1.0% | 3 | 26 |  |  |  |  |
 | Audio Player | 0.3% | 1 | 1 | 1 | 0.0 | 100.0 | 0.0 |
 
-**Zero usage anywhere in the portfolio (verified against raw HTML):** Calendar List.
+**Zero usage anywhere in the portfolio (verified against raw HTML):** Post Feed.
 
 
 ## Per-block detail
@@ -67,7 +67,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 
 ### View (`view`) — 70.3% of sites, 5,160 instances
 - Variants: component-width: site 93%, content 7%
-- Typically preceded by Text (1712), View (1361), Divider (101); followed by View (1361), Post Feed (17), Event Calendar (8)
+- Typically preceded by Text (1712), View (1361), Divider (101); followed by View (1361), Calendar List (17), Event Calendar (8)
 - Reviewer notes: The View is the most-used block, so consistency matters most. Pick the card, list or profile style that matches the content type, keep item counts to full rows, and make sure every item has a usable image or none do. Check thumbnails: screenshots, flyers and logos look poor when cropped to a landscape card.
 
 ### Callout (`callout`) — 69.3% of sites, 2,347 instances
@@ -142,9 +142,8 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 - Typically preceded by Grand Hero (31), Image Banner (31); followed by Text (121), Accordion (88), Spotlight - Landscape (76)
 - Reviewer notes: Image Banner has no text overlay, so the image is the only signal. It is best for interior pages where the title appears below it. Source images should be at least banner width and sharp; low-resolution uploads are the most common fault. Check mobile and tall variants, since subjects get cropped.
 
-### Post Feed (`post_list`) — 30.4% of sites, 178 instances
+### Calendar List (`event_list`) — 30.4% of sites, 178 instances
 - Typically preceded by Text (87), View (17), Action Banner (13); followed by nothing (closes the page)
-- Reviewer notes: Post Feed output is mostly text lists, so quality comes from metadata and discipline: add images where they exist, write real teasers, and remove test or placeholder posts before publishing. Pick a filter only if readers will use it. Event feeds benefit from clear action buttons.
 
 ### Pre-Built Form (`webform`) — 29.4% of sites, 125 instances
 - Variants: drupal-selector: webform-submission-contact-block-content-26-add-form 36%, webform-submission-contact-block-content-85-add-form 14%, webform-submission-contact-block-content-130-add-form 3%
@@ -202,7 +201,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 
 ### Event Calendar (`event_calendar`) — 6.1% of sites, 43 instances
 - Variants: component-width: site 98%, content 2%
-- Typically preceded by Text (16), View (8), Pre-Built Form (3); followed by View (5), Post Feed (1)
+- Typically preceded by Text (16), View (8), Pre-Built Form (3); followed by View (5), Calendar List (1)
 - Reviewer notes: The calendar suits sites with steady event volume; sparse calendars look empty and a list may serve better. Event title quality matters most because cells are narrow. Consider filters when many categories exist, and keep multi-day or recurring items under control.
 
 ### Video Banner (`video_banner`) — 4.1% of sites, 132 instances

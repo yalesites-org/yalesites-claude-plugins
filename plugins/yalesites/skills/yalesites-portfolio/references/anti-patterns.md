@@ -106,14 +106,6 @@ What goes wrong when each block is used badly, from the same screenshot review a
 - your: Heavy saturated blue duotone makes the images dark and muddy; three different pages feel generic and nearly interchangeable.
 - peabody: Research report banners are casual phone snapshots (sunset, hillside) with no clear link to the report, and one has a thin visible border line.
 
-## Post Feed (`post_list`)
-
-- yjil: A second instance is titled Test and shows only the first item with an image while the rest have none, which looks unfinished.
-- silliman: News feed is a long text-only stack of titles and dates with no teasers or images; the events list shows a template placeholder (Revitalize past events).
-- urbanstudies: Featured Events surfaces a leftover Test post and a placeholder event (Revitalize past events); filter label says Post Category on an events block.
-- cadmy: News list is all headline and date with large empty space on the right and no images or teasers, so it feels bare and gets repetitive.
-- microbialsciences: Text-only news list with inconsistent teasers (some items have summaries, most do not), making the rhythm uneven.
-
 ## Pre-Built Form (`webform`)
 
 - plc: Light-blue Submit button with dark text and the form is otherwise identical to every other site; no intro text or heading is visible in the screenshot, so nothing sets expectations.
