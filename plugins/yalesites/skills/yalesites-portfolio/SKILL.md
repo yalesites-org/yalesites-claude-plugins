@@ -4,7 +4,7 @@ description: >-
   Measured knowledge base of the live YaleSites portfolio: real block adoption,
   design-option and color usage, site configuration trends, exemplar and
   anti-pattern sites per block, and page-building patterns, from a crawl of
-  every live site (296 sites, 48k pages, Oct 2026) plus a screenshot review of
+  296 of 299 live sites (48k pages, Oct 2026) plus a screenshot review of
   the strongest usages. Use for "what percent of sites use X block / center nav /
   theme two", "which sites use grand heroes (or any block) best", "what does a
   typical or a strong homepage look like", "is this block actually used", for
@@ -38,7 +38,7 @@ they are not in this repo and are not needed to use this skill.
 | What goes wrong with each block (named teaching examples) | `references/anti-patterns.md` |
 | Page archetypes, length norms, how pages open/close, homepage composition, tagged page-building rules | `references/page-patterns.md` |
 | "Which sites use block X most" | the block's `Top sites` line in `references/block-usage.md` |
-| "Which sites use block X / theme Y / center nav": one row per site, with `blocks_used` and a `block_counts` column (`block:count;...`, sorted by count, highest first) | `references/sites-index.csv` (grep it; do not read it whole) |
+| "Which sites use block X / theme Y / center nav": one row per site, with `blocks_used` and a `block_counts` column (`block:count;...`, sorted by count, highest first). The block token is the backticked machine name in the block's `block-usage.md` heading (`cta_banner`, `pull_quote`, `post_list`), matched as a whole `;`-separated token, never as a substring (`image` is not `wrapped_image`, `quote` is not `pull_quote`). `header_type` only tells the one `focus` header apart from `basic/mega` | `references/sites-index.csv` (grep it; do not read it whole) |
 
 ## Headline numbers (2026-10)
 
