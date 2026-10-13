@@ -79,8 +79,8 @@ Read from each site's homepage markup (global theme, header, footer, menu) and f
 
 ## Section attributes (all crawled sections)
 
-- **multi_col** — component-has-divider: false 77%, true 23%; component-padding: default 55%, no-padding 26%, no-top 12%, no-bottom 6%; component-theme: default 59%, two 18%, one 12%, four 6%; component-layout: fifty-fifty 68%, thirty-thirty-thirty 32%; component-width: site 100%; embedded-components:  100%
-- **two_col_70_30** — component-padding: default 96%, no-padding 3%, no-top 1%, no-bottom 0%; component-width: site 100%; embedded-components: true 100%
+- **two_col_70_30** — component-padding: default 94%, no-padding 5%, no-top 1%, no-bottom 0%; component-width: site 100%; embedded-components: true 100%
+- **multi_col** — component-has-divider: false 78%, true 22%; component-padding: default 55%, no-padding 24%, no-top 14%, no-bottom 7%; component-theme: default 61%, two 16%, one 14%, four 6%; component-layout: fifty-fifty 74%, thirty-thirty-thirty 26%; component-width: site 100%; embedded-components:  100%
 
 ## Content types (sites with at least one crawled page of the type)
 
