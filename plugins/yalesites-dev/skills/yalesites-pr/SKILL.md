@@ -94,7 +94,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    git -C {repo} grep -l -iE '^# (.*[^A-Za-z])?ADR([^A-Za-z]|$)|^# .*decision record' {branch} -- '*.md' | cut -d: -f2-
    ```
 
-   The second command is the added list, the third the path matches, the fourth the heading matches (`git grep` prints `{branch}:path`, and `cut` drops the prefix so the paths compare as written). `--no-renames` makes a file moved into an ADR path count as added. A file in the added list that is in both the path and heading lists is a **strong match**; in only one, a **weak match**. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+   The first command is the added list, the second the path matches, the third the heading matches (`git grep` prints `{branch}:path`, and `cut` drops the prefix so the paths compare as written). `--no-renames` makes a file moved into an ADR path count as added. A file in the added list that is in both the path and heading lists is a **strong match**; in only one, a **weak match**. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
 
    **Attended or unattended.** The run is unattended when the caller passes `--unattended`, or `--body-file` (an autonomous caller that pre-drafts the PR body); either one means nobody is there to answer, so the skill never pauses and appends its ADR note to the supplied body rather than writing its own. Without either, a user is present and every stop below is a real question.
 
