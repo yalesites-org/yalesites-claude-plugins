@@ -175,6 +175,57 @@ class CatalogTest(unittest.TestCase):
         finally:
             catalog.fetch = real
 
+    def test_refresh_keeps_the_old_catalog_when_the_sitemap_does_not_load(self):
+        # The sitemap itself is the fetch that fails (a 5xx, a network blip
+        # once the cache is a day old). That is the same case as most pages
+        # failing, and gets the same answer: keep the old catalog, say why.
+        calls = []
+
+        def no_sitemap(url, timeout=20):
+            calls.append(url)
+            raise OSError("connection reset")
+
+        real = catalog.fetch
+        catalog.fetch = no_sitemap
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out = os.path.join(d, "catalog.json")
+                old = {"builtAt": "earlier", "pages": [{"path": "/old", "title": "Old", "teaser": "", "headings": []}]}
+                with open(out, "w") as f:
+                    json.dump(old, f)
+                os.utime(out, (0, __import__("time").time() - 30 * 3600))
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    cat = catalog.refresh(out=out)
+                self.assertEqual(cat, old)
+                self.assertEqual(read_json(out), old)
+                self.assertIn("sitemap.xml did not load (connection reset)", stderr.getvalue())
+                self.assertIn("Keeping the old catalog", stderr.getvalue())
+                self.assertEqual(stdout.getvalue(), "")
+                self.assertEqual(calls, [catalog.SITEMAP])
+                # With nothing to keep, refresh stops with a message, not a traceback.
+                fresh = os.path.join(d, "fresh", "catalog.json")
+                with self.assertRaises(SystemExit) as cm:
+                    catalog.refresh(force=True, out=fresh)
+                self.assertIn("did not load", str(cm.exception))
+                self.assertIn("no earlier catalog", str(cm.exception))
+                self.assertFalse(os.path.exists(fresh))
+        finally:
+            catalog.fetch = real
+
+    def test_phrase_bonus_compares_whole_tokens(self):
+        # "set tags" is a substring of "reset tags", but not a run of its tokens.
+        words = catalog.tokens("Docs: set tags")
+        self.assertEqual(words, ["set", "tags"])
+        reset = {"path": "/reset-tags", "title": "Reset Tags", "teaser": "", "headings": []}
+        real = {"path": "/set-tags", "title": "Set Tags", "teaser": "", "headings": []}
+        self.assertEqual(catalog.score(reset, words), 3 + 2)  # "tag" in the title and the path, no phrase bonus
+        self.assertEqual(catalog.score(real, words), 2 * (3 + 2) + 3)
+        self.assertTrue(catalog.has_run(["set", "tag", "later"], ["set", "tag"]))
+        self.assertFalse(catalog.has_run(["reset", "tag"], ["set", "tag"]))
+        self.assertFalse(catalog.has_run(["tag", "set"], ["set", "tag"]))
+        self.assertFalse(catalog.has_run(["set"], ["set", "tag"]))
+
     def test_one_max_age_for_refresh_and_the_staleness_warning(self):
         ap = catalog.build_parser()
         self.assertEqual(ap.parse_args(["refresh"]).max_age_hours, catalog.MAX_AGE_HOURS)
@@ -534,6 +585,49 @@ class StatusByItemTest(unittest.TestCase):
                 packet.set_status(ref, "built", item="9", **kw)
             self.assertIn("not locked", err.getvalue())
             self.assertFalse(any("locked" in i for i in read_json(os.path.join(folder, "packet.json"))["items"]))
+
+    def test_a_new_packet_drops_the_item_remembered_from_the_old_one(self):
+        # Built from packet A as item "old", then put on the board again in
+        # packet B with no --item. The lock for the second build must land on
+        # B's item for the ref, not look for "old" in B and lock nothing.
+        ref = "yalesites-org/YaleSites-Internal#1"
+        with tempfile.TemporaryDirectory() as d:
+            packets = os.path.join(d, "packets")
+            ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+            write_packet(os.path.join(packets, "A"), [edit_item(ops, id="old")], BLOCKS)
+            write_packet(os.path.join(packets, "B"), [edit_item(ops, id="new")], BLOCKS)
+            path = os.path.join(d, "status.json")
+            kw = {"path": path, "packets_dir": packets}
+            packet.set_status(ref, "built", packet="A", **kw)
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "old")
+            packet.set_status(ref, "on-board", packet="B", **kw)
+            entry = read_json(path)["tickets"][ref]
+            self.assertEqual(entry["packet"], "B")
+            self.assertNotIn("item", entry)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                packet.set_status(ref, "building", **kw)
+            self.assertEqual(err.getvalue(), "")
+            self.assertIs(read_json(os.path.join(packets, "B", "packet.json"))["items"][0].get("locked"), True)
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "new")
+            # Same packet again: the item is kept, and an explicit --item wins.
+            packet.set_status(ref, "on-board", packet="B", **kw)
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "new")
+            packet.set_status(ref, "on-board", packet="A", item="old", **kw)
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "old")
+            # An explicit --item that is not in the packet is honoured as given
+            # (recorded, not locked, with a note), and the next explicit --item
+            # that does resolve replaces it in the entry.
+            write_packet(os.path.join(packets, "C"), [edit_item(ops, id="c1")], BLOCKS)
+            packet.set_status(ref, "on-board", packet="C", item="gone", **kw)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                packet.set_status(ref, "building", **kw)
+            self.assertIn("not locked", err.getvalue())
+            self.assertNotIn("locked", read_json(os.path.join(packets, "C", "packet.json"))["items"][0])
+            packet.set_status(ref, "building", item="c1", **kw)
+            self.assertIs(read_json(os.path.join(packets, "C", "packet.json"))["items"][0].get("locked"), True)
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "c1")
 
     def test_suffixed_refs_each_get_their_own_status_and_lock(self):
         with tempfile.TemporaryDirectory() as d:

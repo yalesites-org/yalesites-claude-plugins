@@ -54,6 +54,9 @@ const data = await page.evaluate(() => {
     const inline = (n) => [...n.childNodes].map(c => {
       if (c.nodeType === 3) return c.textContent.replace(/\s+/g, ' ');
       if (c.nodeType !== 1) return '';
+      // Chrome is skipped here too, or a "Read more<span class=visually-hidden> about Views</span>"
+      // link would capture text the public never sees.
+      if (c.matches(CHROME)) return '';
       const t = c.tagName;
       if (t === 'BR') return '\n';
       if (t === 'STRONG' || t === 'B') return `**${inline(c).trim()}**`;
@@ -72,6 +75,40 @@ const data = await page.evaluate(() => {
     // with bare text in it, or a <span> wrapping a link, is still captured.
     const BLOCK = 'h1,h2,h3,h4,h5,h6,p,ul,ol,dl,dt,dd,li,table,blockquote,pre,figure,figcaption,iframe,div,section,article,header,footer,nav,aside,details,summary,form,fieldset';
     const out = [];
+    // A list, one line per item, nested lists and paragraphs inside an item
+    // indented two spaces under its marker:
+    //   - Open Layout
+    //     - Click Add block
+    //     Second paragraph of the item
+    // The board reads that shape back (parseBlocks), and render passes it
+    // through as is. Flattening with inline(li) would run "Open Layout" and
+    // "Click Add block" together into text the page does not have.
+    const list = (el) => {
+      const lines = [];
+      [...el.children].filter(li => li.tagName === 'LI').forEach((li, i) => {
+        const mark = el.tagName === 'OL' ? `${i + 1}.` : '-';
+        const parts = [];
+        let run = [];
+        const flush = () => { const s = inline({ childNodes: run }).trim(); if (s) parts.push(...s.split('\n')); run = []; };
+        for (const c of li.childNodes) {
+          if (c.nodeType === 3) { run.push(c); continue; }
+          if (c.nodeType !== 1 || c.matches(CHROME)) continue;
+          if (c.tagName === 'UL' || c.tagName === 'OL') { flush(); parts.push(...list(c)); continue; }
+          if (!c.matches(BLOCK) && !c.querySelector(BLOCK)) { run.push(c); continue; }
+          // A <p> or other block inside the item: its paragraphs, one per
+          // line. A blank line would end the list in the board's parser.
+          flush();
+          parts.push(...md(c).split('\n').filter(l => l.trim()));
+        }
+        flush();
+        const text = parts.filter(l => l.trim());
+        if (!text.length) return;
+        // Everything after the first line sits two spaces in, nested items
+        // included, so each level of nesting is two more spaces.
+        lines.push(`${mark} ${text[0].trim()}`, ...text.slice(1).map(l => `  ${l}`));
+      });
+      return lines;
+    };
     const walk = (n) => {
       // Text nodes and inline elements sitting directly in a container are
       // one paragraph, emitted in order with the blocks around them, so
@@ -88,10 +125,8 @@ const data = await page.evaluate(() => {
         flush();
         if (/^H[1-6]$/.test(t)) out.push(`${'#'.repeat(Math.max(2, +t[1]))} ${inline(c).trim()}`);
         else if (t === 'P') { const s = inline(c).trim(); if (s) out.push(s); }
-        else if (t === 'UL' || t === 'OL') {
-          out.push([...c.children].filter(li => li.tagName === 'LI')
-            .map((li, i) => `${t === 'OL' ? `${i + 1}.` : '-'} ${inline(li).trim()}`).join('\n'));
-        } else if (t === 'TABLE') {
+        else if (t === 'UL' || t === 'OL') out.push(list(c).join('\n'));
+        else if (t === 'TABLE') {
           // A <br> inside a cell would end the markdown row, so cells keep it as " / ".
           const rows = [...c.querySelectorAll('tr')].map(tr => [...tr.children].map(td => inline(td).trim().replace(/\s*\n\s*/g, ' / ').replace(/\|/g, '\\|')));
           if (rows.length) {

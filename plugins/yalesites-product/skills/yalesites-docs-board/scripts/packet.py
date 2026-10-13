@@ -345,6 +345,11 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
     except ValueError as exc:
         sys.exit(f"{path} is not valid JSON: {exc}. Fix or remove it; nothing was written")
     entry = data.setdefault("tickets", {}).get(ref, {})
+    # An item id only means something inside its packet. A new --packet drops
+    # the remembered one, or the next lock would look for packet A's item in
+    # packet B, find nothing, and leave the ticket open to a second build.
+    if packet is not None and packet != entry.get("packet"):
+        entry.pop("item", None)
     entry.update({"state": state, "updatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")})
     for k, v in (("packet", packet), ("item", item), ("target", target), ("note", note)):
         if v is not None:
@@ -358,13 +363,14 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
     # offering it and decisions.json stops carrying a stale approve. failed
     # unlocks it and bumps its revision, so it can go back on the board for
     # a fresh approve. The item is the one named by --item (remembered in the
-    # entry), else the one item on this ref.
+    # entry), else the one item on this ref. Whichever way it was found, the
+    # entry records it, every time, so it always names the item last acted on.
     if state in LOCKING:
         found = lock_item(entry.get("packet"), ref, LOCKING[state], packets_dir, item_id=entry.get("item"))
         if found is None and LOCKING[state]:
             print(f"note: no packet item found for {ref} (packet {entry.get('packet')!r}, item {entry.get('item')!r}), "
                   "so it is not locked on the board", file=sys.stderr)
-        elif found is not None and "item" not in entry:
+        elif found is not None and entry.get("item") != str(found.get("id")):
             entry["item"] = str(found.get("id"))
             data["tickets"][ref] = entry
             write_json(path, data)

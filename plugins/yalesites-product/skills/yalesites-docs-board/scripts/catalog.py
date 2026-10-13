@@ -130,13 +130,26 @@ def catalog_age(path=CACHE):
     return (time.time() - os.path.getmtime(path)) / 3600
 
 
+def keep_old(why, out):
+    """A refresh that cannot be trusted keeps the old catalog, or stops when there is none."""
+    if os.path.exists(out):
+        print(f"{why} Keeping the old catalog at {out} ({catalog_age(out):.1f}h old).", file=sys.stderr)
+        return read_json(out)
+    sys.exit(f"{why} There is no earlier catalog to keep.")
+
+
 def refresh(force=False, max_age_hours=MAX_AGE_HOURS, out=CACHE):
     if not force and os.path.exists(out):
         age = catalog_age(out)
         if age < max_age_hours:
             print(f"Catalog is {age:.1f}h old, reusing {out}. Pass --force to rebuild.")
             return read_json(out)
-    _, xml = fetch(SITEMAP)
+    # The sitemap not loading is the same kind of failure as most pages not
+    # loading: a blip, not the site. The old catalog is better than a traceback.
+    try:
+        _, xml = fetch(SITEMAP)
+    except Exception as exc:
+        return keep_old(f"Catalog not refreshed: {SITEMAP} did not load ({exc}). Try again in a few minutes.", out)
     entries, children = parse_sitemap(xml)
     bad_children = 0
     for child in children:
@@ -165,12 +178,8 @@ def refresh(force=False, max_age_hours=MAX_AGE_HOURS, out=CACHE):
     failed = len(pages) - ok
     kids = f", {bad_children} of {len(children)} child sitemaps did not load" if bad_children else ""
     if not pages or ok < MIN_OK_SHARE * len(pages):
-        why = (f"Catalog not written: {ok} of {len(pages)} pages returned 200{kids}. "
-               f"That is the fetch failing, not the site. Try again in a few minutes.")
-        if os.path.exists(out):
-            print(f"{why} Keeping the old catalog at {out} ({catalog_age(out):.1f}h old).", file=sys.stderr)
-            return read_json(out)
-        sys.exit(f"{why} There is no earlier catalog to keep.")
+        return keep_old(f"Catalog not written: {ok} of {len(pages)} pages returned 200{kids}. "
+                        f"That is the fetch failing, not the site. Try again in a few minutes.", out)
     inv = load_inventory()
     for p in pages:
         p.update(inv.get(p["path"], {}))
@@ -236,10 +245,17 @@ def score(page, words):
     s = 0.0
     for w in set(words):
         s += 3 * (w in title) + 2 * (w in path) + 1 * (w in heads) + 0.5 * (w in teaser)
-    phrase = " ".join(words)
-    if len(words) > 1 and phrase in " ".join(tokens(page.get("title", ""))):
+    # The whole query in order in the title, token by token. A substring test
+    # on the joined tokens would let "set tag" fire on "Reset Tags".
+    if len(words) > 1 and has_run(tokens(page.get("title", "")), list(words)):
         s += 3
     return s
+
+
+def has_run(seq, run):
+    """True when `run` appears in `seq` as a contiguous sub-list."""
+    n = len(run)
+    return n > 0 and any(seq[i:i + n] == run for i in range(len(seq) - n + 1))
 
 
 def search(catalog, query, limit=8):

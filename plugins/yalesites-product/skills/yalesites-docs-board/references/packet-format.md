@@ -100,7 +100,19 @@ Move recipe instead of deleting and recreating the block.
 The board renders a light markdown: `##`/`###` headings, paragraphs, `-` and `1.` lists, tables
 with a `|---|` row, `>` quotes, fenced code, `**bold**`, `*italic*`, `` `code` ``, and links.
 Write internal links as site-relative paths (`/editorial-workflow`). The board links them to the
-live site. Mark screenshots the way `yalesites-web-content` does:
+live site. A list item nests by indent: a nested item sits two spaces in under its parent, and
+an indented line without a marker is a second paragraph of the item above it. No blank line
+inside a list; a blank line ends it.
+
+```markdown
+1. Open Layout Builder
+  - Click Add block
+  - Pick Text
+  The block opens in a modal.
+2. Save layout
+```
+
+Mark screenshots the way `yalesites-web-content` does:
 
 ```markdown
 *[SCREENSHOT: the Office Hours block on a published page]*

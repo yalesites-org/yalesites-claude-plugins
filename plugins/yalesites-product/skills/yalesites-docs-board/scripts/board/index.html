@@ -110,6 +110,7 @@
   .doc h2 { font-size: 18px; }
   .doc p { margin: 0 0 8px; }
   .doc ul, .doc ol { margin: 0 0 8px; padding-left: 22px; }
+  .doc li > ul, .doc li > ol { margin-bottom: 0; }
   .doc code { font: 13px ui-monospace, Menlo, monospace; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
   .doc pre { background: var(--bg); padding: 8px 10px; border-radius: 6px; overflow: auto; font: 13px/1.45 ui-monospace, Menlo, monospace; margin: 0 0 8px; }
   .doc table { border-collapse: collapse; font-size: 13px; margin: 0 0 8px; width: 100%; }
@@ -209,15 +210,21 @@ const add = (parent, ...kids) => parent.append(...kids.filter(k => k != null && 
 const INS = ['\u0001', '\u0002'], DEL = ['\u0003', '\u0004'];
 const unsentinel = s => s.replaceAll(INS[0], '<ins>').replaceAll(INS[1], '</ins>').replaceAll(DEL[0], '<del>').replaceAll(DEL[1], '</del>');
 
+// Code spans come out first and go back last, so the bold and italic
+// regexes never see the asterisks in `*.twig`. The placeholder uses its own
+// control character, so it never collides with the diff sentinels.
+const CODE = '\u0005';
 function inline(t) {
+  const codes = [];
   const s = esc(t)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
+    .replace(/`([^`]+)`/g, (m, c) => { codes.push(`<code>${c}</code>`); return `${CODE}${codes.length - 1}${CODE}`; })
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
     .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => {
       const url = href.startsWith('/') ? 'https://yalesites.yale.edu' + href : href;
       return /^(https?:|mailto:)/.test(url) ? `<a href="${url}" target="_blank" rel="noopener" title="${href}">${txt}</a>` : `${txt} (${href})`;
-    });
+    })
+    .replace(new RegExp(`${CODE}(\\d+)${CODE}`, 'g'), (m, i) => codes[i]);
   return unsentinel(s);
 }
 
@@ -268,8 +275,11 @@ function parseBlocks(src) {
     }
     if (!line.trim()) continue;
     if (/^#{1,6} /.test(line)) { out.push({ t: 'h', lines: [line], idx: [i] }); continue; }
-    const kind = /^\s*\|/.test(line) ? 'table' : /^\s*([-*]|\d+\.) /.test(line) ? 'list' : /^\s*>/.test(line) ? 'quote' : 'p';
     const prev = out[out.length - 1];
+    // An indented line inside a list is part of the item above it: a nested
+    // item, or a second paragraph of the item (see capture.js).
+    const inList = prev && prev.t === 'list' && !prev.closed && /^\s+\S/.test(line);
+    const kind = inList ? 'list' : /^\s*\|/.test(line) ? 'table' : /^\s*([-*]|\d+\.) /.test(line) ? 'list' : /^\s*>/.test(line) ? 'quote' : 'p';
     if (prev && prev.t === kind && !prev.closed) { prev.lines.push(line); prev.idx.push(i); }
     else out.push({ t: kind, lines: [line], idx: [i] });
     if (!lines[i + 1]?.trim()) out[out.length - 1].closed = true;
@@ -286,9 +296,25 @@ function renderBlock(b, unitClass = () => '') {
   if (b.t === 'code') return `<pre>${b.lines.map((l, k) => { const c = unitClass(k), t = unsentinel(esc(l)); return c ? `<span class="${c}">${t}</span>` : t; }).join('\n')}</pre>`;
   if (b.t === 'quote') return `<blockquote>${b.lines.map((l, k) => `<span${cls(unitClass(k))}>${inline(l.replace(/^\s*>\s?/, ''))}</span>`).join('<br>')}</blockquote>`;
   if (b.t === 'list') {
-    const ordered = /^\s*\d+\./.test(b.lines[0]);
-    const items = b.lines.map((l, k) => `<li${cls(unitClass(k))}>${inline(l.replace(/^\s*([-*]|\d+\.) (\[[ x]\] )?/, ''))}</li>`);
-    return ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`;
+    // Items nest by indent: a marker further in than the item above opens a
+    // list inside it, and an indented line with no marker is another line
+    // of that item. Each line keeps its own add/del class.
+    const root = { kids: [] }, stack = [{ ind: -1, node: root }];
+    b.lines.forEach((l, k) => {
+      const m = l.match(/^(\s*)(?:([-*]|\d+\.) (?:\[[ x]\] )?)?(.*)$/);
+      const item = stack[stack.length - 1].node, text = inline(m[3]);
+      if (!m[2] && item !== root) { item.more.push(`<span${cls(unitClass(k))}>${text}</span>`); return; }
+      const ind = m[2] ? m[1].length : 0;
+      while (stack.length > 1 && stack[stack.length - 1].ind >= ind) stack.pop();
+      const node = { text, c: unitClass(k), ordered: /\d/.test(m[2] || ''), more: [], kids: [] };
+      stack[stack.length - 1].node.kids.push(node);
+      stack.push({ ind, node });
+    });
+    const render = n => {
+      const items = n.kids.map(it => `<li${cls(it.c)}>${[it.text, ...it.more].join('<br>')}${it.kids.length ? render(it) : ''}</li>`).join('');
+      return n.kids[0].ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`;
+    };
+    return render(root);
   }
   if (b.t === 'table') {
     const rows = b.lines.map((l, k) => ({ k, cells: l.trim().replace(/^\||\|$/g, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|')) }))
