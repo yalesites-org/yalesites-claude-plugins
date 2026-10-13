@@ -162,10 +162,22 @@ def refresh(force=False, max_age_hours=24, out=CACHE):
 
 
 def stem(t):
-    """Crude, but enough that a ticket saying "export" finds "Exporting Content"."""
-    for suffix in ("ing", "ed", "es", "s"):
+    """Crude, but enough that a ticket saying "export" finds "Exporting Content".
+
+    Only a trailing "s" is stripped from plurals, never "es": "images" has to
+    land on "image", and "courses" on "course". After "ed" or "ing", a doubled
+    consonant is collapsed so "embedded" lands on "embed" and "tagged" on "tag".
+    Letters that commonly end a word doubled (ll, ss, ff, zz) are left alone, so
+    "installed" still lands on "install".
+    """
+    for suffix in ("ing", "ed", "s"):
         if len(t) > len(suffix) + 3 and t.endswith(suffix):
-            return t[: -len(suffix)]
+            if suffix == "s" and t.endswith("ss"):
+                return t  # "address", "access", "process" are not plurals
+            t = t[: -len(suffix)]
+            if suffix != "s" and len(t) >= 4 and t[-1] == t[-2] and t[-1] not in "aeioulsfz":
+                t = t[:-1]
+            return t
     return t
 
 

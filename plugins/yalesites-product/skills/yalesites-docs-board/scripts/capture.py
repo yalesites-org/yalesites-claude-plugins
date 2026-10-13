@@ -19,11 +19,13 @@ import os
 import re
 import subprocess
 import sys
+from urllib.parse import urlparse
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CLI = ["npx", "-y", "@playwright/cli@0.1.22"]
 SESSION = "docs-board-capture"
-SITE = "https://yalesites.yale.edu"
+SITE_HOST = "yalesites.yale.edu"
+SITE = "https://" + SITE_HOST
 ITEM_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
@@ -55,7 +57,10 @@ def parse_targets(pairs):
             sys.exit(f"Expected <item-id>=<url>, got {pair!r}")
         if url.startswith("/"):
             url = SITE + url
-        if not url.startswith(SITE):
+        # Compare the parsed host, not a string prefix: "yalesites.yale.edu.example.com"
+        # and "yalesites.yale.edu@evil.example" both start with SITE.
+        parts = urlparse(url)
+        if parts.scheme != "https" or parts.netloc != SITE_HOST:
             sys.exit(f"{url} is not on {SITE}. Internal docs are read from the repo, not captured.")
         targets.append((item, url))
     return targets

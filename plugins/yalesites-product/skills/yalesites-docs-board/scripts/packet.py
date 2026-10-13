@@ -78,9 +78,15 @@ def validate(packet_dir):
         if iid in seen:
             errors.append(f"{where}: duplicate id")
         seen.add(iid)
-        ref = (item.get("ticket") or {}).get("ref", "")
+        ticket = item.get("ticket") or {}
+        ref = ticket.get("ref", "")
         if not TICKET.match(ref):
             errors.append(f"{where}: ticket.ref must be owner/repo#N, got {ref!r}")
+        # The board shows both on every card and in the nav, so a packet without
+        # them must fail here rather than in front of the reviewer.
+        for field in ("title", "url"):
+            if not (ticket.get(field) or "").strip():
+                errors.append(f"{where}: ticket.{field} is required")
         kind = item.get("kind")
         if kind not in KINDS:
             errors.append(f"{where}: kind must be one of {KINDS}")
@@ -168,19 +174,37 @@ def validate(packet_dir):
     return errors, warnings
 
 
+FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+
+
 def split_md(text):
-    """Cut markdown into sections at headings. Text before the first heading is its own section."""
+    """Cut markdown into sections at headings. Text before the first heading is its own section.
+
+    Every byte of the file lands in exactly one section, blank-line runs and
+    the final newline included, so that `render` of all-keep ops gives the file
+    back unchanged. A heading inside a fenced code block (``` or ~~~, three or
+    more characters, closed only by the same character at the same or greater
+    length) does not start a section.
+    """
     sections, buf = [], []
-    in_fence = False
-    for line in text.splitlines():
-        if line.lstrip().startswith("```"):
-            in_fence = not in_fence
-        if not in_fence and re.match(r"^#{1,6} ", line) and any(x.strip() for x in buf):
-            sections.append("\n".join(buf).strip())
+    fence = None
+    for line in text.splitlines(keepends=True):
+        bare = line.rstrip("\r\n")
+        m = FENCE.match(bare)
+        if fence is None:
+            if m:
+                fence = m.group(1)
+        elif m and m.group(1)[0] == fence[0] and len(m.group(1)) >= len(fence) and not bare[m.end():].strip():
+            fence = None
+        if fence is None and not m and re.match(r"^#{1,6} ", bare) and any(x.strip() for x in buf):
+            sections.append("".join(buf))
             buf = []
         buf.append(line)
-    if any(x.strip() for x in buf):
-        sections.append("\n".join(buf).strip())
+    if buf:
+        if sections and not any(x.strip() for x in buf):
+            sections[-1] += "".join(buf)
+        else:
+            sections.append("".join(buf))
     return [{"id": f"s{i + 1}", "type": "Section", "markdown": s} for i, s in enumerate(sections)]
 
 
@@ -189,16 +213,29 @@ def render(packet_dir, item_id):
     item = next((i for i in pk.get("items", []) if str(i.get("id")) == str(item_id)), None)
     if item is None:
         sys.exit(f"No item {item_id} in {packet_dir}")
-    blocks = {}
+    blocks, is_file = {}, False
     if item.get("current"):
-        blocks = {b["id"]: b for b in read_json(os.path.join(packet_dir, item["current"])).get("blocks", [])}
+        current = read_json(os.path.join(packet_dir, item["current"]))
+        blocks = {b["id"]: b for b in current.get("blocks", [])}
+        is_file = current.get("kind") == "file"
     parts = []
     for op in item.get("ops", []):
         if op["op"] == "keep":
-            parts.append(blocks[op["ref"]]["markdown"])
+            parts.append((blocks[op["ref"]]["markdown"], is_file))
         elif op["op"] in ("edit", "add"):
-            parts.append(op["markdown"])
-    return "\n\n".join(p.strip() for p in parts if p and p.strip()) + "\n"
+            parts.append((op["markdown"], False))
+    parts = [(p, verbatim) for p, verbatim in parts if p and p.strip()]
+    # A kept section of a repo file (split-md) is the file's own bytes, trailing
+    # blank lines included, so it goes back verbatim and all-keep ops give the
+    # file back unchanged. Page blocks, and edited and added text, get one blank
+    # line after them, or just the final newline at the end.
+    out = ""
+    for n, (p, verbatim) in enumerate(parts):
+        if verbatim:
+            out += p
+        else:
+            out += p.strip("\r\n") + ("\n" if n == len(parts) - 1 else "\n\n")
+    return out
 
 
 def set_status(ref, state, packet=None, target=None, note=None, result=None, path=STATUS_FILE):

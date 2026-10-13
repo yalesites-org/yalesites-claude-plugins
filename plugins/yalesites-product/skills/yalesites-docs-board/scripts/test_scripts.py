@@ -68,6 +68,13 @@ class CatalogTest(unittest.TestCase):
         cat = {"pages": [{"path": "/finding-and-exporting-content", "title": "Finding and Exporting Content", "teaser": "", "headings": []}]}
         self.assertEqual(len(catalog.search(cat, "People CSV export")), 1)
 
+    def test_stem_keeps_singular_and_plural_together(self):
+        for a, b in (("image", "images"), ("course", "courses"), ("embed", "embedded"), ("export", "exporting"),
+                     ("install", "installed"), ("tag", "tagged"), ("block", "blocks"), ("address", "addressed")):
+            self.assertEqual(catalog.stem(a), catalog.stem(b), (a, b))
+        cat = {"pages": [{"path": "/working-with-images", "title": "Working with Images", "teaser": "", "headings": []}]}
+        self.assertEqual(len(catalog.search(cat, "Docs: image block alt text")), 1)
+
     def test_inventory_merge_reads_bundled_csv(self):
         inv = catalog.load_inventory()
         self.assertIn("/editorial-workflow", inv)
@@ -89,6 +96,13 @@ class CaptureTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             capture.parse_targets(["../x=/a"])
 
+    def test_targets_compare_the_host_not_a_prefix(self):
+        self.assertEqual(capture.parse_targets(["1=https://yalesites.yale.edu/x?y=1"])[0][1], "https://yalesites.yale.edu/x?y=1")
+        for url in ("https://yalesites.yale.edu.example.com/x", "https://yalesites.yale.edu@evil.example/",
+                    "http://yalesites.yale.edu/x", "https://yalesites.yale.edu:8443/x", "yalesites.yale.edu/x"):
+            with self.assertRaises(SystemExit, msg=url):
+                capture.parse_targets([f"1={url}"])
+
     def test_build_code_quotes_values_safely(self):
         code = capture.build_code('https://yalesites.yale.edu/a"b', "/tmp/x y.png", 1280, "return 1;")
         self.assertTrue(code.startswith("async page => {\n"))
@@ -102,11 +116,11 @@ class CaptureTest(unittest.TestCase):
         self.assertNotIn("const URL", body)
 
 
-def write_packet(folder, items, blocks=None, screenshot=True):
+def write_packet(folder, items, blocks=None, screenshot=True, kind=None):
     os.makedirs(os.path.join(folder, "1"), exist_ok=True)
     if blocks is not None:
         with open(os.path.join(folder, "1", "current.json"), "w") as f:
-            json.dump({"status": 200, "screenshot": "current.png" if screenshot else None, "blocks": blocks}, f)
+            json.dump({"kind": kind, "status": 200, "screenshot": "current.png" if screenshot else None, "blocks": blocks}, f)
         if screenshot:
             open(os.path.join(folder, "1", "current.png"), "wb").close()
     with open(os.path.join(folder, "packet.json"), "w") as f:
@@ -166,6 +180,15 @@ class PacketValidateTest(unittest.TestCase):
         self.assertTrue(any("owner/repo#N" in e for e in errors), errors)
         self.assertTrue(any("kind must be" in e for e in errors), errors)
 
+    def test_ticket_needs_a_title_and_url_for_the_board(self):
+        ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+        errors, _ = self.check([edit_item(ops, ticket={"ref": "yalesites-org/YaleSites-Internal#1"})])
+        self.assertTrue(any("ticket.title is required" in e for e in errors), errors)
+        self.assertTrue(any("ticket.url is required" in e for e in errors), errors)
+        errors, _ = self.check([edit_item(ops, ticket={"ref": "yalesites-org/YaleSites-Internal#1", "title": " ", "url": "u"})])
+        self.assertTrue(any("ticket.title is required" in e for e in errors), errors)
+        self.assertFalse(any("ticket.url" in e for e in errors), errors)
+
 
 class RenderTest(unittest.TestCase):
     def test_render_follows_ops_order_and_drops_removed(self):
@@ -178,14 +201,51 @@ class RenderTest(unittest.TestCase):
             self.assertEqual(packet.render(d, "1"), "Zero\n\nOne\n\nThree\n")
 
 
+README = (
+    "\n\nIntro line\n\n\n# Title\nBody\n\n```bash\n# not a heading\n```\n\n~~~\n# nor this one\n```\n# still fenced\n~~~\n"
+    "\n````md\n```\n# fenced by four backticks\n```\n````\n   ~~~~ python\n# four tildes\n~~~\n# not closed by three\n~~~~\n"
+    "## Next\n\n\nMore\n\n\n"
+)
+
+
 class SplitAndStatusTest(unittest.TestCase):
-    def test_split_md_cuts_at_headings_but_not_inside_code(self):
-        text = "Intro line\n\n# Title\nBody\n```\n# not a heading\n```\n## Next\nMore\n"
-        secs = packet.split_md(text)
+    def test_split_md_cuts_at_headings_but_not_inside_fences(self):
+        secs = packet.split_md(README)
         self.assertEqual([s["id"] for s in secs], ["s1", "s2", "s3"])
-        self.assertEqual(secs[0]["markdown"], "Intro line")
-        self.assertIn("# not a heading", secs[1]["markdown"])
-        self.assertTrue(secs[2]["markdown"].startswith("## Next"))
+        self.assertEqual(secs[0]["markdown"], "\n\nIntro line\n\n\n")
+        self.assertTrue(secs[1]["markdown"].startswith("# Title\n"))
+        for fenced in ("# not a heading", "# nor this one", "# still fenced", "# fenced by four backticks", "# four tildes", "# not closed by three"):
+            self.assertIn(fenced, secs[1]["markdown"], fenced)
+        self.assertEqual(secs[2]["markdown"], "## Next\n\n\nMore\n\n\n")
+
+    def test_split_md_keeps_an_unclosed_fence_open_and_a_file_without_a_final_newline(self):
+        self.assertEqual(len(packet.split_md("# A\n```\n# B\n")), 1)
+        secs = packet.split_md("# A\ntext\n# B\nmore")
+        self.assertEqual([s["markdown"] for s in secs], ["# A\ntext\n", "# B\nmore"])
+        self.assertEqual(packet.split_md("   \n\n"), [{"id": "s1", "type": "Section", "markdown": "   \n\n"}])
+
+    def test_split_then_render_gives_the_file_back_byte_for_byte(self):
+        for text in (README, "# A\ntext\n# B\nmore", "no headings at all\n\n\n", "# only\n"):
+            secs = packet.split_md(text)
+            self.assertEqual("".join(s["markdown"] for s in secs), text)
+            with tempfile.TemporaryDirectory() as d:
+                item = {"id": "1", "ticket": {"ref": "yalesites-org/x#1", "url": "u", "title": "t"}, "kind": "internal",
+                        "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
+                        "ops": [{"op": "keep", "ref": s["id"]} for s in secs]}
+                write_packet(d, [item], secs, screenshot=False, kind="file")
+                self.assertEqual(packet.render(d, "1"), text)
+
+    def test_render_separates_edited_and_added_text_with_one_blank_line(self):
+        secs = packet.split_md("# A\ntext\n\n# B\nmore\n")
+        with tempfile.TemporaryDirectory() as d:
+            item = {"id": "1", "ticket": {"ref": "yalesites-org/x#1", "url": "u", "title": "t"}, "kind": "internal",
+                    "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
+                    "ops": [{"op": "edit", "ref": "s1", "markdown": "# A\nnew text", "why": "w"},
+                            {"op": "add", "block": "Section", "markdown": "# A2\nbetween\n"},
+                            {"op": "keep", "ref": "s2"},
+                            {"op": "add", "block": "Section", "markdown": "# C\nlast"}]}
+            write_packet(d, [item], secs, screenshot=False, kind="file")
+            self.assertEqual(packet.render(d, "1"), "# A\nnew text\n\n# A2\nbetween\n\n# B\nmore\n# C\nlast\n")
 
     def test_status_merges_per_ticket(self):
         with tempfile.TemporaryDirectory() as d:
