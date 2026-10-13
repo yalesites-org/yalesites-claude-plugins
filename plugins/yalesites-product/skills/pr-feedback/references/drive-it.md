@@ -127,10 +127,13 @@ used as a baseline, everything the run made is removed. See Step D5.
 Offer the alternative in the same question: test on an existing page such as
 `/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
 
-Record everything as it is created, in `.created` in the run folder, one line per item:
-`node <nid>`, `block_content <id>`, `media <mid>`, `file <fid>`, `user qa-<role>`, and for a
-setting, `config <name> <key> <original value>` written **before** changing it, from
-`terminus drush ... -- config:get <name> <key>`. Step D5 works from this file and nothing else.
+Record everything as it is created, in `.created` in the run folder, one line per item,
+starting with the environment it lives on: `pr-1413 node <nid>`, `pr-1413 block_content <id>`,
+`pr-1413 media <mid>`, `pr-1413 file <fid>`, `pr-1413 user qa-<role>`, and for a setting,
+`pr-1413 config <name> <key> <original value>` written **before** changing it, from
+`terminus drush ... -- config:get <name> <key>`. The environment column is what D5 keys on: a
+parity run creates content on the reviewed PR's multidev and on a baseline, and `node 84` alone
+cannot say which. Step D5 works from this file and nothing else.
 
 **Title test content so anyone can tell it apart.** Kept content shows up in views, calendars,
 search, and listing blocks on other pages, where the next tester or a visreg pass will see it.
@@ -145,10 +148,11 @@ run on the same PR finds them already there. Before creating a user, check for i
 `user:create` fails on a duplicate name. Before creating content, read the `.created` files of
 earlier run folders for the same PR (`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-*/`) and
 reuse a `kept` item that still exists, is still ours, and fits the step. Still ours means its
-title still starts with `QA pr-<N>` (check with the `sqlq` title query from D5) or, for a user,
-its name still starts with `qa-`: a multidev rebuilt from `dev` can reuse a node id for real
-content. Write a reused item into this run's `.created` as `node 84 reused`, so D5 knows this
-run did not make it and must never remove it.
+title still starts with `QA pr-<N> ` with the trailing space (check with the `sqlq` title query
+from D5; `QA pr-141` must not match `QA pr-1413 ...`) or, for a user, its name still starts
+with `qa-`: a multidev rebuilt from `dev` can reuse a node id for real content. Write a reused
+item into this run's `.created` as `pr-<N> node 84 reused`, so D5 knows this run did not make it
+and must never remove it.
 
 Reuse only what the step reads. A step that tests creating or saving (and any step whose
 earlier finding was a create or save bug) runs against the new code only if it creates the
@@ -247,8 +251,11 @@ sits at x=465" is evidence. "It looks right" is not.
 Save them under one folder per run, so the user can find them later and attach them to GitHub:
 
 ```
-~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-<YYYY-MM-DD>/
+~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-<YYYY-MM-DD>-<HHMM>/
 ```
+
+The time suffix gives every run its own folder and its own `.created`, so a second run on
+the same day neither overwrites the first run's results nor mixes its items into one file.
 
 Name each file `<NN>-<result>-<role>-<slug>.png`, where `<result>` is one of:
 
@@ -435,8 +442,8 @@ screenshot. Run the `key_value_expire` delete below for every kept `node <nid>`,
 unsaved draft is itself the finding, in which case say so in the report.
 
 One line format for what stays. At D5, every item left in place ends up in `.created` as
-`<kind> <id> kept`, whether this run created it or reused it (rewrite a `reused` line to
-`kept` once it is confirmed still there). Kept handling (the tempstore clear above, the URL
+`<env> <kind> <id> kept` (for example `pr-1413 node 84 kept`), whether this run created it or
+reused it (rewrite a `reused` line to `kept` once it is confirmed still there). Kept handling (the tempstore clear above, the URL
 in the report) applies to all of them, and the next run looks only for `kept`. List kept
 items in the report with their URLs, so the reviewer can find them. The `qa-<role>` users have
 no password and are reachable only by `uli`; if a PR goes quiet for weeks, removing them is
@@ -449,8 +456,10 @@ anything behind.
 
 When removing, remove exactly what `.created` lists as made by this run, and nothing else:
 never a `reused` line, since `user:cancel --delete-content` on a user this run did not create
-would also delete content it never made. Check each target before removing or reverting it
-(its title, name, or current value), and work through the kinds in this order:
+would also delete content it never made. Read the environment off each line and decide keep
+or remove per line, so a parity run keeps `pr-1413 node 84` and removes `pr-1612 node 91`.
+Check each target before removing or reverting it (its title, name, or current value), and
+work through the kinds in this order:
 
 | Kind | Check | Remove | Confirm |
 |---|---|---|---|
@@ -461,7 +470,8 @@ would also delete content it never made. Check each target before removing or re
 | Test page | `sqlq "SELECT nid,title FROM node_field_data WHERE nid=<nid>"` | `entity:delete node <nid>` | its URL returns 404 |
 | `qa-<role>` user | `user:information qa-<role>` | `-y user:cancel --delete-content qa-<role>` | `user:information` finds no user |
 
-Every command runs as `terminus drush yalesites-platform.pr-<N> -- <command>`. Deleting media
+Every command runs as `terminus drush yalesites-platform.<env> -- <command>`, with `<env>` taken
+from the `.created` line being handled, never assumed to be the reviewed PR's multidev. Deleting media
 does not delete its file, so each upload needs both lines. Deleting a test page does not delete
 an unsaved Layout Builder draft for it either. After deleting the node, clear it:
 `sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND (name = 'node.<nid>' OR name LIKE 'node.<nid>.%')"`. Then close every browser session
