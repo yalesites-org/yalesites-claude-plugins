@@ -114,6 +114,18 @@ class ReviewBoardServerTest(unittest.TestCase):
         self.assertEqual(self.status("/api/answers?packet=missing", b"{}")[0], 404)
         self.assertEqual(self.status("/api/answers?packet=ysp-1", b"not json")[0], 400)
 
+    def test_post_cannot_write_outside_a_packet_folder(self):
+        # `..` and `.` match PACKET_ID, so they must be refused by the folder resolution itself.
+        parent = os.path.dirname(self.packets)
+        self.assertEqual(self.status("/api/answers?packet=..", json.dumps({"answers": []}).encode())[0], 404)
+        self.assertFalse(os.path.exists(os.path.join(parent, "answers.json")))
+        self.assertFalse(os.path.exists(os.path.join(parent, "answers.json.tmp")))
+        self.assertEqual(self.status("/api/answers?packet=.", json.dumps({"answers": []}).encode())[0], 404)
+        self.assertFalse(os.path.exists(os.path.join(self.packets, "answers.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.packets, "answers.json.tmp")))
+        self.assertEqual(self.status("/api/answers?packet=...", b"{}")[0], 404)
+        self.assertEqual(self.status("/api/answers?packet=%2e%2e", b"{}")[0], 404)
+
 
 class PortChoiceTest(unittest.TestCase):
     def run_server(self, *args):

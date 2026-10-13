@@ -117,8 +117,8 @@ def make_handler(packets_dir):
             if url.path != "/api/answers" or not PACKET_ID.match(packet):
                 self.send_error(404)
                 return
-            folder = os.path.join(packets_dir, packet)
-            if not os.path.isdir(folder):
+            folder = packet_file(packets_dir, packet)
+            if folder is None or not os.path.isdir(folder):
                 self.send_error(404, "Unknown packet")
                 return
             length = int(self.headers.get("Content-Length", 0))
