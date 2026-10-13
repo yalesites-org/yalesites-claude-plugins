@@ -67,11 +67,25 @@ const data = await page.evaluate(() => {
       if (t === 'IMG') return c.alt ? `*[image: ${c.alt}]*` : '';
       return inline(c);
     }).join('');
+    // Block-level tags. An element that neither is one nor holds one is
+    // inline content, whatever its tag, so a <div class="callout__heading">
+    // with bare text in it, or a <span> wrapping a link, is still captured.
+    const BLOCK = 'h1,h2,h3,h4,h5,h6,p,ul,ol,dl,dt,dd,li,table,blockquote,pre,figure,figcaption,iframe,div,section,article,header,footer,nav,aside,details,summary,form,fieldset';
     const out = [];
     const walk = (n) => {
-      for (const c of n.children) {
+      // Text nodes and inline elements sitting directly in a container are
+      // one paragraph, emitted in order with the blocks around them, so
+      // <div>Intro <a>link</a><p>More</p></div> gives "Intro [link](...)"
+      // and then "More".
+      let run = [];
+      const flush = () => { const s = inline({ childNodes: run }).trim(); if (s) out.push(s); run = []; };
+      for (const c of n.childNodes) {
+        if (c.nodeType === 3) { run.push(c); continue; }
+        if (c.nodeType !== 1) continue;
         const t = c.tagName;
         if (c.matches(CHROME)) continue;
+        if (!c.matches(BLOCK) && !c.querySelector(BLOCK)) { run.push(c); continue; }
+        flush();
         if (/^H[1-6]$/.test(t)) out.push(`${'#'.repeat(Math.max(2, +t[1]))} ${inline(c).trim()}`);
         else if (t === 'P') { const s = inline(c).trim(); if (s) out.push(s); }
         else if (t === 'UL' || t === 'OL') {
@@ -85,12 +99,14 @@ const data = await page.evaluate(() => {
               ...rows.slice(1).map(r => `| ${r.join(' | ')} |`)].join('\n'));
           }
         } else if (t === 'BLOCKQUOTE') out.push(`> ${inline(c).trim()}`);
-        else if (t === 'IMG') { if (c.alt) out.push(`*[image: ${c.alt}]*`); }
         else if (t === 'FIGCAPTION') out.push(`*${inline(c).trim()}*`);
         else if (t === 'IFRAME') out.push(`*[embed: ${c.title || c.src}]*`);
-        else if (t === 'A' && !c.querySelector('p,h2,h3,h4,li')) { const s = inline({ childNodes: [c] }).trim(); if (s) out.push(s); }
-        else walk(c);
+        else if (c.querySelector(BLOCK)) walk(c);
+        // A block with nothing block-level inside (a div holding a title, a
+        // dt or dd, a link wrapped around text) is one paragraph of its own.
+        else { const s = inline({ childNodes: [c] }).trim(); if (s) out.push(s); }
       }
+      flush();
     };
     walk(node);
     return out.join('\n\n').replace(/\n{3,}/g, '\n\n').trim();

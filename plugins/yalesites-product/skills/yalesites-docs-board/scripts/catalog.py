@@ -43,6 +43,11 @@ UA = "yalesites-docs-board/1.0 (+https://github.com/yalesites-org/yalesites-clau
 # One number for "the catalog is old": refresh reuses a cache younger than
 # this, and search, show, and section warn about one older than this.
 MAX_AGE_HOURS = 24
+# refresh only writes a catalog when at least this share of pages returned
+# 200. Below it the fetches failed, not the pages (a rate limit, a network
+# blip after the sitemap loaded), and a catalog of empty titles would make
+# search call every real page a new one for the next MAX_AGE_HOURS.
+MIN_OK_SHARE = 0.8
 
 # Event instances are dated copies of one training. They are real pages, but
 # no docs ticket targets them and they drown out search results.
@@ -156,6 +161,16 @@ def refresh(force=False, max_age_hours=MAX_AGE_HOURS, out=CACHE):
 
     with ThreadPoolExecutor(max_workers=8) as pool:
         pages = list(pool.map(one, pages))
+    ok = sum(1 for p in pages if p["status"] == 200)
+    failed = len(pages) - ok
+    kids = f", {bad_children} of {len(children)} child sitemaps did not load" if bad_children else ""
+    if not pages or ok < MIN_OK_SHARE * len(pages):
+        why = (f"Catalog not written: {ok} of {len(pages)} pages returned 200{kids}. "
+               f"That is the fetch failing, not the site. Try again in a few minutes.")
+        if os.path.exists(out):
+            print(f"{why} Keeping the old catalog at {out} ({catalog_age(out):.1f}h old).", file=sys.stderr)
+            return read_json(out)
+        sys.exit(f"{why} There is no earlier catalog to keep.")
     inv = load_inventory()
     for p in pages:
         p.update(inv.get(p["path"], {}))
@@ -169,8 +184,6 @@ def refresh(force=False, max_age_hours=MAX_AGE_HOURS, out=CACHE):
     with open(tmp, "w") as f:
         json.dump(catalog, f, indent=1)
     os.replace(tmp, out)
-    failed = sum(1 for p in pages if p["status"] != 200)
-    kids = f", {bad_children} of {len(children)} child sitemaps did not load" if bad_children else ""
     print(f"Catalog built: {len(pages)} pages ({failed} did not load{kids}) -> {out}")
     return catalog
 

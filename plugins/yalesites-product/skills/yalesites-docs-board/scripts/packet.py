@@ -4,7 +4,7 @@
   python3 packet.py validate <packet-dir>
   python3 packet.py split-md <item-dir> <file.md> [--repo owner/repo --path repo/rel/path]
   python3 packet.py render <packet-dir> <item-id> [--out FILE]
-  python3 packet.py status <owner/repo#N> <state> [--packet ID] [--target URL] [--note TEXT] [--result JSON]
+  python3 packet.py status <owner/repo#N> <state> [--packet ID] [--item ID] [--target URL] [--note TEXT] [--result JSON]
 
 `validate` checks a packet before the board opens, so a mistake shows up here
 and not as a broken page in front of the reviewer. The rule that matters most:
@@ -26,7 +26,14 @@ read-through of the copy, not something to paste.
 `built` and `building` also lock the ticket's item in its packet.json
 (`"locked": true`): the board shows a locked item read-only with a Built badge
 and leaves it out of decisions.json, so a later round cannot approve it again.
-`failed` takes the lock off, so the ticket can go back on the board.
+`failed` takes the lock off and bumps the item's `revision`, so the board
+treats it as undecided: the approve that led to the failed build is never
+sent again, and a page that half-built needs a fresh approve.
+
+The item is found by its id (`--item`), or by the ticket ref when the packet
+has exactly one item for it. `validate` rejects two items with the same
+ticket.ref: one ticket touching two pages is two items with the ref suffixed
+(`#1818-a`, `#1818-b`), so status and the lock never land on the wrong page.
 """
 import argparse
 import json
@@ -36,7 +43,9 @@ import sys
 from datetime import datetime, timezone
 
 ITEM_ID = re.compile(r"^[A-Za-z0-9._-]+$")
-TICKET = re.compile(r"^[\w.-]+/[\w.-]+#\d+$")
+# An optional -suffix after the number, for one ticket that touches two
+# pages: each page is its own item with its own ref (#1818-a, #1818-b).
+TICKET = re.compile(r"^[\w.-]+/[\w.-]+#\d+(-[A-Za-z0-9]+)?$")
 KINDS = ("edit", "new", "internal")
 OPS = ("keep", "edit", "add", "remove")
 STATES = ("drafting", "on-board", "changes", "approved", "building", "built", "skipped", "failed")
@@ -85,7 +94,7 @@ def validate(packet_dir):
     items = packet.get("items") or []
     if not items:
         errors.append("packet: items is empty")
-    seen = set()
+    seen, refs = set(), set()
     for item in items:
         iid = str(item.get("id", ""))
         where = f"item {iid or '?'}"
@@ -98,6 +107,12 @@ def validate(packet_dir):
         ref = ticket.get("ref", "")
         if not TICKET.match(ref):
             errors.append(f"{where}: ticket.ref must be owner/repo#N, got {ref!r}")
+        # Status and the lock are recorded per ref. Two items on one ref would
+        # share them, so one page being built would lock, or skip, the other.
+        elif ref in refs:
+            errors.append(f"{where}: duplicate ticket.ref {ref}. One ticket touching two pages is two items with "
+                          f"distinct ids and the ref suffixed ({ref}-a, {ref}-b)")
+        refs.add(ref)
         # The board shows both on every card and in the nav, so a packet without
         # them must fail here rather than in front of the reviewer.
         for field in ("title", "url"):
@@ -270,29 +285,52 @@ def render(packet_dir, item_id):
     return out
 
 
-def lock_item(packet_id, ref, locked, packets_dir=PACKETS_DIR):
-    """Set or clear `locked` on the packet item for `ref`. Returns the item, or None if there is no such packet or item."""
+def find_item(packet_id, ref, item_id=None, packets_dir=PACKETS_DIR):
+    """The packet and the item `status` acts on: by item id when given, else the one item with that ticket ref.
+
+    Returns (path, packet, item). Any of them is None when there is no such
+    packet or item. Two items with the same ref (a packet that skipped
+    validate) stop here, because locking the first match would lock the
+    wrong page half the time.
+    """
     if not packet_id or not ITEM_ID.match(str(packet_id)):
-        return None
+        return None, None, None
     path = os.path.join(packets_dir, packet_id, "packet.json")
     try:
         pk = read_json(path)
     except FileNotFoundError:
-        return None
+        return path, None, None
     except ValueError as exc:
-        sys.exit(f"status recorded, but {path} is not valid JSON, so the item was not locked: {exc}")
-    item = next((i for i in pk.get("items", []) if (i.get("ticket") or {}).get("ref") == ref), None)
+        sys.exit(f"status recorded, but {path} is not valid JSON, so the item was not touched: {exc}")
+    items = pk.get("items", [])
+    if item_id is not None:
+        return path, pk, next((i for i in items if str(i.get("id")) == str(item_id)), None)
+    hits = [i for i in items if (i.get("ticket") or {}).get("ref") == ref]
+    if len(hits) > 1:
+        sys.exit(f"status recorded, but {len(hits)} items in {path} carry {ref}. Pass --item <id> to say which one "
+                 f"(ids: {', '.join(str(i.get('id')) for i in hits)})")
+    return path, pk, hits[0] if hits else None
+
+
+def lock_item(packet_id, ref, locked, packets_dir=PACKETS_DIR, item_id=None):
+    """Set or clear `locked` on one packet item. Returns the item, or None if there is no such packet or item.
+
+    Clearing the lock (a failed build) also bumps the item's `revision`, so the
+    board drops the approve it had for the old revision and asks again.
+    """
+    path, pk, item = find_item(packet_id, ref, item_id, packets_dir)
     if item is None:
         return None
     if locked:
         item["locked"] = True
     else:
         item.pop("locked", None)
+        item["revision"] = int(item.get("revision") or 1) + 1
     write_json(path, pk)
     return item
 
 
-def set_status(ref, state, packet=None, target=None, note=None, result=None, path=STATUS_FILE, packets_dir=PACKETS_DIR):
+def set_status(ref, state, packet=None, target=None, note=None, result=None, path=STATUS_FILE, packets_dir=PACKETS_DIR, item=None):
     if not TICKET.match(ref):
         sys.exit(f"ticket must be owner/repo#N, got {ref!r}")
     if state not in STATES:
@@ -308,7 +346,7 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
         sys.exit(f"{path} is not valid JSON: {exc}. Fix or remove it; nothing was written")
     entry = data.setdefault("tickets", {}).get(ref, {})
     entry.update({"state": state, "updatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")})
-    for k, v in (("packet", packet), ("target", target), ("note", note)):
+    for k, v in (("packet", packet), ("item", item), ("target", target), ("note", note)):
         if v is not None:
             entry[k] = v
     if result is not None:
@@ -318,12 +356,18 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
     write_json(path, data)
     # built and building lock the item in its packet, so the board stops
     # offering it and decisions.json stops carrying a stale approve. failed
-    # unlocks it, so it can be put back on the board.
+    # unlocks it and bumps its revision, so it can go back on the board for
+    # a fresh approve. The item is the one named by --item (remembered in the
+    # entry), else the one item on this ref.
     if state in LOCKING:
-        item = lock_item(entry.get("packet"), ref, LOCKING[state], packets_dir)
-        if item is None and LOCKING[state]:
-            print(f"note: no packet item found for {ref} (packet {entry.get('packet')!r}), so it is not locked on the board",
-                  file=sys.stderr)
+        found = lock_item(entry.get("packet"), ref, LOCKING[state], packets_dir, item_id=entry.get("item"))
+        if found is None and LOCKING[state]:
+            print(f"note: no packet item found for {ref} (packet {entry.get('packet')!r}, item {entry.get('item')!r}), "
+                  "so it is not locked on the board", file=sys.stderr)
+        elif found is not None and "item" not in entry:
+            entry["item"] = str(found.get("id"))
+            data["tickets"][ref] = entry
+            write_json(path, data)
     return entry
 
 
@@ -345,6 +389,7 @@ def main():
     st.add_argument("ticket")
     st.add_argument("state")
     st.add_argument("--packet")
+    st.add_argument("--item", help="packet item id, when the ref alone does not name one item")
     st.add_argument("--target")
     st.add_argument("--note")
     st.add_argument("--result")
@@ -377,7 +422,7 @@ def main():
             sys.stdout.write(text)
         return
     if a.cmd == "status":
-        entry = set_status(a.ticket, a.state, a.packet, a.target, a.note, a.result)
+        entry = set_status(a.ticket, a.state, a.packet, a.target, a.note, a.result, item=a.item)
         print(json.dumps(entry))
 
 

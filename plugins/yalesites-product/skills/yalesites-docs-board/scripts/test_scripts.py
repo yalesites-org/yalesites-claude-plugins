@@ -140,6 +140,41 @@ class CatalogTest(unittest.TestCase):
             catalog.fetch = real
         self.assertIn("https://yalesites.yale.edu/sitemap.xml?page=3", calls)
 
+    def test_refresh_keeps_the_old_catalog_when_most_pages_do_not_load(self):
+        # The sitemap loads, then the page fetches fail (rate limit, network
+        # blip). Writing that would leave search with empty titles for a day.
+        def mostly_failing(url, timeout=20):
+            if url == catalog.SITEMAP:
+                return 200, SITEMAP
+            if url.endswith("/editorial-workflow"):
+                return 200, PAGE
+            raise OSError("connection reset")
+
+        real = catalog.fetch
+        catalog.fetch = mostly_failing
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out = os.path.join(d, "catalog.json")
+                old = {"builtAt": "earlier", "pages": [{"path": "/old", "title": "Old", "teaser": "", "headings": []}]}
+                with open(out, "w") as f:
+                    json.dump(old, f)
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    cat = catalog.refresh(force=True, out=out)
+                self.assertEqual(cat, old)
+                self.assertEqual(read_json(out), old)
+                self.assertIn("Catalog not written: 1 of 3 pages returned 200", stderr.getvalue())
+                self.assertIn("Keeping the old catalog", stderr.getvalue())
+                self.assertNotIn("Catalog built", stdout.getvalue())
+                # With nothing to keep, refresh stops and writes nothing.
+                fresh = os.path.join(d, "fresh", "catalog.json")
+                with self.assertRaises(SystemExit) as cm:
+                    catalog.refresh(force=True, out=fresh)
+                self.assertIn("no earlier catalog", str(cm.exception))
+                self.assertFalse(os.path.exists(fresh))
+        finally:
+            catalog.fetch = real
+
     def test_one_max_age_for_refresh_and_the_staleness_warning(self):
         ap = catalog.build_parser()
         self.assertEqual(ap.parse_args(["refresh"]).max_age_hours, catalog.MAX_AGE_HOURS)
@@ -275,6 +310,18 @@ class PacketValidateTest(unittest.TestCase):
         self.assertEqual(errors, [])
         errors, _ = self.check([edit_item(ops, locked="yes")])
         self.assertTrue(any("locked must be true or false" in e for e in errors), errors)
+
+    def test_two_items_cannot_share_a_ticket_ref(self):
+        ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+        errors, _ = self.check([edit_item(ops), edit_item(ops, id="1b")])
+        self.assertTrue(any("duplicate ticket.ref yalesites-org/YaleSites-Internal#1" in e and "#1-a" in e for e in errors), errors)
+        # One ticket touching two pages: two items, refs suffixed.
+        errors, _ = self.check([edit_item(ops, id="1-a", ticket={"ref": "yalesites-org/YaleSites-Internal#1-a", "url": "u", "title": "t"}),
+                                edit_item(ops, id="1-b", ticket={"ref": "yalesites-org/YaleSites-Internal#1-b", "url": "u", "title": "t"})])
+        self.assertEqual(errors, [])
+        for bad in ("yalesites-org/YaleSites-Internal#1-", "yalesites-org/YaleSites-Internal#1-a-b", "yalesites-org/YaleSites-Internal#1a"):
+            errors, _ = self.check([edit_item(ops, ticket={"ref": bad, "url": "u", "title": "t"})])
+            self.assertTrue(any("owner/repo#N" in e for e in errors), (bad, errors))
 
     def test_ticket_needs_a_title_and_url_for_the_board(self):
         ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
@@ -429,17 +476,80 @@ class SplitAndStatusTest(unittest.TestCase):
             self.assertIs(items[0].get("locked"), True)
             self.assertNotIn("locked", items[1])
             self.assertEqual(packet.validate(folder)[0], [])
-            # failed unlocks, built locks again.
+            # failed unlocks and bumps the revision, so the board forgets the
+            # approve that led to the half-built page. built locks again.
             packet.set_status(ref, "failed", note="CAS timed out", **kw)
-            self.assertNotIn("locked", read_json(os.path.join(folder, "packet.json"))["items"][0])
+            item = read_json(os.path.join(folder, "packet.json"))["items"][0]
+            self.assertNotIn("locked", item)
+            self.assertEqual(item["revision"], 2)
+            self.assertEqual(read_json(os.path.join(folder, "packet.json"))["items"][1].get("revision"), None)
             packet.set_status(ref, "built", result='{"nid": 5}', **kw)
-            self.assertIs(read_json(os.path.join(folder, "packet.json"))["items"][0]["locked"], True)
+            item = read_json(os.path.join(folder, "packet.json"))["items"][0]
+            self.assertIs(item["locked"], True)
+            self.assertEqual(item["revision"], 2)
+            # The status entry remembers which item it acted on.
+            self.assertEqual(read_json(path)["tickets"][ref]["item"], "1")
             # No packet known: the status is still recorded, with a note.
             err = io.StringIO()
             with contextlib.redirect_stderr(err):
                 entry = packet.set_status("yalesites-org/YaleSites-Internal#9", "built", **kw)
             self.assertEqual(entry["state"], "built")
             self.assertIn("not locked", err.getvalue())
+
+
+class StatusByItemTest(unittest.TestCase):
+    def test_status_locks_by_item_id_when_a_ref_names_two_items(self):
+        # A packet that skipped validate: two items on one ref. The lock must
+        # not land on the first match.
+        ref = "yalesites-org/YaleSites-Internal#1"
+        with tempfile.TemporaryDirectory() as d:
+            packets = os.path.join(d, "packets")
+            folder = os.path.join(packets, "docs-2026-10-13")
+            ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+            write_packet(folder, [edit_item(ops, id="1-a"), edit_item(ops, id="1-b")], BLOCKS)
+            self.assertTrue(any("duplicate ticket.ref" in e for e in packet.validate(folder)[0]))
+            path = os.path.join(d, "status.json")
+            kw = {"path": path, "packets_dir": packets}
+            with self.assertRaises(SystemExit) as cm:
+                packet.set_status(ref, "building", packet="docs-2026-10-13", **kw)
+            self.assertIn("Pass --item", str(cm.exception))
+            self.assertIn("1-a, 1-b", str(cm.exception))
+            # The status itself was recorded before the lock stopped.
+            self.assertEqual(read_json(path)["tickets"][ref]["state"], "building")
+            items = read_json(os.path.join(folder, "packet.json"))["items"]
+            self.assertFalse(any("locked" in i for i in items))
+            packet.set_status(ref, "building", packet="docs-2026-10-13", item="1-b", **kw)
+            items = read_json(os.path.join(folder, "packet.json"))["items"]
+            self.assertNotIn("locked", items[0])
+            self.assertIs(items[1].get("locked"), True)
+            # Later calls without --item reuse the remembered item.
+            packet.set_status(ref, "failed", note="x", **kw)
+            items = read_json(os.path.join(folder, "packet.json"))["items"]
+            self.assertNotIn("locked", items[1])
+            self.assertEqual(items[1]["revision"], 2)
+            self.assertNotIn("revision", items[0])
+            # An --item that is not in the packet: recorded, not locked, with a note.
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                packet.set_status(ref, "built", item="9", **kw)
+            self.assertIn("not locked", err.getvalue())
+            self.assertFalse(any("locked" in i for i in read_json(os.path.join(folder, "packet.json"))["items"]))
+
+    def test_suffixed_refs_each_get_their_own_status_and_lock(self):
+        with tempfile.TemporaryDirectory() as d:
+            packets = os.path.join(d, "packets")
+            folder = os.path.join(packets, "docs-2026-10-13")
+            ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+            write_packet(folder, [edit_item(ops, id="1-a", ticket={"ref": "yalesites-org/YaleSites-Internal#1-a", "url": "u", "title": "t"}),
+                                  edit_item(ops, id="1-b", ticket={"ref": "yalesites-org/YaleSites-Internal#1-b", "url": "u", "title": "t"})], BLOCKS)
+            self.assertEqual(packet.validate(folder)[0], [])
+            path = os.path.join(d, "status.json")
+            kw = {"path": path, "packets_dir": packets}
+            packet.set_status("yalesites-org/YaleSites-Internal#1-b", "built", packet="docs-2026-10-13", **kw)
+            items = read_json(os.path.join(folder, "packet.json"))["items"]
+            self.assertNotIn("locked", items[0])
+            self.assertIs(items[1].get("locked"), True)
+            self.assertEqual(sorted(read_json(path)["tickets"]), ["yalesites-org/YaleSites-Internal#1-b"])
 
 
 if __name__ == "__main__":

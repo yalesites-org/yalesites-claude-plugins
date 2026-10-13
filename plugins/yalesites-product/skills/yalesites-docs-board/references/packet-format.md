@@ -18,6 +18,12 @@ the work dashboard both read it later:
 Use `docs-<yyyy-mm-dd>` for the packet id, with `-2`, `-3` for a second batch the same day. Use
 the ticket number for each item id.
 
+**One ticket, two pages.** A ticket that touches two pages is two items, one per page, with the
+ids and the refs suffixed: id `1818-a` with ref `yalesites-org/YaleSites-Internal#1818-a`, and
+`1818-b` with `#1818-b`. `packet.py validate` rejects two items with the same `ticket.ref`,
+because status and the build lock are recorded per ref: one page being built would lock, or
+skip, the other. Each suffixed ref gets its own entry in the status file.
+
 ## packet.json
 
 ```json
@@ -34,7 +40,7 @@ the ticket number for each item id.
 | Field | Required | What it is |
 |---|---|---|
 | `id` | yes | The ticket number. Letters, digits, `.`, `_`, `-` only |
-| `ticket` | yes | `{ "ref": "yalesites-org/YaleSites-Internal#1818", "url": "...", "title": "Docs: ..." }`. Always the full `owner/repo#N` form |
+| `ticket` | yes | `{ "ref": "yalesites-org/YaleSites-Internal#1818", "url": "...", "title": "Docs: ..." }`. Always the full `owner/repo#N` form, unique within the packet (suffix it, `#1818-a`, when one ticket is two items) |
 | `kind` | yes | `edit` (a page that exists), `new` (a page that does not), or `internal` (a markdown file in a repo) |
 | `target` | yes | Where it goes. See below |
 | `summary` | yes | One or two sentences: what changes and why. The reviewer reads this first |
@@ -43,9 +49,9 @@ the ticket number for each item id.
 | `build` | no | Markdown. For a page: the Title, Teaser, and Config considerations sections of `draft.md`. For internal: branch and commit plan |
 | `notes` | no | Strings. Screenshots still owed, scope left out on purpose, follow-ups |
 | `draft` | no | Path to `draft.md`. The board links it |
-| `revision` | no | Starts at 1. Bump it on every revision so the board resets that item's decision |
+| `revision` | no | Starts at 1. Bump it on every revision so the board resets that item's decision. `packet.py status <ref> failed` bumps it too, so a half-built page needs a fresh approve |
 | `previousFeedback` | revisions | One line restating what the reviewer asked for last round. Shown as a banner |
-| `locked` | set by `packet.py status` | `true` once the ticket is `building` or `built`. The board shows the item read-only with a Built badge, counts it as settled, and leaves it out of `decisions.json`. `failed` clears it. Do not write it by hand |
+| `locked` | set by `packet.py status` | `true` once the ticket is `building` or `built`. The board shows the item read-only with a Built badge, counts it as settled, and leaves it out of `decisions.json`. `failed` clears it and bumps `revision`. Do not write it by hand |
 
 `target` by kind:
 

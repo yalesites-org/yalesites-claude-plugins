@@ -262,9 +262,9 @@ function parseBlocks(src) {
     const line = lines[i];
     const fence = FENCE.exec(line);
     if (fence) {
-      const body = []; i++;
-      while (i < lines.length && !closesFence(lines[i], fence[1])) body.push(lines[i++]);
-      out.push({ t: 'code', lines: body, idx: [] }); continue;
+      const body = [], idx = []; i++;
+      while (i < lines.length && !closesFence(lines[i], fence[1])) { idx.push(i); body.push(lines[i++]); }
+      out.push({ t: 'code', lines: body, idx }); continue;
     }
     if (!line.trim()) continue;
     if (/^#{1,6} /.test(line)) { out.push({ t: 'h', lines: [line], idx: [i] }); continue; }
@@ -280,7 +280,10 @@ function parseBlocks(src) {
 const cls = c => c ? ` class="${c}"` : '';
 function renderBlock(b, unitClass = () => '') {
   if (b.t === 'h') { const m = b.lines[0].match(/^(#{1,6}) (.*)$/); const lv = Math.min(4, Math.max(2, m[1].length)); return `<h${lv}${cls(unitClass(0))}>${inline(m[2])}</h${lv}>`; }
-  if (b.t === 'code') return `<pre>${esc(b.lines.join('\n'))}</pre>`;
+  // Code lines are never word-diffed (see diffMarkdown), but each carries its
+  // own add/del class, and unsentinel runs after esc so a sentinel can never
+  // reach the <pre> as a raw control character.
+  if (b.t === 'code') return `<pre>${b.lines.map((l, k) => { const c = unitClass(k), t = unsentinel(esc(l)); return c ? `<span class="${c}">${t}</span>` : t; }).join('\n')}</pre>`;
   if (b.t === 'quote') return `<blockquote>${b.lines.map((l, k) => `<span${cls(unitClass(k))}>${inline(l.replace(/^\s*>\s?/, ''))}</span>`).join('<br>')}</blockquote>`;
   if (b.t === 'list') {
     const ordered = /^\s*\d+\./.test(b.lines[0]);
@@ -340,16 +343,28 @@ function lcs(a, b, eq = (x, y) => x === y) {
 // Links, bold and italic runs, and code spans are single tokens, so a diff
 // marker never lands inside one and the rendered tags stay balanced (a marker
 // inside *two words* would give crossed <em> and <del> tags). Table pipes are
-// their own tokens too, so a change never spans two cells.
+// their own tokens too, so a change never spans two cells, and a pipe is kept
+// in the output whether it was added or removed: it is structure, not text.
+// A row that lost a column still has every cell, with the dropped cell's
+// text struck out in its own column instead of merged into its neighbour.
 const TOKEN = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]*\]\([^)]*\)|`[^`]*`|\s+|\||[^\s|]+/g;
 function wordDiff(a, b) {
   const ta = a.match(TOKEN) || [], tb = b.match(TOKEN) || [];
   let out = '', run = null, buf = '';
-  const flush = () => { if (run && buf) out += (run === '+' ? INS[0] + buf + INS[1] : DEL[0] + buf + DEL[1]); run = null; buf = ''; };
+  // Whitespace at either end of a run stays outside the marker, so a struck
+  // cell is <del>b</del> and never a bare <del> </del> spilling into the next
+  // cell. A run that is only whitespace is written plain.
+  const flush = () => {
+    if (run && buf) {
+      const [, lead, core, trail] = buf.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      out += lead + (core ? (run === '+' ? INS[0] + core + INS[1] : DEL[0] + core + DEL[1]) : '') + trail;
+    }
+    run = null; buf = '';
+  };
   for (const [op, x, y] of lcs(ta, tb)) {
     if (op === '=') { flush(); out += y; continue; }
     // lcs puts the token in the second slot for both + and -.
-    if (x === '|') { flush(); if (op === '+') out += x; continue; }
+    if (x === '|') { flush(); out += x; continue; }
     if (run !== op) flush();
     run = op; buf += x;
   }
@@ -364,24 +379,59 @@ const similar = (a, b) => {
   return n / Math.max(wa.size, wb.size);
 };
 
+// The structural part of a line (heading marks, list marker, quote mark) and
+// the text after it. Two lines are only word-diffed when their shapes match,
+// and only the text is diffed: a marker wrapped in sentinels would stop
+// parseBlocks from seeing a heading or a list item, and `## Foo` to `### Foo`
+// would render as a paragraph reading `#####`. Lines inside a code fence
+// have shape "code" and are never paired, so a reworded code line shows as
+// a removed line and an added line, not old and new words run together.
+const SHAPES = [[/^(#{1,6}) /, m => 'h' + m[1].length], [/^\s*(?:[-*]|\d+\.) /, m => /\d/.test(m[0]) ? 'ol' : 'ul'], [/^\s*>\s?/, () => 'q'], [/^\s*\|/, () => 't']];
+function shape(line, inCode) {
+  if (inCode) return { k: 'code', pre: '', body: line };
+  for (const [re, kind] of SHAPES) {
+    const m = re.exec(line);
+    if (m) { const pre = kind(m) === 't' ? '' : m[0]; return { k: kind(m), pre, body: line.slice(pre.length) }; }
+  }
+  return { k: 'p', pre: '', body: line };
+}
+// Which lines sit inside a code fence, by the same fence rule parseBlocks uses.
+function codeLines(lines) {
+  const out = new Array(lines.length).fill(false);
+  let fence = null;
+  for (let i = 0; i < lines.length; i++) {
+    const m = FENCE.exec(lines[i]);
+    if (!fence) { if (m) fence = m[1]; continue; }
+    if (closesFence(lines[i], fence)) fence = null; else out[i] = true;
+  }
+  return out;
+}
+
 // Diff two markdown texts line by line, then word by word inside lines that
 // were reworded rather than replaced. Quotes are marked in the result the
 // same way md() marks them.
 function diffMarkdown(before, after, quotes = []) {
   const A = String(before ?? '').replace(/\r/g, '').split('\n'), B = String(after ?? '').replace(/\r/g, '').split('\n');
+  const codeA = codeLines(A), codeB = codeLines(B);
   const runs = lcs(A, B, (x, y) => x.trim() === y.trim());
   const lines = [], kinds = [];
+  let ia = 0, ib = 0;
   for (let i = 0; i < runs.length; i++) {
-    if (runs[i][0] === '=') { lines.push(runs[i][2]); kinds.push(''); continue; }
+    if (runs[i][0] === '=') { lines.push(runs[i][2]); kinds.push(''); ia++; ib++; continue; }
     const dels = [], adds = [];
-    while (i < runs.length && runs[i][0] !== '=') { (runs[i][0] === '-' ? dels : adds).push(runs[i][1]); i++; }
+    while (i < runs.length && runs[i][0] !== '=') {
+      if (runs[i][0] === '-') dels.push(shape(runs[i][1], codeA[ia++])); else adds.push(shape(runs[i][1], codeB[ib++]));
+      i++;
+    }
     i--;
     const pairs = Math.min(dels.length, adds.length);
     for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
       const d = dels[k], a = adds[k];
-      if (k < pairs && similar(d, a) >= 0.4 && d.trim() && a.trim()) { lines.push(wordDiff(d, a)); kinds.push(''); continue; }
-      if (d != null && d.trim()) { lines.push(d); kinds.push('u-del'); }
-      if (a != null) { lines.push(a); kinds.push(a.trim() ? 'u-add' : ''); }
+      if (k < pairs && d.k === a.k && d.k !== 'code' && d.body.trim() && a.body.trim() && similar(d.body, a.body) >= 0.4) {
+        lines.push(a.pre + wordDiff(d.body, a.body)); kinds.push(''); continue;
+      }
+      if (d != null && (d.pre + d.body).trim()) { lines.push(d.pre + d.body); kinds.push('u-del'); }
+      if (a != null) { lines.push(a.pre + a.body); kinds.push((a.pre + a.body).trim() ? 'u-add' : ''); }
     }
   }
   // Render block by block, tagging each source line with its add/del class.
@@ -443,7 +493,8 @@ async function init() {
     const t = it.ticket = { ...(it.ticket || {}) };
     t.ref = t.ref || `item ${it.id}`;
     t.title = t.title || t.ref;
-    const m = /^([\w.-]+\/[\w.-]+)#(\d+)$/.exec(t.ref);
+    // A ref can carry a -suffix (one ticket, two pages); the issue is the number.
+    const m = /^([\w.-]+\/[\w.-]+)#(\d+)(?:-[A-Za-z0-9]+)?$/.exec(t.ref);
     t.url = t.url || (m ? `https://github.com/${m[1]}/issues/${m[2]}` : '#');
   }
   // Decisions are kept per item revision. A revised item starts undecided,

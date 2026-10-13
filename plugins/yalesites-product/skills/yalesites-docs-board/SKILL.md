@@ -297,7 +297,8 @@ now. Otherwise build after the board settles, so the CAS login in Step 8 covers 
 Build each approved ticket once. Set `building` as each one starts: that locks the item in
 `packet.json`, so the board stops offering it and a round that arrives mid-build cannot pick it
 up. `built` keeps the lock. The lock finds the packet through the `--packet` recorded in Step 5,
-so pass `--packet` again if that status entry was never written. Before starting any of them,
+so pass `--packet` again if that status entry was never written, and the item by its ticket ref
+(pass `--item <id>` if the ref alone does not name one item). Before starting any of them,
 still read `~/.claude/yalesites/docs-board/status.json` and drop every ticket already at `built`
 or `building`: building it again would put a second draft on the page or a second commit on the
 branch, and the lock only guards the board, not a decision taken in chat.
@@ -330,7 +331,11 @@ python3 <skill-dir>/scripts/packet.py status <ref> built --result '{"nid": 559, 
 ```
 
 Use `building` while it runs, and `failed` with `--note` if it does not finish. `failed` takes
-the lock off, so the ticket can go back on the board once the problem is fixed.
+the lock off and bumps the item's `revision`, so the board treats it as undecided: the approve
+that started the build is never sent again, and the ticket needs a fresh approve before it is
+built again. That is on purpose. A page that half-built (draft created, some ops applied) is
+not the page the reviewer approved, so before it goes back on the board, recapture it if a
+draft was saved, and add what got applied and what did not to the item's `notes`.
 
 ### Internal docs
 
@@ -364,7 +369,9 @@ was proposed and approved, and the dashboard reads its status.
 `packet.py status`. States: `drafting`, `on-board`, `changes`, `approved`, `building`, `built`,
 `skipped`, `failed`. The work dashboard joins it onto its Docs & web tab, the same way it joins
 `pr-feedback`'s prep status onto the review queue. `building` and `built` also set `locked` on
-the ticket's item in its packet (see Step 7), and `failed` clears it. If the file is not valid
+the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the item's
+`revision` (see Step 8). One ticket touching two pages is two items with the ref suffixed
+(`#1818-a`, `#1818-b`), each with its own status entry. If the file is not valid
 JSON, `packet.py status` stops and says so rather than replacing it: fix or remove the file by
 hand, because replacing it would drop every other ticket's state.
 
