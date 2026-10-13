@@ -238,3 +238,10 @@ Relevant because it constrains the mechanism options: `migrate_plus` 6.0.8,
 `ys_content_export`. `ys_migrate_onha` includes a `BodyToLayoutBuilder` process
 plugin — precedent that migrating body HTML into Layout Builder components is
 possible and has been done, per-site and with custom code.
+
+## Ground recommendations in measured adoption
+
+When recommending target blocks or layouts, check the `yalesites-portfolio` skill for
+real adoption data: prefer mapping source content onto blocks the community demonstrably
+uses (and uses well — see its exemplars reference) over rarely-adopted ones, and flag it
+when a proposed mapping leans on a block with near-zero live usage.

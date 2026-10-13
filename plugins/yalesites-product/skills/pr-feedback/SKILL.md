@@ -183,6 +183,18 @@ the draft as a draft. The audit has never seen the feature work and its plan wil
 over-thorough in some places and thin in others. Cut it down to what genuinely needs a human
 looking at it.
 
+### Size the blast radius with real usage data
+
+When the PR changes a block's template, styles, or data model, or ships an update hook
+against a block or setting, load the `yalesites-portfolio` skill and say in the test plan
+how many live sites the change touches ("grand hero renders on 200 of 296 crawled sites,
+as of the 2026-10 crawl") and name 2–3 of the heaviest-usage sites from
+`references/sites-index.csv` as the places to spot-check — on the multidev where possible,
+or on the live sites to see current behavior. A regression in a 70%-adoption block is a
+platform incident; the same bug in a 5% block is a patch. The test plan should reflect
+which one this is. Skip this entirely for PRs that don't touch a measurable block or
+setting — don't pad reviews with usage trivia.
+
 ### Lead with the environment, and be specific about what it can show
 
 Resolve the URL from the brief. If the brief says there is no environment, say that first,
