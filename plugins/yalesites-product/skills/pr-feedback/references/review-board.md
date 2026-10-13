@@ -46,8 +46,14 @@ usual and put a symlink in it that points at the prepped packet:
 
 ```bash
 mkdir -p <scratchpad>/review-board/packets
-ln -s ~/.claude/yalesites/pr-review-prep/packets/<id> <scratchpad>/review-board/packets/<id>
+ln -s <packetDir> <scratchpad>/review-board/packets/<id>
 ```
+
+`<packetDir>` is the versioned folder on the status entry Step 1 read
+(`~/.claude/yalesites/pr-review-prep/packets/<id>-<sha7>-<builtAt>`), never a path built from
+the id: prep mode builds every run into its own folder and leaves the older ones in place, so
+the link is what pins this review to the packet it opened. A rebuild while the board is open
+lands in a new folder and does not touch this one.
 
 Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
 built here. The server follows the link, so the board reads the prepped files, and `answers.json`
@@ -286,6 +292,6 @@ When the review is posted, or abandoned:
   review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it,
   along with any `answers-<timestamp>.json` an earlier pass left behind (Step R1): the next
   review on the same packet archives, never deletes. When the developer pushes and prep rebuilds
-  the packet, the old folder is archived as `<id>-<oldsha>-<builtAt>` next to the new one
-  (`references/prep-mode.md` Step P4), not deleted. The symlink in this session's packets folder
-  holds nothing and goes with the scratchpad.
+  the packet, the new build goes into its own versioned folder and this one stays exactly as it
+  is (`references/prep-mode.md` Step P4); nothing is renamed. The symlink in this session's
+  packets folder holds nothing and goes with the scratchpad.

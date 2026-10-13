@@ -75,31 +75,43 @@ and then call `start`: two runs (the schedule and a dashboard "Prep board" click
 `stale` in between and both drive the same multidev, creating the same `qa-<role>` users and
 removing each other's test content. `start` runs under the status file's lock and either takes
 the unit or refuses, in one step. Name every PR in the unit with its head (the unit is the Step
-B1 grouping from Step P1, siblings included), and the reviewer scope Step 0 resolved (the
-dimensions as a comma list, or `all` on the unscoped path):
+B1 grouping from Step P1, siblings included), the reviewer scope Step 0 resolved (the
+dimensions as a comma list, or `all` on the unscoped path), and the run folder:
 
 ```bash
 python3 <skill-dir>/scripts/review-prep/prep_status.py start \
   --pr yalesites-project#1608=<head> --pr component-library-twig#774=<head> \
-  --packet ysp-1608 --scope functional,product
+  --packet ysp-1608 --scope functional,product \
+  --run-dir ~/.claude/yalesites/pr-feedback/runs/yalesites-project-1608-<yyyy-mm-dd>
 ```
+
+`--run-dir` is the drive-it run folder, named the way `drive-it.md` names it
+(`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-<YYYY-MM-DD>`, for the unit's
+`yalesites-project` PR or its first PR). Pass it on every unit, driven or not: `plan.md` is
+written there, and when a run dies mid-drive the review session reads the folder's `.created`
+from the status entry to clear the multidev before it drives (`SKILL.md` Step 1).
 
 | `start` says | What to do |
 |---|---|
-| `claimed: true` | Prep it. The entry is `running`, with the scope and the unit's PR list recorded. **Keep the `claim` token from that line for the whole unit:** `heartbeat`, `ready`, and `fail` all take it back as `--claim`, and without it they refuse |
+| `claimed: true` | Prep it. The entry is `running`, with the scope, the unit's PR list, `runDir`, and `packetDir` recorded. **Keep the `claim` token from that line for the whole unit:** `heartbeat`, `ready`, and `fail` all take it back as `--claim`, and without it they refuse. **Build the packet in the `packetDir` the line prints** (Step P4), nowhere else |
 | Refused: another prep run has it | Skip the unit. The other run is driving that multidev now. `--force` does not override this one |
 | Refused: the packet is current | Skip the unit. Every PR in it reads `ready` for these heads and this scope |
 | Refused: already failed on these heads | Skip the unit. A failed unit is retried once per new head, not every run; a dashboard button that wants a rebuild now passes `--force` |
+| Refused: `status.json` cannot be read (`written: false`) | Stop the run and say so in the digest (Step P6). The script copied the bad file to `status.json.corrupt-<timestamp>` and wrote nothing. No claim can be taken until someone fixes or removes `status.json`, so there is nothing to prep |
 
 A refusal is exit code 2 with the reason as one JSON line on stdout. Record it in the digest
 (Step P6) as skipped, with that reason.
 
-Then run `SKILL.md` Steps 1 and 2 exactly as written, without the chat output. The unit is
-fixed at the claim: if the brief names an open sibling the Step B1 grouping missed (a title
-without its ticket number, usually), mark the unit failed with that reason (Step P5) instead of
-driving it, because the review session drops a packet whose `unit` is short. Write the Step 3
-test plan, beyond-AC rows included, to `plan.md` in the run folder. The review session shows it
-to the reviewer, so write it for them.
+Then run `SKILL.md` Steps 1 and 2 exactly as written, without the chat output and with one
+exception: **skip Step 1's prepped-board check** (the `get` under "Start from a prepped
+board"). This run holds the claim, so `get` would return the run's own `running` entry, and
+that row (wait, or review now) is a question for a reviewer, not a rule for a run. The claim
+above is the only status check prep mode makes. The unit is fixed at the claim: if the brief
+names an open sibling the Step B1 grouping missed (a title without its ticket number, usually),
+mark the unit failed with that reason (Step P5) instead of driving it, because the review
+session drops a packet whose `unit` is short. Write the Step 3 test plan, beyond-AC rows
+included, to `plan.md` in the run folder. The review session shows it to the reviewer, so write
+it for them.
 
 ## Step P3: Drive it, under the disposable multidev rule
 
@@ -146,8 +158,10 @@ every D-step, and after each role in a multi-role run, re-stamp the unit:
 python3 <skill-dir>/scripts/review-prep/prep_status.py heartbeat --packet ysp-1608 --claim <token>
 ```
 
-A run that dies stops stamping, and reads as interrupted once the 90 minutes pass. That is the
-only way a dead run is ever reported, so do not skip the heartbeat on a short unit either.
+`--claim` is required: a heartbeat without the token is refused outright, so a run that lost
+its token cannot keep another run's claim alive. A run that dies stops stamping, and reads as
+interrupted once the 90 minutes pass. That is the only way a dead run is ever reported, so do
+not skip the heartbeat on a short unit either.
 
 **A heartbeat that exits 1 means the claim is lost. Stop driving at once.** The entry has either
 passed the TTL, in which case a review session may already have read it as interrupted and
@@ -166,10 +180,13 @@ hand-off walkthrough for the review session.
 Follow `review-board.md` Step R1, with two differences:
 
 - **Packets live with the status file, not in a session scratchpad,** because the session that
-  builds them ends before the review starts:
+  builds them ends before the review starts, and **every build gets its own folder:** the
+  `packetDir` the claim printed in Step P2, `packets/<id>-<sha7>-<builtAt>`, where `<id>` is the
+  packet id, `<sha7>` the first 7 characters of the unit's first PR head, and `<builtAt>` the
+  claim time in ISO basic form:
 
   ```
-  ~/.claude/yalesites/pr-review-prep/packets/<id>/
+  ~/.claude/yalesites/pr-review-prep/packets/ysp-1608-4ae17e5-20261004T130500Z/
     packet.json
     prep.json
     plan.md            (copied from the run folder)
@@ -178,16 +195,15 @@ Follow `review-board.md` Step R1, with two differences:
   ```
 
   Use the unit's `yalesites-project` PR for the id when it has one (`ysp-1608`), or its first PR
-  otherwise. **If the folder already exists, archive it, never delete it:** rename it to
-  `<id>-<oldsha>-<builtAt>`, where `<oldsha>` is the first 7 characters of the head it was built
-  from (the unit's first PR in its `prep.json`) and `<builtAt>` is that file's `builtAt` in ISO
-  basic form (`2026-10-04T13:05:00Z` becomes `20261004T130500Z`), for example
-  `ysp-1608-4ae17e5-20261004T130500Z`. The head alone is not enough: `--force` and a scope change
-  both rebuild on an unchanged head, and a second `<id>-<oldsha>` would land inside the first.
-  An `answers.json` in the old folder, and any `answers-<timestamp>.json` a review archived there
-  (`review-board.md` Step R1), is the record of an earlier review, which Step R4 promises stays
-  with the packet, and a review session may still have that board open. Build the new packet in
-  a fresh `<id>` folder, so no old `answers.json` ends the next review's wait early.
+  otherwise. Build only in that folder, and **never rename, move, or delete another one.** A
+  rebuild (a new head, `--force`, or a scope change on an unchanged head) is a new claim, so it
+  gets a new folder, and the older folders stay as they are: a review session that still has one
+  of them open keeps serving its own files, because its symlink points at the versioned path
+  (`review-board.md` Step R1); its `answers.json`, and any `answers-<timestamp>.json` a review
+  archived there, stays with it as the record of that review (Step R4); and a folder a dead run
+  left half-built needs no name and no tidying. The status entry's `packetDir` is the only
+  pointer anyone follows, so an old folder is never mistaken for the current packet, and no old
+  `answers.json` can end the next review's wait early.
 - **Write `prep.json` next to `packet.json`.** It holds what the review session needs and the
   board does not show:
 
@@ -213,8 +229,9 @@ Follow `review-board.md` Step R1, with two differences:
   ```
 
   `scope` is the reviewer scope from Step P2, as recorded in the status entry (`["all"]` on the
-  unscoped path). `heldCalls` and `findingsForDev` carry **every** item from the brief, tagged
-  with its dimension and unfiltered, in the shape `batch-mode.md` Step B2 has a subagent return.
+  unscoped path), and `runDir` is the folder the claim's `--run-dir` named. `heldCalls` and
+  `findingsForDev` carry **every** item from the brief, tagged with its dimension and
+  unfiltered, in the shape `batch-mode.md` Step B2 has a subagent return.
   The board holds only the in-lane questions, so this is where the review session gets the
   out-of-lane calls to name (`SKILL.md` Step 3b) and the mechanical findings for Step 4, and
   where batch mode reads them for a prepped unit instead of fanning out a subagent. `onBoard`
@@ -246,6 +263,12 @@ what a dashboard reads, so the reason is the whole message.
 python3 <skill-dir>/scripts/review-prep/prep_status.py fail \
   --pr yalesites-project#1605=<head> --claim <token> --reason "multidev pr-1605 does not exist (25/25 cap?)"
 ```
+
+**Both settle every PR that carries the claim token,** named with `--pr` or not, so a sibling
+never stays `running` on its own until the TTL. Name every PR in the unit anyway, as the
+examples do: a PR left out keeps the head it was claimed at. Both carry the claim's `packetDir`
+and `runDir` onto the finished entry, which is how the review session finds the packet, and the
+run folder's `.created` after a failure.
 
 **Both refuse, with exit 2, when the claim is lost:** another run claimed the unit after this
 one passed the TTL, so the entry carries a different token, and this run's result would overwrite

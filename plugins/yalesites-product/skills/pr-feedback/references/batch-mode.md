@@ -249,8 +249,9 @@ Rules that keep this useful instead of noise:
 ## Step B4: Batch the held calls
 
 **On the review board** (`references/review-board.md`), build one `batch-<yyyy-mm-dd>` packet
-for every unit. For a prepped unit, copy its questions out of its `packet.json` (setting `pr` on
-each) and its images and clips into the batch folder, rather than writing them again. Every
+for every unit. For a prepped unit, copy its questions out of the `packet.json` in its status
+entry's `packetDir` (the versioned folder; never build the path from the id), setting `pr` on
+each, and its images and clips into the batch folder, rather than writing them again. Every
 packet numbers its files from `01`, so two units' `01-...` files would overwrite each other and
 the board would show one unit's screenshot on the other's question. Prefix each copied file with
 the packet id (`ysp-1608-01-fail-editor-overflow-360.png`) and rewrite every `src` to the new
