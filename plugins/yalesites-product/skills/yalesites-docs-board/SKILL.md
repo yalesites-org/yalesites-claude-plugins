@@ -130,10 +130,14 @@ not open, see the Browsers table in `pr-feedback/references/drive-it.md` and pas
 has, then split it into sections:
 
 ```bash
+mkdir -p "$DIR/1770"
 git -C <checkout> fetch -q origin
 git -C <checkout> show origin/<default-branch>:<path> > "$DIR/1770/README.current.md"
 python3 <skill-dir>/scripts/packet.py split-md "$DIR/1770" "$DIR/1770/README.current.md" --repo <owner/repo> --path <path>
 ```
+
+The `mkdir` comes first: `capture.py` makes each item's folder itself, but the `git show` redirect
+does not, and `split-md` only creates the folder after it has read the file.
 
 Look for the checkout under `~/code/<repo-name>` first. Ask for its path once if it is not there.
 
@@ -141,9 +145,10 @@ Look for the checkout under `~/code/<repo-name>` first. Ask for its path once if
 
 For every ticket, follow `yalesites-web-content` Steps 2 to 6 in full: research the feature from
 the merged code, match a sibling page, run the Step 3b freshness audit on an edit, write in STE,
-and pass `check-github-text.py --surface page-draft`. Save its deliverable as `<dir>/<id>/draft.md`.
-That skill decides what the words are. This step adds one thing: expressing the draft as **ops**
-against the captured blocks, so the board can show it in place.
+and pass `check-github-text.py --surface page-draft`. Save its deliverable as `<dir>/<id>/draft.md`
+(a `new` page has no capture, so `mkdir -p "$DIR/<id>"` first). That skill decides what the words
+are. This step adds one thing: expressing the draft as **ops** against the captured blocks, so the
+board can show it in place.
 
 Read `references/packet-format.md` before writing ops. The rules that carry the weight:
 
@@ -190,9 +195,15 @@ The work dashboard reads that status file to show where each docs ticket stands.
 
 ## Step 6: Open the board and wait
 
-The board is `scripts/board/index.html`, served by `scripts/board/server.py` on `127.0.0.1`.
-It works like the `pr-feedback` review board, on a different default port and with its own app
-name, so the two can run side by side.
+The board is `scripts/board/index.html`. It is served by `pr-feedback`'s review board server,
+started with this board's folder, route, output file, and app name, so the two boards share one
+server (and one set of fixes) and still run side by side on different ports. The server is in the
+sibling skill, so resolve the path through `realpath` first, the same way `catalog.py` finds
+`yalesites-web-content`, and a symlinked install still works:
+
+```bash
+SERVER="$(realpath <skill-dir>)/../pr-feedback/scripts/review-board/server.py"
+```
 
 **Pick the port.** Start at 8775. `curl -s http://localhost:<port>/api/health`:
 
@@ -210,7 +221,7 @@ note that you did):
 {
   "name": "docs-board",
   "runtimeExecutable": "python3",
-  "runtimeArgs": ["<skill-dir>/scripts/board/server.py", "--packets", "<home>/.claude/yalesites/docs-board/packets", "--port", "<port>", "--exact-port"],
+  "runtimeArgs": ["<resolved server path>", "--packets", "<home>/.claude/yalesites/docs-board/packets", "--board-dir", "<skill-dir>/scripts/board", "--route", "/api/decisions", "--out", "decisions.json", "--app", "docs-board", "--port", "<port>", "--exact-port"],
   "port": <port>
 }
 ```
@@ -220,17 +231,35 @@ and take one screenshot to confirm it loaded the packet rather than "Couldn't lo
 board needs about 1400px of width for the two panes side by side. If the pane is narrower, say
 the reviewer can open the same URL in their own browser.
 
-**Anywhere else on a Mac:** run the server in the background (`run_in_background`), read the
-port from its `DOCS_BOARD_URL` line, and `open "http://localhost:<port>/?packet=<id>"`.
-
-Tell the reviewer in one or two lines: the board is open, how many tickets it holds, and that the
-numbers on the screenshot match the cards on the right. Then arm one background wait:
+**Anywhere else on a Mac:** run the server in the background (`run_in_background`) with the same
+arguments, read the port from its `REVIEW_BOARD_URL` line (it moves to the next free port if
+yours was taken between the check and the start), and `open "http://localhost:<port>/?packet=<id>"`.
 
 ```bash
-until [ -f "$DIR/decisions.json" ]; do sleep 2; done; cat "$DIR/decisions.json"
+python3 "$SERVER" --packets ~/.claude/yalesites/docs-board/packets --board-dir <skill-dir>/scripts/board \
+  --route /api/decisions --out decisions.json --app docs-board --port <port>
 ```
 
-Do not poll in a loop or ask "are you done?" The wait wakes the session.
+The server accepts a Send only from the board itself (a `localhost` origin on its own port, as
+JSON), so a page open in another tab cannot write `decisions.json`.
+
+Tell the reviewer in one or two lines: the board is open, how many tickets it holds, and that the
+numbers on the screenshot match the cards on the right. Then arm one wait with the `Monitor`
+tool. It ends the moment they press Send:
+
+```
+Monitor({
+  command: 'until [ -f "<dir>/decisions.json" ]; do sleep 1; done; echo "decisions.json written"',
+  description: "docs board decisions for <packet-id>",
+  timeout_ms: 1800000
+})
+```
+
+That `until` loop belongs in `Monitor`, never in Bash, foreground or `run_in_background`: a
+sleep-based wait in Bash is blocked, and the Monitor tool is the one made for waiting on a
+file. Its single event wakes the session. Read `<dir>/decisions.json` then. If the monitor
+expires before the reviewer is done, arm it again. Do not poll in a loop and do not ask "are you
+done?" If the reviewer gives their decisions in chat instead, use those and `TaskStop` the monitor.
 
 **No local browser** (a cloud or remote session) or **no `python3`**: skip the board. Post each
 ticket's summary and `draft.md` in chat and ask for a decision on each.
@@ -247,8 +276,9 @@ ticket's summary and `draft.md` in chat and ask for a decision on each.
 | `changes` | Revise the item from the notes and comments. Re-run `yalesites-web-content`'s checker on the new copy. Bump `revision`, set `previousFeedback` to one line restating what they asked for, validate, and set status `on-board` again |
 
 When anything was revised: delete `decisions.json`, tell the reviewer to reload the board (approved
-tickets keep their decision, revised ones start fresh with the banner), and re-arm the wait. Repeat
-until nothing is left at `changes`.
+tickets keep their decision, revised ones start fresh with the banner), and arm the same `Monitor`
+wait as in Step 6 again. Delete the file first, or the new wait ends at once on the old decisions.
+Repeat until nothing is left at `changes`.
 
 If the reviewer wants the approved tickets built while others are still in revision, build them
 now. Otherwise build after the board settles, so the CAS login in Step 8 covers the whole batch.
@@ -307,7 +337,7 @@ Then offer, without doing it: a short comment on each built ticket with the draf
 `ticket-sync` if the ticket's scope moved). Post only on a yes.
 
 Clean up: stop the board server if you started it (`preview_stop`, or `TaskStop` on the background
-task), and undo the `.claude/launch.json` change. Leave the packet folder. It is the record of what
+task), `TaskStop` a `Monitor` wait that is still armed, and undo the `.claude/launch.json` change. Leave the packet folder. It is the record of what
 was proposed and approved, and the dashboard reads its status.
 
 ## Status file
@@ -321,7 +351,8 @@ was proposed and approved, and the dashboard reads its status.
 
 - `yalesites-web-content`: writes every draft this skill puts on the board
 - `yalesites-page-build`: builds the approved site pages
-- `pr-feedback`: the review board this board is modeled on, and the shared Playwright browser setup
-  in `references/drive-it.md`
+- `pr-feedback`: the review board this board is modeled on, the server that serves both boards
+  (`scripts/review-board/server.py`, tests included), and the shared Playwright browser setup in
+  `references/drive-it.md`
 - `ticket-sync`: when a draft shows that the ticket's scope moved
 - `release-prep`: publishes the staged drafts on release day

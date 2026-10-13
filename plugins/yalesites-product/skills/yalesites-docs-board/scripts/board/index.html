@@ -203,8 +203,8 @@ const add = (parent, ...kids) => parent.append(...kids.filter(k => k != null && 
 const INS = ['\u0001', '\u0002'], DEL = ['\u0003', '\u0004'];
 const unsentinel = s => s.replaceAll(INS[0], '<ins>').replaceAll(INS[1], '</ins>').replaceAll(DEL[0], '<del>').replaceAll(DEL[1], '</del>');
 
-function inline(t, quotes = []) {
-  let s = esc(t)
+function inline(t) {
+  const s = esc(t)
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
     .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
@@ -212,8 +212,32 @@ function inline(t, quotes = []) {
       const url = href.startsWith('/') ? 'https://yalesites.yale.edu' + href : href;
       return /^(https?:|mailto:)/.test(url) ? `<a href="${url}" target="_blank" rel="noopener" title="${href}">${txt}</a>` : `${txt} (${href})`;
     });
-  for (const q of quotes) if (q) s = s.split(esc(q)).join(`<mark class="mine">${esc(q)}</mark>`);
   return unsentinel(s);
+}
+
+// Wrap each quoted passage in <mark>, in text nodes only. Walking the rendered
+// DOM means a quote like "yale" or "strong" can never land inside a tag name
+// or an href, which splitting the HTML string would do.
+function markQuotes(root, quotes) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const text = node.nodeValue, hits = [];
+    for (const q of quotes) for (let at = text.indexOf(q); at >= 0; at = text.indexOf(q, at + q.length)) hits.push([at, at + q.length]);
+    if (!hits.length) continue;
+    hits.sort((a, b) => a[0] - b[0]);
+    const frag = document.createDocumentFragment();
+    let pos = 0;
+    for (const [from, to] of hits) {
+      if (from < pos) continue;  // overlaps the previous mark
+      if (from > pos) frag.append(text.slice(pos, from));
+      frag.append(h('mark', { class: 'mine' }, text.slice(from, to)));
+      pos = to;
+    }
+    if (pos < text.length) frag.append(text.slice(pos));
+    node.replaceWith(frag);
+  }
 }
 
 // Lines grouped into blocks: heading, paragraph, list, table, quote, code.
@@ -239,13 +263,13 @@ function parseBlocks(src) {
 }
 
 const cls = c => c ? ` class="${c}"` : '';
-function renderBlock(b, quotes, unitClass = () => '') {
-  if (b.t === 'h') { const m = b.lines[0].match(/^(#{1,6}) (.*)$/); const lv = Math.min(4, Math.max(2, m[1].length)); return `<h${lv}${cls(unitClass(0))}>${inline(m[2], quotes)}</h${lv}>`; }
+function renderBlock(b, unitClass = () => '') {
+  if (b.t === 'h') { const m = b.lines[0].match(/^(#{1,6}) (.*)$/); const lv = Math.min(4, Math.max(2, m[1].length)); return `<h${lv}${cls(unitClass(0))}>${inline(m[2])}</h${lv}>`; }
   if (b.t === 'code') return `<pre>${esc(b.lines.join('\n'))}</pre>`;
-  if (b.t === 'quote') return `<blockquote>${b.lines.map((l, k) => `<span${cls(unitClass(k))}>${inline(l.replace(/^\s*>\s?/, ''), quotes)}</span>`).join('<br>')}</blockquote>`;
+  if (b.t === 'quote') return `<blockquote>${b.lines.map((l, k) => `<span${cls(unitClass(k))}>${inline(l.replace(/^\s*>\s?/, ''))}</span>`).join('<br>')}</blockquote>`;
   if (b.t === 'list') {
     const ordered = /^\s*\d+\./.test(b.lines[0]);
-    const items = b.lines.map((l, k) => `<li${cls(unitClass(k))}>${inline(l.replace(/^\s*([-*]|\d+\.) (\[[ x]\] )?/, ''), quotes)}</li>`);
+    const items = b.lines.map((l, k) => `<li${cls(unitClass(k))}>${inline(l.replace(/^\s*([-*]|\d+\.) (\[[ x]\] )?/, ''))}</li>`);
     return ordered ? `<ol>${items.join('')}</ol>` : `<ul>${items.join('')}</ul>`;
   }
   if (b.t === 'table') {
@@ -253,12 +277,21 @@ function renderBlock(b, quotes, unitClass = () => '') {
       .filter(r => !r.cells.every(c => /^:?-{2,}:?$/.test(c.replace(/[\u0001-\u0004]/g, ''))));
     if (!rows.length) return '';
     const [head, ...body] = rows;
-    return `<table><thead><tr${cls(unitClass(head.k))}>${head.cells.map(c => `<th>${inline(c, quotes)}</th>`).join('')}</tr></thead><tbody>${
-      body.map(r => `<tr${cls(unitClass(r.k))}>${r.cells.map(c => `<td>${inline(c, quotes)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+    return `<table><thead><tr${cls(unitClass(head.k))}>${head.cells.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${
+      body.map(r => `<tr${cls(unitClass(r.k))}>${r.cells.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }
-  return `<p${cls(unitClass(0))}>${b.lines.map(l => inline(l, quotes)).join('<br>')}</p>`;
+  return `<p${cls(unitClass(0))}>${b.lines.map(l => inline(l)).join('<br>')}</p>`;
 }
-const md = (src, quotes = []) => parseBlocks(src).map(b => renderBlock(b, quotes)).join('');
+// Render first, then mark the reviewer's quotes in the result's text nodes.
+const md = (src, quotes = []) => {
+  const html = parseBlocks(src).map(b => renderBlock(b)).join('');
+  const qs = quotes.filter(q => q && String(q).length);
+  if (!qs.length) return html;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  markQuotes(tpl.content, qs);
+  return tpl.innerHTML;
+};
 
 // Longest common subsequence over arrays, returning [op, a, b] runs.
 function lcs(a, b, eq = (x, y) => x === y) {
@@ -324,7 +357,7 @@ function diffMarkdown(before, after) {
     }
   }
   // Render block by block, tagging each source line with its add/del class.
-  return parseBlocks(lines.join('\n')).map(b => renderBlock(b, [], k => kinds[b.idx[k]] || '')).join('');
+  return parseBlocks(lines.join('\n')).map(b => renderBlock(b, k => kinds[b.idx[k]] || '')).join('');
 }
 
 // ---------- state ----------
@@ -334,7 +367,9 @@ const storeKey = () => `docs-board:${packetId}`;
 const blank = () => ({ decision: null, notes: '', comments: [] });
 function save() { localStorage.setItem(storeKey(), JSON.stringify(state)); }
 const st = it => (state.items[itemKey(it)] ||= blank());
-const isDecided = it => { const s = st(it); return s.decision && (s.decision !== 'changes' || s.notes.trim() || s.comments.length); };
+// A request for changes needs an instruction: notes, or at least one comment
+// with a note written in it. A quote or pin with an empty note says nothing.
+const isDecided = it => { const s = st(it); return s.decision && (s.decision !== 'changes' || !!s.notes.trim() || s.comments.some(c => (c.note || '').trim())); };
 
 async function loadCurrent(it) {
   if (!it.current || currents[it.id]) return;
@@ -355,6 +390,17 @@ async function init() {
     return;
   }
   document.title = `Docs: ${packet.title}`;
+  // packet.py validate requires ticket.title and ticket.url, but a packet can
+  // reach the board without passing it. Fill in what is missing so one bare
+  // item cannot take the whole board down.
+  packet.items = packet.items || [];
+  for (const it of packet.items) {
+    const t = it.ticket = { ...(it.ticket || {}) };
+    t.ref = t.ref || `item ${it.id}`;
+    t.title = t.title || t.ref;
+    const m = /^([\w.-]+\/[\w.-]+)#(\d+)$/.exec(t.ref);
+    t.url = t.url || (m ? `https://github.com/${m[1]}/issues/${m[2]}` : '#');
+  }
   // Decisions are kept per item revision. A revised item starts undecided,
   // and everything already approved stays approved.
   const saved = JSON.parse(localStorage.getItem(storeKey()) || 'null');
