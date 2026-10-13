@@ -112,6 +112,14 @@ What goes wrong when each block is used badly, from the same screenshot review a
 - berkeleydivinity: Form appears on a podcast page and an 'update your contact information' page, where a generic 4-field contact form does not match the task of updating contact details.
 - recreation: A generic contact form is used for locker rentals, a transactional need that a generic Subject/Message form handles poorly.
 
+## Post Feed (`post_list`)
+
+- yjil: A second instance is titled Test and shows only the first item with an image while the rest have none, which looks unfinished.
+- silliman: News feed is a long text-only stack of titles and dates with no teasers or images; the events list shows a template placeholder (Revitalize past events).
+- urbanstudies: Featured Events surfaces a leftover Test post and a placeholder event (Revitalize past events); filter label says Post Category on an events block.
+- cadmy: News list is all headline and date with large empty space on the right and no images or teasers, so it feels bare and gets repetitive.
+- microbialsciences: Text-only news list with inconsistent teasers (some items have summaries, most do not), making the rhythm uneven.
+
 ## Link Grid (`link_grid`)
 
 - your: Grids with only two links and no heading ('Careers Overview', 'Applicant Resources') are used as a navigation list with no context.

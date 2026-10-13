@@ -14,59 +14,59 @@
 
 ## Page archetypes (mined from block sequences)
 
-### profile detail — 11,148 pages (23.1%), median 1.0 blocks
+### profile detail - 11,148 pages (23.1%), median 1.0 blocks
 - 5796× Text
 - 435× Button Link › Text
 - 196× View
 
-### event detail — 11,119 pages (23.0%), median 0 blocks
+### event detail - 11,119 pages (23.0%), median 0 blocks
 - 2004× Text
 - 299× Wrapped Image
 - 257× Image › Text
 
-### content page — 9,287 pages (19.2%), median 3 blocks
+### content page - 9,195 pages (19.0%), median 3 blocks
 - 2072× Wrapped Image
 - 333× Wrapped Image › Text
 - 300× Grand Hero › Text
 
-### text page — 6,813 pages (14.1%), median 1 blocks
+### text page - 6,813 pages (14.1%), median 1 blocks
 - 5156× Text
 - 855× Image › Text
 - 210× Button Link › Text
 
-### resource detail — 2,483 pages (5.1%), median 0 blocks
+### resource detail - 2,483 pages (5.1%), median 0 blocks
 - 56× Text
 - 50× Button Link
 - 23× Related Content
 
-### long page — 2,337 pages (4.8%), median 17 blocks
+### long page - 2,337 pages (4.8%), median 17 blocks
 - 118× Gallery › Text
 - 117× Accordion › Text
 - 62× Grand Hero › Quick Links › Accordion › Quote › Spotlight - Landscape › Button Link › Divider › Text
 
-### listing page — 1,531 pages (3.2%), median 2 blocks
+### listing page - 1,623 pages (3.4%), median 2 blocks
 - 465× View
 - 267× Text › View
 - 58× Divider › Text › View
 
-### landing page — 1,227 pages (2.5%), median 7 blocks
+### landing page - 1,227 pages (2.5%), median 7 blocks
 - 78× Grand Hero › Callout › Text › View
 - 38× Image Banner › Spotlight - Landscape › Text
 - 16× Image Banner › Button Link › Divider › Text › View
 
-### post detail — 1,186 pages (2.5%), median 2.0 blocks
+### post detail - 1,186 pages (2.5%), median 2.0 blocks
 - 306× Text
 - 220× Wrapped Image
 - 77× Wrapped Text Callout › Image › Divider › Text › View
 
-### empty or view only — 523 pages (1.1%), median 0 blocks
+### empty or view only - 523 pages (1.1%), median 0 blocks
 
-### long guide page — 335 pages (0.7%), median 13 blocks
+### long guide page - 335 pages (0.7%), median 13 blocks
 - 58× Accordion › Text
 - 29× Quote › Image › Divider › Text
 - 20× Custom Cards › Divider › Text
 
-### homepage — 296 pages (0.6%), median 6.0 blocks
+### homepage - 296 pages (0.6%), median 6.0 blocks
 - 9× Image › Text
 - 8× Grand Hero › Text
 - 6× Action Banner › Text
@@ -74,14 +74,14 @@
 ## Homepage composition (reviewer findings on 24 block-rich homepages)
 
 **Exemplar homepages:**
-- **hospitality** — https://hospitality.yale.edu: Strong alternation of full-bleed color bands (blue, gold, blue) with white image-led sections gives a clear rhythm over a long page. Orientation hero, then a task-oriented link grid (menus, dining, plans, order), then proof/events, then conversational feedback and an app/newsletter close. Every band has one job and the page ends on a useful action trio plus a dark footer.
-- **peabody** — https://peabody.yale.edu: Clear visitor narrative: hero with a plan-your-visit link, a short intro with the free-admission hook, a featured-exhibition band, then Explore, What's Happening and Stories sections. Each section has its own heading, and dividers plus generous whitespace set the pace. It ends with paired buttons and a useful footer with hours, instead of trailing text.
-- **ipch** — https://ipch.yale.edu: Classic and complete: hero, one-line mission statement on a tinted band, a spotlight with CTAs, four program cards, a LinkedIn callout, news, then social/newsletter and a closing band. Light/dark blue banding is consistent and pacing is even.
-- **planetarysolutions** — https://planetarysolutions.yale.edu: Strong rhythm of light and dark: a hero, then video beside a mission statement, then a navy band of four paired action blocks. Reports, news and a quote band follow, then a newsletter CTA, a filterable story grid and an ending. The navy bands and the full-width quote punctuate a long page so it never feels like a text wall.
-- **onha** — https://onha.yale.edu: Three stacked fact bands (green, pale blue, navy) each with a heading and three stats make the case for the office with proof, not prose. Color changes signal topic changes, and the story banner then events turn proof into action.
-- **global-nursing** — https://global.nursing.yale.edu: A compact page where every block earns its place: a big image banner, a mission statement, a navy facts band with proof numbers, news, a report and a closing LinkedIn CTA. The only dark band mid-page is the stats, which gives it weight, and the page is short and scannable.
-- **divinity** — https://divinity.yale.edu: Alternates large full-width photographs with short headed text blocks, so the page reads as a story with a clear mission voice. Includes a gray values band, a testimonial, and ends with a two-column Get Started / Connect action band.
-- **westcampus** — https://westcampus.yale.edu: Orients first (hero, Our Campus, then quick links) and then gives events and news. It alternates white, gray and navy bands and ends with two CTA bands. The empty gap before the footer is a flaw.
+- **hospitality** - https://hospitality.yale.edu: Strong alternation of full-bleed color bands (blue, gold, blue) with white image-led sections gives a clear rhythm over a long page. Orientation hero, then a task-oriented link grid (menus, dining, plans, order), then proof/events, then conversational feedback and an app/newsletter close. Every band has one job and the page ends on a useful action trio plus a dark footer.
+- **peabody** - https://peabody.yale.edu: Clear visitor narrative: hero with a plan-your-visit link, a short intro with the free-admission hook, a featured-exhibition band, then Explore, What's Happening and Stories sections. Each section has its own heading, and dividers plus generous whitespace set the pace. It ends with paired buttons and a useful footer with hours, instead of trailing text.
+- **ipch** - https://ipch.yale.edu: Classic and complete: hero, one-line mission statement on a tinted band, a spotlight with CTAs, four program cards, a LinkedIn callout, news, then social/newsletter and a closing band. Light/dark blue banding is consistent and pacing is even.
+- **planetarysolutions** - https://planetarysolutions.yale.edu: Strong rhythm of light and dark: a hero, then video beside a mission statement, then a navy band of four paired action blocks. Reports, news and a quote band follow, then a newsletter CTA, a filterable story grid and an ending. The navy bands and the full-width quote punctuate a long page so it never feels like a text wall.
+- **onha** - https://onha.yale.edu: Three stacked fact bands (green, pale blue, navy) each with a heading and three stats make the case for the office with proof, not prose. Color changes signal topic changes, and the story banner then events turn proof into action.
+- **global-nursing** - https://global.nursing.yale.edu: A compact page where every block earns its place: a big image banner, a mission statement, a navy facts band with proof numbers, news, a report and a closing LinkedIn CTA. The only dark band mid-page is the stats, which gives it weight, and the page is short and scannable.
+- **divinity** - https://divinity.yale.edu: Alternates large full-width photographs with short headed text blocks, so the page reads as a story with a clear mission voice. Includes a gray values band, a testimonial, and ends with a two-column Get Started / Connect action band.
+- **westcampus** - https://westcampus.yale.edu: Orients first (hero, Our Campus, then quick links) and then gives events and news. It alternates white, gray and navy bands and ends with two CTA bands. The empty gap before the footer is a flaw.
 
 **Composition patterns seen:**
 - *Color-band chapters*: Alternating full-width theme bands (navy, tint, gold, gray) so each section reads as a chapter. (e.g. hospitality, onha, ipch)

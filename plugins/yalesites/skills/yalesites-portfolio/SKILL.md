@@ -37,8 +37,8 @@ homepages. Refresh pipeline and raw data: `~/code/yalesites-portfolio-data`
 ## Headline numbers (2026-10)
 
 - Most adopted blocks: Text 99%, Image 82%, Wrapped Image 79%, Divider 76%, View 70%, Callout 69%, Button Link 69%, Grand Hero 68%, Accordion 68%.
-- Under-used blocks we invest in: Facts and Figures 13%, Tabs 12%, Wrapped Text Callout 11%, Reference Card 11%, Directory 10%, Event Calendar 6%, Video Banner 4%, Related Content 1% (3 sites), Audio Player 0.3% (1 site).
-- Zero usage anywhere: Calendar List (verified against raw HTML of all 48k pages).
+- Feeds: Post Feed 25%, Calendar List 16%, Directory 10%, Event Calendar (month grid) 6%; the generic View block is on 70% of sites.
+- Under-used blocks we invest in: Facts and Figures 13%, Tabs 12%, Wrapped Text Callout 11%, Reference Card 11%, Video Banner 4%, Related Content 1% (3 sites), Audio Player 0.3% (1 site). No block is at zero.
 - Config: global theme one 67%; left nav 71%, right 21%, center 7%; basic footer 68%; focus header on 1 site.
 - Built pages: median 2 blocks, 90th percentile 13. Text closes 65% of built pages; that is fine and the house preference. Strong homepages often close on an action band instead.
 - 181 of 300 live sites are D7 migrations.
