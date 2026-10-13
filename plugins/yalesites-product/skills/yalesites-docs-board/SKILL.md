@@ -367,13 +367,14 @@ was proposed and approved, and the dashboard reads its status.
 
 `~/.claude/yalesites/docs-board/status.json`, keyed by ticket ref. Write it only through
 `packet.py status`. States: `drafting`, `on-board`, `changes`, `approved`, `building`, `built`,
-`skipped`, `failed`. The work dashboard joins it onto its Docs & web tab, the same way it joins
+`published`, `skipped`, `failed`. `published` is written by `release-prep` Phase 8, the only thing that
+publishes a staged draft. The work dashboard joins it onto its Docs & web tab, the same way it joins
 `pr-feedback`'s prep status onto the review queue. `building` and `built` also set `locked` on
 the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the item's
-`revision` (see Step 8). One ticket touching two pages is two items with the ref suffixed
-(`#1818-a`, `#1818-b`), each with its own status entry. If the file is not valid
-JSON, `packet.py status` stops and says so rather than replacing it: fix or remove the file by
-hand, because replacing it would drop every other ticket's state.
+`revision` (see Step 8); `published` leaves the lock in place. One ticket touching two pages is
+two items with the ref suffixed (`#1818-a`, `#1818-b`), each with its own status entry. If the
+file is not valid JSON, `packet.py status` stops and says so rather than replacing it: fix or
+remove the file by hand, because replacing it would drop every other ticket's state.
 
 ## Related skills
 
@@ -383,4 +384,4 @@ hand, because replacing it would drop every other ticket's state.
   (`scripts/review-board/server.py`, tests included), and the shared Playwright browser setup in
   `references/drive-it.md`
 - `ticket-sync`: when a draft shows that the ticket's scope moved
-- `release-prep`: publishes the staged drafts on release day
+- `release-prep`: Phase 8 finishes the staged drafts (RC screenshots, copy re-verified against the release, release-only pieces) and publishes them on release day

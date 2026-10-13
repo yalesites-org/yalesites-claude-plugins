@@ -487,8 +487,11 @@ class SplitAndStatusTest(unittest.TestCase):
             self.assertEqual((entry["state"], entry["packet"], entry["result"]), ("built", "p1", {"nid": 5}))
             with self.assertRaises(SystemExit):
                 packet.set_status("1818", "built", path=path)
+            packet.set_status("yalesites-org/YaleSites-Internal#1818", "published", note="live", path=path)
+            entry = json.load(open(path))["tickets"]["yalesites-org/YaleSites-Internal#1818"]
+            self.assertEqual((entry["state"], entry["note"], entry["result"]), ("published", "live", {"nid": 5}))
             with self.assertRaises(SystemExit):
-                packet.set_status("yalesites-org/YaleSites-Internal#1818", "published", path=path)
+                packet.set_status("yalesites-org/YaleSites-Internal#1818", "shipped", path=path)
 
     def test_status_refuses_to_replace_a_corrupt_file(self):
         with tempfile.TemporaryDirectory() as d:
