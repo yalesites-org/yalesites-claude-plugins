@@ -193,6 +193,13 @@ Mark them inline with the alt text written, so nothing gets published without it
 
 Screenshots usually come later, during release testing on a stable environment. Say so in the handoff notes rather than blocking the draft.
 
+Rules for every docs screenshot (from our review of the 12-01-26 release docs):
+
+- **Use discretion.** A new field the text already describes does not need a screenshot. Shoot what words can't carry: rendered output, layouts, and UI in a place nobody would think to look.
+- **Shoot block forms the way editors see them.** Go to `/node/<nid>/layout`, click **Add block**, and capture the off-canvas form. Never the full-page `/layout_builder/add/block/...` admin form.
+- **Annotate the control.** When the text calls out a specific button or admin control, circle it on the screenshot and add an arrow pointing to it.
+- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the RC phase, retake it on the RC multidev (the yalesites website RC) so it matches the live site. `release-prep` swaps them.
+
 ## Step 5: Check the draft mechanically
 
 ```bash

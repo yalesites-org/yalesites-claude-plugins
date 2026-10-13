@@ -258,6 +258,8 @@ Filter client-side for items whose Status is "Done", then keep only the open iss
 
 **Timing is the whole point of this phase.** Run it as soon as the first RC is cut, immediately after the first pass of Phase 1 confirms the PR list. Testers work the RC against these issues, so steps that arrive later than the RC are steps nobody used. If you reach this phase and QA is already underway, you are late: say so, and prioritise the issues still untested rather than working through the list in order.
 
+**Swap placeholder doc screenshots in the same window.** Docs drafted before the RC often carry screenshots from a PR multidev, marked `*[SCREENSHOT (placeholder, PR multidev): ...]*` or listed as placeholders in the draft's notes. Once the RC multidev (the yalesites website RC) is up, retake each one there so it matches the live site, following the screenshot rules in `yalesites-web-content`, and update the staged draft. List any left over in the Step 5 report.
+
 ### Step 1: Extract linked issues from PRs
 
 Each PR in the release links to one or more issues in `yalesites-org/YaleSites-Internal`. Extract these from the PR body — they typically appear as GitHub issue URLs or `#XXXX` references near the top of the description.
