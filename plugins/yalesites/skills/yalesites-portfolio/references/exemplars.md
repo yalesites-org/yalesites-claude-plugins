@@ -134,11 +134,11 @@ Adoption is high-usage ≠ well-used: check here before holding a site up as a m
 3. **poorvucenter** - https://poorvucenter.yale.edu/learning/first-generation-low-income-students  
    A centered 'Stay Connected!' heading above four equal outlined tiles gives a compact, clear call to action on solid navy. Labels describe the destination and external ones carry an arrow. *Pattern: Centered heading + one row of four equal tiles on solid navy*
 
-**Good practices:** Keep tile labels to two to four words, with a verb or clear destination · Use a short heading and one-line blurb to frame the group · Mark external links with the arrow icon · Fit 3 to 9 tiles; rows of 3 or 4 look balanced · Use a subtle darkened photo only when text stays high contrast · Reuse one block pattern for page-end 'next steps' navigation
+**Good practices:** Keep tile labels to two to four words, with a verb or clear destination · Use a short heading and one-line blurb to frame the group · Mark external links with the arrow icon · Fit 3 to 9 tiles; rows of 3 or 4 look balanced · Use a subtle darkened photo only when text stays high contrast · Put it high on the page, directly after the hero, as the visitor's first set of tasks (where 432 of 1,317 live instances sit); reuse one tile pattern across the site
 
 ## Gallery (`gallery`)
 
-No exemplar met the bar in this review.
+Not reviewed: screenshots failed to load. All 25 gallery captures returned no content in the review session, so no exemplar or anti-pattern is asserted until the review is re-run (see `block-usage.md`).
 
 ## Quote (`pull_quote`)
 

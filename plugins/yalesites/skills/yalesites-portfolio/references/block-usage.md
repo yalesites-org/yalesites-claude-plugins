@@ -1,6 +1,13 @@
 # Block usage across the live portfolio (2026-10 crawl: 296 sites, 48,285 pages)
 
-Adoption = share of crawled sites with at least one rendered instance. Position 0 = top of page, 1 = bottom. Variants are the rendered design-option attributes.
+**What the columns measure.** Adoption (`% sites`, `Sites`, `Instances`) counts every rendered instance on all 48,285 crawled pages. The position columns, and the "typically preceded by / followed by" lines in the per-block detail, use only built Page-type pages (21,824 pages; event, post, profile and resource detail pages are field-driven and excluded):
+
+- `Median/page`: median instances of the block on the pages where it appears.
+- `Avg position`: mean relative index of each instance, 0 = first block on the page, 1 = last.
+- `Opens page %` and `Closes page %`: share of the pages containing the block where it is the page's first or last block. The base is pages, not instances.
+- Preceded by / followed by counts are per instance: every instance after a page's first block adds one to the count for the block in front of it. So a block can open 100% of its pages and still be "preceded by" something when a page carries it twice (Grand Hero: 57 stacked heroes on 32 pages).
+
+Variants are the rendered design-option attributes, counted over all instances.
 
 ## Adoption table
 
@@ -66,7 +73,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 ### View (`view`) - 70.3% of sites, 5,160 instances
 - Variants: component-width: site 93%, content 7%
 - Typically preceded by Text (1712), View (1361), Divider (101); followed by View (1361), Calendar List (9), Event Calendar (8)
-- Reviewer notes: The View is the most-used block, so consistency matters most. Pick the card, list or profile style that matches the content type, keep item counts to full rows, and make sure every item has a usable image or none do. Check thumbnails: screenshots, flyers and logos look poor when cropped to a landscape card.
+- Reviewer notes: The View is on 70% of sites, so consistency matters. Pick the card, list or profile style that matches the content type, keep item counts to full rows, and make sure every item has a usable image or none do. Check thumbnails: screenshots, flyers and logos look poor when cropped to a landscape card.
 
 ### Callout (`callout`) - 69.3% of sites, 2,347 instances
 - Variants: component-theme: one 50%, two 23%, five 12%; component-width: site 99%, content 1%; component-alignment: center 99%, left 1%
@@ -78,13 +85,13 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 
 ### Grand Hero (`grand_hero`) - 68.2% of sites, 2,968 instances
 - Variants: grand-hero-overlay-variation: contained 70%, full 21%, contained-narrow 8%; grand-hero-size: reduced 71%, full 24%, mini 5%; component-theme: one 84%, two 6%, five 4%; grand-hero-width: site 99%, full 1%
-- Typically preceded by Grand Hero (57); followed by Quick Links (432), Custom Cards (430), Text (397)
+- Every built page that contains a Grand Hero opens with one; the only block ever found in front of a Grand Hero is another Grand Hero (57 stacked instances on 32 pages). Followed by Quick Links (432), Custom Cards (430), Text (397)
 - Reviewer notes: Grand Hero works best as a short statement, not a content container. The overlay variants (contained panel vs full tint) matter more than size: opaque contained panels survive any image, while full tints and translucent panels often hurt legibility. Video heroes need a pause control, and should carry a real headline. Sites that repeat one configuration across a section look the most polished.
 
 ### Accordion (`accordion`) - 67.6% of sites, 3,414 instances
 - Variants: component-width: site 94%, content 6%; component-alignment: left 94%, center 6%; component-theme: default 69%, three 13%, one 11%
 - Typically preceded by Accordion (1211), Quick Links (296), Grand Hero (287); followed by Accordion (1211), Text (720), Callout (401)
-- Reviewer notes: The most widely used block (67% of sites). Default width is site-wide; the stronger usages keep to a single theme per page and a heading above each group. Avoid one-item accordions and titles that merely restate the heading. Hide only content that is not needed by most readers.
+- Reviewer notes: On 68% of sites. Default width is site-wide; the stronger usages keep to a single theme per page and a heading above each group. Avoid one-item accordions and titles that merely restate the heading. Hide only content that is not needed by most readers.
 
 ### Spotlight - Landscape (`content_spotlight`) - 57.8% of sites, 4,873 instances
 - Variants: component-focus: equal 96%, image 4%; image-position: image-left 68%, image-right 32%; component-width: site 56%, highlight 44%; component-theme: default 71%, two 11%, one 10%; image-style: inline 58%, equal 33%, offset 7%; content-vertical-align: top 82%, middle 18%, bottom 0%
@@ -119,7 +126,7 @@ Adoption = share of crawled sites with at least one rendered instance. Position 
 ### Quick Links (`quick_links`) - 40.9% of sites, 1,317 instances
 - Variants: quick-links-variation: promotional 100%; component-width: site 100%; component-theme: one 100%; quick-links-layout: stacked 51%, fluid 49%
 - Typically preceded by Grand Hero (432), Action Banner (138), Quick Links (79); followed by Accordion (296), Custom Cards (189), Callout (164)
-- Reviewer notes: Only the promotional variation is in use, so every instance is outlined white tiles on theme one (navy). Stacked puts the heading on top and tiles in a row; fluid puts the heading left and tiles in a 3-column grid on the right. Quick Links suits navigation prompts at the end of a page, not long lists. Keep labels parallel in length so tiles stay the same height.
+- Reviewer notes: Only the promotional variation is in use, so every instance is outlined white tiles on theme one (navy). Stacked puts the heading on top and tiles in a row; fluid puts the heading left and tiles in a 3-column grid on the right. In practice Quick Links opens the page or sits directly after the Grand Hero (432 of 1,317 instances follow a hero; average position 0.1; it closes a page 1.3% of the time), handing visitors their main tasks before any prose. It suits a short set of task links, not long lists. Keep labels parallel in length so tiles stay the same height.
 
 ### Gallery (`gallery`) - 40.2% of sites, 1,342 instances
 - Variants: component-width: site 72%, content 28%; media-grid-variation: interactive 100%; media-grid-modal-state: inactive 100%
