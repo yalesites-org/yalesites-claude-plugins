@@ -241,7 +241,9 @@ possible and has been done, per-site and with custom code.
 
 ## Ground recommendations in measured adoption
 
-When recommending target blocks or layouts, check the `yalesites-portfolio` skill for
+When recommending target blocks or layouts, look for a skill named `yalesites-portfolio`
+(it ships in the separate `yalesites` plugin). If that skill is available, check it for
 real adoption data: prefer mapping source content onto blocks the community demonstrably
 uses (and uses well: see its exemplars reference) over rarely-adopted ones, and flag it
-when a proposed mapping leans on a block with near-zero live usage.
+when a proposed mapping leans on a block with near-zero live usage. If the skill is not
+installed, skip this check and say the recommendation is not grounded in usage data.
