@@ -186,17 +186,19 @@ looking at it.
 ### Size the blast radius with real usage data
 
 When the PR changes a block's template, styles, or data model, or ships an update hook
-against a block or setting, look for a skill named `yalesites-portfolio` (it ships in the
-separate `yalesites` plugin). If that skill is available, load it and say in the test plan
-how many live sites the change touches ("grand hero renders on 202 of 296 crawled sites,
-as of the 2026-10 crawl") and name 2-3 of the heaviest-usage sites as the places to
-spot-check: grep its `references/sites-index.csv` for the block's machine name and rank
-the matching rows by that block's count in the `block_counts` column. Check them on the
-multidev where possible, or on the live sites to see current behavior. A regression in a
-70%-adoption block is a platform incident; the same bug in a 5% block is a patch. The
-test plan should reflect which one this is. If the skill is not installed, skip this step
-and don't estimate usage numbers. Skip it as well for PRs that don't touch a measurable
-block or setting: don't pad reviews with usage trivia.
+against a block or setting, use the `yalesites-portfolio` skill if it is available (it
+ships in the separate `yalesites` plugin; if it is not installed, skip this step and don't
+estimate usage numbers). Say in the test plan how many sites the change touches ("grand
+hero renders on 202 of 296 crawled sites, as of the 2026-10 crawl") and name 2-3 of the
+heaviest-usage sites from the block's `Top sites` line in its `references/block-usage.md`.
+Those live sites run the current code, so they are where to see current behavior and
+where to find the content shape to recreate on the multidev; they are not where the
+change gets tested. A yalesites-project multidev carries one site's content, so the plan
+says "build a page shaped like poorvucenter's grand hero on the multidev and check it
+there", never "check it on poorvucenter". A regression in a 70%-adoption block is a
+platform incident; the same bug in a 5% block is a patch. The test plan should reflect
+which one this is. Skip this step for PRs that don't touch a measurable block or setting:
+don't pad reviews with usage trivia.
 
 ### Lead with the environment, and be specific about what it can show
 

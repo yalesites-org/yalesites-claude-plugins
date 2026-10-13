@@ -22,7 +22,7 @@ Pain point and delight counts below are reported out of **18 research participan
 
 **Relationship to the 2021 research:** the previous version of this skill was built on the *YaleSites Upgrade User Insight Report (Phase 1.1, September 2021)*, which studied the **legacy** platform before the current Drupal build existed. That report is now a point-in-time snapshot rather than a description of today's users. It is preserved in `references/research-2021-historical.md` for historical context. **Default to the 2026 archetypes and findings.** See "What Changed Since 2021" below, which includes a correction to guidance the older version of this skill got wrong.
 
-Detailed usage data (site categories, affiliations, ServiceNow breakdowns, training participation, methodology) lives in `references/platform-usage-data-2026.md`. For *measured behavior* (which blocks and configurations live sites actually use, and at what rates) use the `yalesites-portfolio` skill from the separate `yalesites` plugin, if that skill is available; this skill covers who the users are and what they report, that one covers what their sites do. If it is not installed, say the measured data is unavailable rather than estimating it.
+Detailed usage data (site categories, affiliations, ServiceNow breakdowns, training participation, methodology) lives in `references/platform-usage-data-2026.md`. For *measured behavior* (which blocks and configurations live sites actually use, and at what rates) use the `yalesites-portfolio` skill if it is available (it ships in the separate `yalesites` plugin; if it is not installed, say the measured data is unavailable rather than estimating it); this skill covers who the users are and what they report, that one covers what their sites do.
 
 ---
 
