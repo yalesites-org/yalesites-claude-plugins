@@ -56,8 +56,9 @@ to this diff, and keep a note of the fails. Four sections need more than reading
 
 **Commands (sections 4 and 5).** List every command the changed skill tells an agent to run.
 For each one: find its `allowed-tools` entry, and run it on this Mac with the inputs the skill
-describes. A `for` loop, a pipeline, or an `&&` chain in a command the agent must run under
-`allowed-tools` is a fail even if it works in your shell. A prompt from the harness while you
+describes. A `for` or `while` loop in a command the agent must run under `allowed-tools` is a
+fail even if it works in your shell; a pipeline or `&&` chain passes only when every segment
+has its own entry. A prompt from the harness while you
 run it is the finding. `\b` in `git grep -E`, `timeout`, `sed -i` with no argument, and
 `sleep`-based waits are fails on sight.
 

@@ -148,11 +148,12 @@ and an unattended run has nobody to answer the prompt.
   List the commands from the diff, then check each against the frontmatter.
   **Why:** yalesites-org/yalesites-claude-plugins#58 added `git diff`, `gh repo clone`,
   `git mv`, `git rm`, `git commit`, and `cp` with no matching entries.
-- [ ] No `for` loops, `while` loops, pipelines, or `&&` chains in a command the agent must
-  run under `allowed-tools`. `for f in ...; do grep ...; done` does not match
-  `Bash(git -C * diff *)`, and neither does `a | b`.
-  **Why:** yalesites-org/yalesites-claude-plugins#58 wrote the ADR check as a pipeline and a
-  loop. In a `--bg` run it hit a prompt nobody answered.
+- [ ] No `for` or `while` loops in a command the agent must run under `allowed-tools`:
+  `for f in ...; do grep ...; done` matches nothing. A pipeline or `&&` chain is allowed only
+  when every segment matches an entry on its own (`a | b` needs an entry for `a` and one
+  for `b`), so list each segment's entry.
+  **Why:** yalesites-org/yalesites-claude-plugins#58 wrote the ADR check as a loop and a
+  pipeline with no `grep` entry. In a `--bg` run it hit a prompt nobody answered.
 - [ ] Entries are as narrow as the step needs. A bare `Bash(cp *)` or `Bash(git rm *)`
   grants more than one step should.
   **Why:** yalesites-org/yalesites-claude-plugins#58 added broad entries for a single move.
