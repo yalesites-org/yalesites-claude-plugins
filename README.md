@@ -12,7 +12,7 @@ A Claude Code plugin marketplace for the Yale ITS Digital Experiences team.
 |---|---|---|
 | [yalesites](plugins/yalesites/) | Deep expertise on the YaleSites Drupal 10 platform | `/plugin install yalesites@yalesites-claude-plugins` |
 | [yalesites-product](plugins/yalesites-product/) | Release prep, ticket grooming, UX research, and source-site migration assessment for the product team | `/plugin install yalesites-product@yalesites-claude-plugins` |
-| [yalesites-dev](plugins/yalesites-dev/) | Git, PR, and GitHub-issue workflow skills for developers | `/plugin install yalesites-dev@yalesites-claude-plugins` |
+| [yalesites-dev](plugins/yalesites-dev/) | Git, PR, and GitHub-issue workflow skills for developers, plus a pre-PR checklist review for skill changes in this marketplace | `/plugin install yalesites-dev@yalesites-claude-plugins` |
 | [yalesites-security](plugins/yalesites-security/) | Security tooling — dependency supply-chain auditing (live OSV + GitHub malware advisories) | `/plugin install yalesites-security@yalesites-claude-plugins` |
 
 ## Installation
@@ -52,9 +52,12 @@ Open Claude Code and run:
 | `github-communication-format.md` | Structure: what is visible, what collapses into `<details>`, what goes in the invisible `<!-- yalesites:agent -->` machine block |
 | `github-writing.md` | Words: ASD-STE100 sentence rules, plain-language word swaps, and a visible-layer word budget per surface |
 | `check-github-text.py` | Mechanical check of a draft against both |
+| `skill-authoring-checklist.md` | What to check in a skill change before opening the PR, grouped by defect class, each item tied to a past review finding |
 
 Claude Code plugins cannot read each other's files, so each consuming plugin carries its
-own copy under its host skill's `references/` and `scripts/`. **Those copies are
+own copy under its host skill's `references/` and `scripts/`. The writing standards go to
+every plugin that posts to GitHub. The authoring checklist goes only to `yalesites-dev`'s
+`skill-review` skill, which runs it against a branch. **Those copies are
 generated. Do not edit them.** Edit `/standards`, then:
 
 ```bash

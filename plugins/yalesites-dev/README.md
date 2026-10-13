@@ -20,6 +20,7 @@ implement → test → commit → describe → open the PR(s)**.
 | `pr-description` | Generate a PR body from the current branch's commits and diff, filling a provided template. |
 | `yalesites-pr` | Create the pull request(s) following YaleSites conventions, including cross-repo companion PRs. Also checks the linked issue for drift before moving it to In review (via the `ticket-sync` skill in `yalesites-product`, if installed). |
 | `cross-repo` | Check status, create matching branches, or clean merged branches across all four repos at once. |
+| `skill-review` | Pre-review a skill change in this marketplace before the PR: walks the shared skill-authoring checklist against the branch, runs the commands the skill tells agents to run, tests its regexes and numbers, and reports in the reviewer's shape. Posts nothing. |
 
 Issue creation and grooming now live in the `ticket` skill (`yalesites-product`
 plugin) rather than here — it fully supersedes the old `create-issue` skill,
@@ -63,6 +64,9 @@ python3 skills/yalesites-pr/scripts/check-github-text.py body.md --surface pr-bo
 
 Both reference files and the script are generated from `standards/` at the repo root.
 Edit the canonical copies there, then run `bash scripts/sync-standards.sh`.
+
+The same goes for `skills/skill-review/references/skill-authoring-checklist.md`: the
+canonical copy is `standards/skill-authoring-checklist.md`.
 
 ## Design notes
 
