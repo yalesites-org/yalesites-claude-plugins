@@ -10,7 +10,7 @@ A Claude Code plugin marketplace for the Yale ITS Digital Experiences team.
 
 | Plugin | Description | Install command |
 |---|---|---|
-| [yalesites](plugins/yalesites/) | Deep expertise on the YaleSites Drupal 10 platform | `/plugin install yalesites@yalesites-claude-plugins` |
+| [yalesites](plugins/yalesites/) | Deep expertise on the YaleSites Drupal platform, plus the yalesites-portfolio skill: measured block adoption, config trends, exemplar sites and page patterns from a crawl of the live portfolio | `/plugin install yalesites@yalesites-claude-plugins` |
 | [yalesites-product](plugins/yalesites-product/) | Release prep, ticket grooming, UX research, and source-site migration assessment for the product team | `/plugin install yalesites-product@yalesites-claude-plugins` |
 | [yalesites-dev](plugins/yalesites-dev/) | Git, PR, and GitHub-issue workflow skills for developers | `/plugin install yalesites-dev@yalesites-claude-plugins` |
 | [yalesites-security](plugins/yalesites-security/) | Security tooling — dependency supply-chain auditing (live OSV + GitHub malware advisories) | `/plugin install yalesites-security@yalesites-claude-plugins` |

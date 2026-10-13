@@ -9,7 +9,7 @@
   "plugins": [
     {
       "name": "yalesites",
-      "description": "Deep expertise on the YaleSites Drupal 10 platform — Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources.",
+      "description": "Deep expertise on the YaleSites Drupal platform: Layout Builder, blocks, Views, content types, menus, taxonomy, accessibility, editorial workflow, and training resources. Includes the yalesites-portfolio skill with measured block adoption, config trends, exemplar sites and page patterns from a crawl of the live portfolio (known gaps: Gallery unreviewed, 5 sites without data).",
       "category": "development",
       "source": "./plugins/yalesites",
       "homepage": "https://github.com/yalesites-org/yalesites-claude-plugins/tree/main/plugins/yalesites"
