@@ -20,8 +20,13 @@ Measured facts about rendered public pages across the live portfolio. Crawl
 vintage **2026-10**: 296 of 299 live sites, 48,285 pages, full sitemaps (the
 3 uncrawled sites are named under "Rules for using this data"). Exemplar
 picks come from a Sonnet screenshot review of the 8 richest usages per block
-and of 24 block-rich homepages. Refresh pipeline and raw data:
-`~/code/yalesites-portfolio-data` (dashboard at `dist/dashboard.html`).
+and of 24 block-rich homepages. The adoption tables are the 2026-10 snapshot;
+the `block_counts` column in `sites-index.csv` was computed from the raw data
+after a monthly refresh that re-fetched anthropology and negeobio2024, so a
+per-block sum of `block_counts` lands under 1% below the table total (see the
+note at the top of `block-usage.md`). The refresh pipeline and raw crawl data
+live in the maintainer's local checkout (`~/code/yalesites-portfolio-data`);
+they are not in this repo and are not needed to use this skill.
 
 ## How to use this skill
 
@@ -32,7 +37,8 @@ and of 24 block-rich homepages. Refresh pipeline and raw data:
 | "Who uses X best": ranked exemplar sites per block with URLs, patterns and good practices | `references/exemplars.md` |
 | What goes wrong with each block (named teaching examples) | `references/anti-patterns.md` |
 | Page archetypes, length norms, how pages open/close, homepage composition, tagged page-building rules | `references/page-patterns.md` |
-| "Which sites use block X / theme Y / center nav", and which sites use a block most: one row per site, with `blocks_used` and a `block_counts` column (`block:count;...`, sorted by count, highest first) | `references/sites-index.csv` (grep it; do not read it whole) |
+| "Which sites use block X most" | the block's `Top sites` line in `references/block-usage.md` |
+| "Which sites use block X / theme Y / center nav": one row per site, with `blocks_used` and a `block_counts` column (`block:count;...`, sorted by count, highest first) | `references/sites-index.csv` (grep it; do not read it whole) |
 
 ## Headline numbers (2026-10)
 
@@ -49,4 +55,5 @@ and of 24 block-rich homepages. Refresh pipeline and raw data:
 - **Cite the vintage** ("as of the 2026-10 crawl") and keep callouts to one line in tickets, PRs and docs. Never paste tables.
 - **Zero-usage blocks are findings, not errors.**
 - **Five live sites have no usable data.** Three could not be crawled at all and have no row in `sites-index.csv`: asclab.yale.edu (SSL error), blackvisualculture.yale.edu (HTTP 403) and unga.yale.edu (HTTP 403); that is the 299 vs 296 gap. Two more, aadhub.yale.edu and chat.finance.yale.edu, redirect to CAS login; they are in the CSV with `pages_crawled` 1 and empty block columns. (Airtable lists 300 live rows; one, invisibleuniverse, is a duplicate.)
-- Survey and support-ticket data about editors lives in the `ux-research` skill; what each block *is* lives in the core `yalesites` skill's `references/blocks-reference.md`.
+- **Gallery has no exemplar guidance yet.** Its screenshots failed in the review session, so `exemplars.md` and `anti-patterns.md` assert nothing for it; the adoption and variant numbers still hold.
+- Survey and support-ticket data about editors lives in the `ux-research` skill, if that skill is available (it ships in the separate `yalesites-product` plugin); what each block *is* lives in the core `yalesites` skill's `references/blocks-reference.md`.

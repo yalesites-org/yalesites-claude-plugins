@@ -138,7 +138,7 @@ Adoption is high-usage ≠ well-used: check here before holding a site up as a m
 
 ## Gallery (`gallery`)
 
-Not reviewed: screenshots failed to load. All 25 gallery captures returned no content in the review session, so no exemplar or anti-pattern is asserted until the review is re-run (see `block-usage.md`).
+Known limitation: no exemplar guidance for Gallery yet. All 25 gallery captures returned no content in the review session, so no exemplar or anti-pattern is asserted; the maintainer tracks the re-run (see `block-usage.md`).
 
 ## Quote (`pull_quote`)
 
@@ -173,7 +173,7 @@ No exemplar met the bar in this review.
 1. **yjil** - https://yjil.yale.edu/  
    Image-left list with a category eyebrow, bold headline, date, a colored symposium tag and a one-line summary, plus a Post Category filter and pagination. It reads like a real journal feed and is easy to scan across 12 pages of content. *Pattern: image-left list rows + category eyebrow + date + short summary, with category filter and pagination*
 
-**Good practices:** Pair a filter dropdown with the list when there are multiple categories · Use a primary and secondary button for the main and secondary event actions · Show an eyebrow category above the title so readers can scan by type · Keep teaser copy to one or two lines · Use pagination for long archives
+**Good practices:** Give every post an image so the feed renders as image-left rows instead of bare text · Show the category eyebrow and date above the title so readers can scan by type and recency · Write a real one-line teaser for each post; the feed prints it · Add the Post Category filter only when the site has several categories readers will switch between · Use pagination for long archives · Remove test and placeholder posts before publishing
 
 ## Link Grid (`link_grid`)
 

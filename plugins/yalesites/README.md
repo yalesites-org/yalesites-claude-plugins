@@ -21,6 +21,16 @@ site builders, and the platform team with:
 - Google Tag Manager setup
 - Localist integration
 - Training catalog, office hours, and user guide navigation
+- Measured usage across the live portfolio (the `yalesites-portfolio` skill)
+
+## Skills
+
+| Skill | What it covers |
+|---|---|
+| `yalesites` | What each block, setting, content type, role and workflow is |
+| `yalesites-portfolio` | How the community actually builds: block adoption, design-option and config trends, exemplar and anti-pattern sites per block, and page-building patterns from the 2026-10 crawl of 296 of 299 live sites (48k pages) |
+
+Known gaps in `yalesites-portfolio`: Gallery has no exemplar guidance yet (its screenshots failed in the review session; the maintainer tracks the re-run), and 5 live sites have no usable data (3 could not be crawled, 2 redirect to CAS login).
 
 ## Installation
 
