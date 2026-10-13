@@ -271,9 +271,15 @@ ticket's summary and `draft.md` in chat and ask for a decision on each.
 
 | Decision | Do |
 |---|---|
-| `approve` | Status `approved`. It goes to Step 8 |
+| `approve` | Status `approved`. It goes to Step 8, unless its status is already `built` or `building` |
 | `skip` | Status `skipped`. Leave the ticket alone |
 | `changes` | Revise the item from the notes and comments. Re-run `yalesites-web-content`'s checker on the new copy. Bump `revision`, set `previousFeedback` to one line restating what they asked for, validate, and set status `on-board` again |
+
+**On every round after the first, check the status file before acting on an `approve`.** The
+board resends every ticket each time, and an approved ticket keeps its decision across reloads,
+so a ticket built after round one comes back as `approve` in round two. Anything already at
+`built` or `building` in `packet.py status` is done: say so in the playback and leave it out of
+Step 8. Only `approved` and `on-board` tickets go on to be built.
 
 When anything was revised: delete `decisions.json`, tell the reviewer to reload the board (approved
 tickets keep their decision, revised ones start fresh with the banner), and arm the same `Monitor`
@@ -284,6 +290,12 @@ If the reviewer wants the approved tickets built while others are still in revis
 now. Otherwise build after the board settles, so the CAS login in Step 8 covers the whole batch.
 
 ## Step 8: Build what was approved
+
+Build each approved ticket once. Before starting any of them, read
+`~/.claude/yalesites/docs-board/status.json` and drop every ticket already at `built` or
+`building`: it was built on an earlier round (or is being built now), and building it again would
+put a second draft on the page or a second commit on the branch. Set `building` as each one
+starts, so a round that arrives mid-build cannot pick it up either.
 
 ### Site pages (`edit` and `new`)
 
