@@ -222,7 +222,7 @@ Rules for every docs screenshot:
   ```
 
   Then close the tray with Cancel as the block-form rule says. If the shot is taken by hand instead, list the annotation as a manual step for the editor in the handoff notes rather than claiming it was done.
-- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the QA period, retake it on the RC multidev named above so it matches the live site. `release-prep` (Phase 2, Screenshots) swaps them.
+- **PR multidev shots are placeholders.** A shot from a PR multidev (the "YaleSites Visual Regression" header and red "DO NOT CHANGE CONTENT" banner) does not look like yalesites.yale.edu. Mark it in the marker, `*[SCREENSHOT (placeholder, PR multidev): ...]*`, and list it in the handoff notes. During the QA period, retake it on the RC multidev named above so it matches the live site. `release-prep` (Phase 2, Screenshots) retakes them and hands them to the user to place; nothing on the page changes until the user places them.
 
 ## Step 5: Check the draft mechanically
 
