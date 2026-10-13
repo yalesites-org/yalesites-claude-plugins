@@ -40,10 +40,6 @@ title=$(sed -E 's/^[[:space:]]*[Ee][Pp][Ii][Cc][[:space:]]*:[[:space:]]*//' <<<"
 declared=$(jq -r '[., .parent, .parent.parent, .parent.parent.parent]
   | map(select(. != null and any(.labels.nodes[]; .name=="epic"))) | first | .body // ""' <<<"$info" \
   | sed -nE 's/.*Base branch:[^`]*`([^`]+)`.*/\1/p' | head -1)
-if [[ -n $declared ]] && { [[ $declared == -* || $declared =~ ^(develop|main|master)$ ]] \
-  || ! git check-ref-format --branch "$declared" >/dev/null 2>&1; }; then
-  echo "epic $num declares an invalid base branch: $declared" >&2; exit 1
-fi
 
 # Prints the head branch of the open Epic PR titled "<epic>:" in repo $1 (empty if none);
 # fails on API error or 2+ matches.
@@ -91,6 +87,12 @@ if [[ -z $branch ]]; then
   slug=$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed -E 's/^-+|-+$//g')
   slug=$(printf '%s' "$slug" | cut -c1-"$((40 - ${#num} - 1))" | sed -E 's/-+$//')
   branch="$num-$slug"
+fi
+
+# Names come from editable text (epic body, PR heads, branches): allow only safe characters.
+if [[ ! $branch =~ ^[A-Za-z0-9._/-]+$ || $branch == -* || $branch =~ ^(develop|main|master)$ ]] \
+  || ! git check-ref-format --branch "$branch" >/dev/null 2>&1; then
+  echo "invalid base branch for epic $num: $branch" >&2; exit 1
 fi
 
 if [[ $ensure == --ensure ]]; then
