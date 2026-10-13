@@ -140,6 +140,8 @@ As you draft, note which block fits each section rather than leaving the user to
 
 Put this in the **Suggested blocks** line of the config block, not scattered through the copy, so it reads as build guidance rather than clutter.
 
+When the page is new (not a revision), also consult the `yalesites-portfolio` skill's `references/page-patterns.md` for the block sequence and length norms the community actually uses, and `references/exemplars.md` when you want to point the user at a live page that uses a suggested block well. Keep it to a sentence in the Suggested blocks line; the portfolio data is there to make the suggestion grounded, not to pad the draft.
+
 ### Reuse what the site already does
 
 Some patterns repeat across YaleSites pages by design: a support callout with links to Office Hours and the team's email, a "Related Resources" list at the end of a page, a video demo embed. Before writing a new version of one of these from scratch, check `references/reusable-patterns.md` for the verified real examples and reuse the pattern rather than inventing a new phrasing.

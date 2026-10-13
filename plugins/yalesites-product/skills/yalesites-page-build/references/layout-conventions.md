@@ -43,3 +43,7 @@ On an existing page, read the blocks around the insertion point before adding an
 ## Placement order
 
 A new block lands at the end of its region. Move it into place in the same pass, before saving the layout, so the saved draft never has a block stranded under the page's closing block.
+
+## Composing a new page
+
+The conventions above cover editing an existing page. When composing a new page or a new section from scratch, load the `yalesites-portfolio` skill and read `references/page-patterns.md` first: it holds the measured block sequences, page-length norms and the reviewer-checked page-building guidance (open with a hero then tasks, color-band chapters, proof early, end on an action band) drawn from the live portfolio, with each rule tagged as recommended or merely common. Its `exemplars.md` names live pages to model a block on. The conventions on this page win where the two disagree.
