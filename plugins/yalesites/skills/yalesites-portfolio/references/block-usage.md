@@ -7,11 +7,15 @@
 - `Opens page %` and `Closes page %`: share of the pages containing the block where it is the page's first or last block. The base is pages, not instances.
 - Preceded by / followed by counts are per instance: every instance after a page's first block adds one to the count for the block in front of it. So a block can open 100% of its pages and still be "preceded by" something when a page carries it twice (Grand Hero: 57 stacked heroes on 32 pages).
 
+**Position columns follow the crawler's selector order, not page order (known gap).** The crawler records each page's blocks grouped by block type in one fixed order (heroes and banners first, then Quick Links, Link Grid, Custom Cards, Accordion, Tabs, Callout, Quote, Spotlights, Gallery, Media Grid, Image, Video, Embed, Button Link, Divider, Text, Tiles, In-Line Message, Pre-Built Form, then Views and feeds), not in the order they sit on the page; 48,275 of the 48,283 raw pages follow that fixed order exactly. So `Avg position`, `Opens page %`, `Closes page %`, the preceded by / followed by lines, and the open, close and archetype sequences in `page-patterns.md` describe that fixed order, not page layout. Grand Hero opens 100% and Accordion, Gallery, Tabs and Video Banner close 0% by construction, "followed by Text" mostly means Text sorts later, and "Text closes 65% of built pages" is the same artifact. A second gap compounds it: every `.text-field` match counts as a Text block, including the text inside Accordion and Tabs panels and Gallery captions, which pads the Text instance total and the Text-to-Text adjacency counts. A clean recount needs the cached page markup re-parsed in page order with nested matches dropped; that is a pipeline change for the maintainer, not a re-crawl. Until then cite adoption, instance totals and variant splits, and treat the position columns as unreliable.
+
+**In-Line Message excludes the Pre-Built Form's reCAPTCHA notice.** Every Pre-Built Form renders its "This site is protected by reCAPTCHA" notice as an `.inline-message` inside the form (125 forms, one notice each, checked in the captured markup), so the crawler counted each one as an In-Line Message, which is why 125 of 125 forms were "preceded by" one. The In-Line Message row, instance total, variant split, position stats and Top sites line below subtract those 125 (one per form on the same page, recounted from the raw page data with no re-crawl): 75 sites and 708 instances, not the crawler's 142 and 833. `block_counts` in `sites-index.csv` still carries the crawler's count, so a site with a `webform` has one extra `inline_message` there per form; the Top sites line already corrects for it.
+
 Variants are the rendered design-option attributes, counted over all instances.
 
 `Top sites` names the five sites with the most instances of the block, as `site (count)`, computed from the `block_counts` column of `sites-index.csv` by exact block token (so `image` never picks up `wrapped_image`). Read that line instead of grepping the CSV.
 
-**Two count bases, one crawl.** The adoption table and the per-block instance totals are the 2026-10 snapshot. `block_counts` in `sites-index.csv` (and so the `Top sites` lines) were computed from the raw data after a monthly refresh that re-fetched anthropology and negeobio2024, so summing `block_counts` for a block can land under the table total by under 1% (Text 78,239 vs 78,312; Divider 7,137 vs 7,169 is the widest gap). Cite the table for totals and `block_counts` for per-site ranking.
+**Two count bases, one crawl.** The adoption table and the per-block instance totals are the 2026-10 snapshot. `block_counts` in `sites-index.csv` (and so the `Top sites` lines) were computed from the raw data after a monthly refresh that re-fetched anthropology and negeobio2024, so summing `block_counts` for a block can land under the table total by under 1% (Text 78,239 vs 78,312 is the widest gap by count, 73 instances; Tabs 171 vs 172 is the widest by share, 0.6%). Cite the table for totals and `block_counts` for per-site ranking.
 
 ## Adoption table
 
@@ -29,7 +33,6 @@ Variants are the rendered design-option attributes, counted over all instances.
 | Spotlight - Landscape | 57.8% | 171 | 4,873 | 1.0 | 0.35 | 33.6 | 13.5 |
 | Custom Cards | 57.8% | 171 | 2,295 | 1 | 0.19 | 43.4 | 6.4 |
 | Action Banner | 51.7% | 153 | 1,103 | 1 | 0.02 | 92.6 | 0.9 |
-| In-Line Message | 48.0% | 142 | 833 | 1.0 | 0.87 | 3.6 | 69.5 |
 | Spotlight - Portrait | 46.3% | 137 | 2,093 | 1.0 | 0.4 | 33.5 | 20.5 |
 | Media Grid | 43.6% | 129 | 499 | 1 | 0.24 | 47.3 | 8.7 |
 | Quick Links | 40.9% | 121 | 1,317 | 1.0 | 0.1 | 44.2 | 1.3 |
@@ -38,6 +41,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 | Video | 36.5% | 108 | 1,774 | 1 | 0.28 | 36.6 | 17.8 |
 | Image Banner | 36.5% | 108 | 813 | 1 | 0.01 | 95.9 | 0.3 |
 | Pre-Built Form | 29.4% | 87 | 125 | 1 | 0.99 | 0.0 | 92.8 |
+| In-Line Message | 25.3% | 75 | 708 | 1 | 0.94 | 1.7 | 84.0 |
 | Post Feed | 25.3% | 75 | 112 | 1.0 | 0.71 | 28.6 | 100.0 |
 | Link Grid | 24.7% | 73 | 780 | 1.0 | 0.16 | 52.8 | 3.8 |
 | Tiles | 24.0% | 71 | 324 | 1.0 | 0.87 | 3.5 | 65.4 |
@@ -55,11 +59,13 @@ Variants are the rendered design-option attributes, counted over all instances.
 | Related Content | 1.0% | 3 | 26 |  |  |  |  |
 | Audio Player | 0.3% | 1 | 1 | 1 | 0.0 | 100.0 | 0.0 |
 
+Gallery and Media Grid are the two variations of the one block the core `yalesites` skill documents as Gallery (Media Grid): `gallery` is the interactive variation (lightbox) and `media_grid` the basic one. Sites using either: 176 of 296 (59.5%); 72 sites use both. Cite 59.5% for "the Gallery (Media Grid) block" and a row's own figure for one variation.
+
 ## Per-block detail
 
 ### Text (`text`) - 99.0% of sites, 78,312 instances
 - Variants: component-width: site 87%, content 13%; component-alignment: left 52%, center 48%; component-variation: default 98%, emphasized 2%
-- Typically preceded by Text (44715), Divider (2725), Image (1599); followed by Text (44715), View (1712), In-Line Message (613)
+- Typically preceded by Text (44715), Divider (2725), Image (1599); followed by Text (44715), View (1712), In-Line Message (510)
 - Top sites: ism (5,518), your (5,353), poorvucenter (2,610), ezrastiles (1,922), college (1,514)
 
 ### Image (`image`) - 81.8% of sites, 7,130 instances
@@ -103,6 +109,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 ### Accordion (`accordion`) - 67.6% of sites, 3,414 instances
 - Variants: component-width: site 94%, content 6%; component-alignment: left 94%, center 6%; component-theme: default 69%, three 13%, one 11%
 - Typically preceded by Accordion (1211), Quick Links (296), Grand Hero (287); followed by Accordion (1211), Text (720), Callout (401)
+- Position caveat: the 0.0% close rate and the Text follower count are artifacts of the crawler's fixed selector order (Text sorts after this block whatever the page order), and Text inside the panels is counted as separate Text blocks, which pads that follower count. See the note at the top.
 - Top sites: your (277), poorvucenter (198), ism (185), onha (171), up (145)
 - Reviewer notes: On 68% of sites. Default width is site-wide; the stronger usages keep to a single theme per page and a heading above each group. Avoid one-item accordions and titles that merely restate the heading. Hide only content that is not needed by most readers.
 
@@ -124,10 +131,11 @@ Variants are the rendered design-option attributes, counted over all instances.
 - Top sites: planetarysolutions (144), recreation (71), peabody (61), geospatial (33), your (32)
 - Reviewer notes: The banner works best as a single, specific call to action with one sentence of support. Choose a photo with a calm area for the text and always add a button; without one it is just a header image. Check that the image loads and that the title stays to two or three lines. Left and right layouts with a tinted panel read cleaner than bottom bars over busy photos.
 
-### In-Line Message (`inline_message`) - 48.0% of sites, 833 instances
-- Variants: component-width: site 100%; inline-message-type: general 100%; component-theme: one 55%, two 22%, three 14%
-- Typically preceded by Text (613), In-Line Message (89), Tiles (37); followed by Pre-Built Form (125), View (96), In-Line Message (89)
-- Top sites: housing (59), poorvucenter (58), your (56), yalesites (50), blueprint (37)
+### In-Line Message (`inline_message`) - 25.3% of sites, 708 instances
+- Counts exclude the reCAPTCHA notice every Pre-Built Form renders as an `.inline-message` (125 of them, see the note at the top); the crawler's raw figures were 142 sites and 833 instances.
+- Variants: component-width: site 100%; inline-message-type: general 100%; component-theme: one 46%, two 26%, three 17%
+- Typically preceded by Text (510), In-Line Message (89), Tiles (35); followed by View (96), In-Line Message (89)
+- Top sites: housing (59), poorvucenter (58), your (56), yalesites (49), blueprint (36)
 - Reviewer notes: Every instance uses the 'general' type with an info icon, so differentiation comes only from the theme colour, which is why colour choice matters most. Many sites use the block for informational text that would work as a plain Text block; it is best for short notices with one action. Watch contrast: light-blue and gold backgrounds need dark text, which these sites handle correctly. One instance uses a tree icon, so icon choice exists but is rarely used.
 
 ### Spotlight - Portrait (`content_spotlight_portrait`) - 46.3% of sites, 2,093 instances
@@ -138,6 +146,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 
 ### Media Grid (`media_grid`) - 43.6% of sites, 499 instances
 - Variants: component-width: site 62%, content 38%; media-grid-variation: basic 100%
+- One block, two variations: this is the basic variation of the core skill's Gallery (Media Grid) block; Gallery below is the interactive one. Combined adoption 59.5% (176 sites).
 - Typically preceded by Media Grid (145), Wrapped Image (44), Gallery (23); followed by Media Grid (145), Text (113), Image (61)
 - Top sites: ezrastiles (154), conferencesandevents (31), meng287 (21), gracehopper (20), yuqc (14)
 - Reviewer notes: Media grid works best when the image count fills the row (4 across or a 2x2) and the photos share a similar aspect ratio. With 2 or 3 images the grid leaves empty columns, so consider a different block for small sets. Add a heading for context and avoid watermarked or low-resolution images. Note two Conferences & Events screenshots did not load, so that site was judged on two instances.
@@ -150,7 +159,9 @@ Variants are the rendered design-option attributes, counted over all instances.
 
 ### Gallery (`gallery`) - 40.2% of sites, 1,342 instances
 - Variants: component-width: site 72%, content 28%; media-grid-variation: interactive 100%; media-grid-modal-state: inactive 100%
+- One block, two variations: this is the interactive (lightbox) variation of the core skill's Gallery (Media Grid) block; Media Grid above is the basic one. Combined adoption 59.5% (176 sites).
 - Typically preceded by Gallery (400), Wrapped Image (170), Spotlight - Landscape (55); followed by Text (544), Gallery (400), Image (96)
+- Position caveat: the 0.0% close rate and the Text follower count are artifacts of the crawler's fixed selector order (Text sorts after this block whatever the page order), and Text inside the gallery captions is counted as separate Text blocks, which pads that follower count. See the note at the top.
 - Top sites: ezrastiles (326), ism (120), conferencesandevents (77), geospatial (56), peabody (51)
 - Reviewer notes: Known limitation: no exemplar guidance for Gallery yet. All 25 gallery screenshots failed to load in the review session (image reads returned no content), so no exemplars or anti-patterns are asserted; the maintainer tracks the re-run. The crawl data still holds: every gallery uses the interactive variation with the modal inactive, and about 72% are site-width.
 
@@ -173,7 +184,8 @@ Variants are the rendered design-option attributes, counted over all instances.
 
 ### Pre-Built Form (`webform`) - 29.4% of sites, 125 instances
 - Variants: drupal-selector: webform-submission-contact-block-content-26-add-form 36%, webform-submission-contact-block-content-85-add-form 14%, webform-submission-contact-block-content-130-add-form 3%
-- Typically preceded by In-Line Message (125); followed by View (6), Event Calendar (3)
+- Typically preceded by Text (103), Grand Hero (2), Wrapped Image (2); followed by View (6), Event Calendar (3)
+- The form's own reCAPTCHA notice renders as an `.inline-message`; it is no longer counted as an In-Line Message (see the note at the top), which is what the old "preceded by In-Line Message (125)" line was reporting.
 - Top sites: plc (5), berkeleydivinity (4), recreation (4), tdps (4), urbanstudies (4)
 - Reviewer notes: All 24 screenshots show the same fixed contact form (Your Name, Your Email, Subject, Message, Submit, plus a reCAPTCHA notice), so usages differ only in button and footer-notice colour. Inputs are narrow (about 400px) and left-aligned with a large empty area to the right, which looks unfinished in full-width sections. No usage stands out; the screenshots are cropped to the form so surrounding context could not be judged, and no exemplars are recommended.
 
@@ -190,7 +202,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 
 ### Tiles (`tiles`) - 24.0% of sites, 324 instances
 - Variants: component-width: site 100%; component-tile-style: heading 100%; component-alignment: left 60%, center 40%; component-vertical-alignment: bottom 51%, top 49%; component-grid-count: three 47%, two 32%, four 20%; component-tiles-have-images: false 100%; component-tiles-have-animation: false 85%, true 15%
-- Typically preceded by Text (229), Tiles (60), Divider (8); followed by Tiles (60), View (53), In-Line Message (37)
+- Typically preceded by Text (229), Tiles (60), Divider (8); followed by Tiles (60), View (53), In-Line Message (35)
 - Top sites: poorvucenter (50), marshbotanicalgarden (14), regulatedresearchdata (14), blueprint (12), chem (12)
 - Reviewer notes: Tiles in these samples are overwhelmingly used as large link cards or button-like navigation, which works best with short headings and a one-line caption. Colour themes carry no inherent meaning, so vary them only when the items are genuinely distinct. Some sites (Marsh Botanical Garden) show background imagery on tiles even though the portfolio stats list tiles-have-images as false, so the stats may undercount or the screenshot may reflect a different config. Avoid putting long paragraphs inside tiles; they grow uneven and hard to scan.
 
@@ -220,6 +232,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 ### Tabs (`tabs`) - 12.2% of sites, 172 instances
 - Variants: overflow: none 100%; component-theme: one 100%
 - Typically preceded by Accordion (42), Grand Hero (26), Tabs (22); followed by Text (38), Callout (28), Tabs (22)
+- Position caveat: the 0.0% close rate and the Text follower count are artifacts of the crawler's fixed selector order (Text sorts after this block whatever the page order), and Text inside the panels is counted as separate Text blocks, which pads that follower count. See the note at the top.
 - Top sites: french (21), enterprisemonitoring (20), your (16), rgvolunteers (13), poorvucenter (9)
 - Reviewer notes: Only one theme and no overflow option is in use anywhere, so differences come from content. Tabs work best for a few short parallel panels; long labels or many tabs trigger the scroll arrow and hide content. Consider an accordion for long or numerous sections, especially on mobile.
 
@@ -255,6 +268,7 @@ Variants are the rendered design-option attributes, counted over all instances.
 ### Video Banner (`video_banner`) - 4.1% of sites, 132 instances
 - Variants: component-width: max 100%; full-width-component:  100%
 - Typically preceded by Image Banner (12), Grand Hero (6), Video Banner (2); followed by Text (102), Callout (4), Quick Links (4)
+- Position caveat: the 0.0% close rate and the Text follower count are artifacts of the crawler's fixed selector order (Text sorts after this block whatever the page order). See the note at the top.
 - Top sites: whc (101), divinity (9), carbon-elti (4), cultivatingconversation (4), ezrastiles (4)
 - Reviewer notes: The block is a full-width embed, so it is huge on the page and the poster frame matters more than anything else. There is no overlay text, so editors cannot add a headline; put context in the page title or nearby text. Archive lectures and event recordings are better as a standard video block than as a banner. Add captions and avoid autoplay surprises.
 

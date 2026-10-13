@@ -104,6 +104,6 @@ D7-migrated: 180 sites; net-new: 116 sites.
 - Spotlight - Landscape: D7 63.3% vs net-new 49.1% (+14.2)
 - View: D7 75.6% vs net-new 62.1% (+13.5)
 - Button Link: D7 73.9% vs net-new 61.2% (+12.7)
-- In-Line Message: D7 52.2% vs net-new 41.4% (+10.8)
+- In-Line Message: D7 30.0% vs net-new 18.1% (+11.9), excluding the Pre-Built Form's reCAPTCHA notice (see `block-usage.md`)
 - Link Grid: D7 28.9% vs net-new 18.1% (+10.8)
 - Action Banner: D7 47.8% vs net-new 57.8% (-10.0)

@@ -5,12 +5,14 @@
 ## Page length
 
 - Blocks per page: median 2, 75th percentile 6, 90th percentile 13, max 816.
-- Long pages (12+ blocks): 2,570. Wayfinding blocks present on them: Accordion 46.0%, Divider 41.5%, Quick Links 16.0%, Custom Cards 12.3%, in_this_section 7.4%, Link Grid 5.4%, Tabs 2.8%.
+- Long pages (12+ blocks): 2,570. Wayfinding blocks present on them: Accordion 46.0%, Divider 41.5%, Quick Links 16.0%, Custom Cards 12.3%, In This Section 7.4% (a page-level menu, not a block; see below), Link Grid 5.4%, Tabs 2.8%.
+- In This Section is the page-level section menu (`div.in-this-section`, rendered in the page-meta region), captured by the crawler as a page flag rather than a block, so it has no row in the `block-usage.md` adoption table and no position stats. It is on 16 of 296 sites (5.4%) and 1,209 crawled pages, 1,201 of them built Page-type pages; 190 long pages carry it.
 
 ## How built pages open and close (common; Page content type only, 21,824 pages)
 
 - First block: Text 26.0%, Wrapped Image 15.1%, Grand Hero 13.1%, Image 6.1%, Accordion 4.9%, Action Banner 4.5%
 - Last block: Text 65.1%, View 12.6%, Wrapped Image 9.9%, In-Line Message 2.3%, Button Link 2.3%, Spotlight - Landscape 1.3%
+- Caveat: both lists, and the archetype sequences below, come from the crawler's fixed selector order, not page order (see the position note at the top of `block-usage.md`). "Text 65.1%" means Text is the last block type in that order on 65% of built pages, not that 65% of pages end on a Text block in the layout. A page-order recount is pending.
 
 ## Page archetypes (mined from block sequences)
 
@@ -121,7 +123,7 @@ Merged reviewer guidance, deduplicated and tagged against the crawl data and the
 - **[recommended, uncommon]** Change the background color or theme between sections so each reads as a chapter; avoid more than two adjacent white sections. *(Every exemplar homepage alternates bands; most sites leave blocks on the default theme (component-theme one on 84% of grand heroes).)*
 - **[recommended]** Give every section one heading, one short blurb and one button; never stack three or more identical callouts or CTA bands. *(Reviewers called out repeated callouts and stacked CTAs on four of 24 homepages.)*
 - **[recommended]** Place news and events feeds in the lower middle of the page, limited to three items with a View all button. *(Reviewers rated feed-only endings on homepages weak; ending a page on a View is the second most common closer (12.6%).)*
-- **[common; a closing action band is an option, not a rule]** Ending on a Text block is fine and is the house preference. Strong homepages often close on a colored action band (subscribe, apply, contact) instead; either works. Avoid ending on a bare form, a map, an empty calendar or a blank gap. *(Text closes 65% of built pages. Reviewers preferred action-band endings on homepages; the product owner's preference is that text endings read fine, so this is not an anti-pattern.)*
+- **[common; a closing action band is an option, not a rule]** Ending on a Text block is fine and is the house preference. Strong homepages often close on a colored action band (subscribe, apply, contact) instead; either works. Avoid ending on a bare form, a map, an empty calendar or a blank gap. *(Text closes 65% of built pages by the crawler's fixed block ordering, a known artifact; see the position note in `block-usage.md`. Reviewers preferred action-band endings on homepages; the product owner's preference is that text endings read fine, so this is not an anti-pattern.)*
 - **[recommended]** Never use stacked Dividers or empty blocks for spacing; check the rendered page logged out for blank gaps before the footer. *(Blank-gap pages were the most frequent compositional defect reviewers found.)*
 - **[recommended, soft guide]** Aim for about 15 blocks on a homepage and link out to deeper content. The reviewed exemplars run 9 to 19 blocks, so up to 19 is fine when every band has a distinct job; hospitality (26) is the exception and holds only because of its color bands. On any page past 12 blocks, add wayfinding (Accordion, Dividers with headings, Quick Links, In This Section). *(Long pages (12+ blocks) use Accordion on 46% and Divider on 41%; the strongest long pages use color bands as chapters.)*
 - **[recommended]** Keep Text blocks short and pair them with an image, card row or spotlight; avoid five or more consecutive Text blocks. *(Text is 99% adopted with 78k instances; reviewers' weakest pages were text stacks.)*
