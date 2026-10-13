@@ -241,14 +241,23 @@ function markQuotes(root, quotes) {
 }
 
 // Lines grouped into blocks: heading, paragraph, list, table, quote, code.
+// Fences follow packet.py split_md: ``` or ~~~ of three or more characters,
+// closed only by the same character at the same or greater length with
+// nothing else on the line, so the board and render agree on what is code.
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+const closesFence = (line, fence) => {
+  const m = FENCE.exec(line);
+  return !!m && m[1][0] === fence[0] && m[1].length >= fence.length && !line.slice(m[0].length).trim();
+};
 function parseBlocks(src) {
   const lines = String(src ?? '').replace(/\r/g, '').split('\n');
   const out = [];
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    if (/^\s*```/.test(line)) {
+    const fence = FENCE.exec(line);
+    if (fence) {
       const body = []; i++;
-      while (i < lines.length && !/^\s*```/.test(lines[i])) body.push(lines[i++]);
+      while (i < lines.length && !closesFence(lines[i], fence[1])) body.push(lines[i++]);
       out.push({ t: 'code', lines: body, idx: [] }); continue;
     }
     if (!line.trim()) continue;
@@ -280,11 +289,20 @@ function renderBlock(b, unitClass = () => '') {
     return `<table><thead><tr${cls(unitClass(head.k))}>${head.cells.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${
       body.map(r => `<tr${cls(unitClass(r.k))}>${r.cells.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   }
-  return `<p${cls(unitClass(0))}>${b.lines.map(l => inline(l)).join('<br>')}</p>`;
+  // Each paragraph line carries its own class, like list and quote lines. A
+  // run of lines with one class is one <p>; the class changing starts a new
+  // <p>, so a removed line and the added line that replaced it never share
+  // one <p> and one class.
+  const runs = [];
+  b.lines.forEach((l, k) => {
+    const c = unitClass(k);
+    if (runs.length && runs[runs.length - 1].c === c) runs[runs.length - 1].lines.push(l);
+    else runs.push({ c, lines: [l] });
+  });
+  return runs.map(r => `<p${cls(r.c)}>${r.lines.map(l => inline(l)).join('<br>')}</p>`).join('');
 }
-// Render first, then mark the reviewer's quotes in the result's text nodes.
-const md = (src, quotes = []) => {
-  const html = parseBlocks(src).map(b => renderBlock(b)).join('');
+// Mark the reviewer's quotes in rendered html's text nodes.
+const withQuotes = (html, quotes = []) => {
   const qs = quotes.filter(q => q && String(q).length);
   if (!qs.length) return html;
   const tpl = document.createElement('template');
@@ -292,6 +310,8 @@ const md = (src, quotes = []) => {
   markQuotes(tpl.content, qs);
   return tpl.innerHTML;
 };
+// Render first, then mark the quotes in the result.
+const md = (src, quotes = []) => withQuotes(parseBlocks(src).map(b => renderBlock(b)).join(''), quotes);
 
 // Longest common subsequence over arrays, returning [op, a, b] runs.
 function lcs(a, b, eq = (x, y) => x === y) {
@@ -338,8 +358,9 @@ const similar = (a, b) => {
 };
 
 // Diff two markdown texts line by line, then word by word inside lines that
-// were reworded rather than replaced.
-function diffMarkdown(before, after) {
+// were reworded rather than replaced. Quotes are marked in the result the
+// same way md() marks them.
+function diffMarkdown(before, after, quotes = []) {
   const A = String(before ?? '').replace(/\r/g, '').split('\n'), B = String(after ?? '').replace(/\r/g, '').split('\n');
   const runs = lcs(A, B, (x, y) => x.trim() === y.trim());
   const lines = [], kinds = [];
@@ -357,7 +378,17 @@ function diffMarkdown(before, after) {
     }
   }
   // Render block by block, tagging each source line with its add/del class.
-  return parseBlocks(lines.join('\n')).map(b => renderBlock(b, k => kinds[b.idx[k]] || '')).join('');
+  return withQuotes(parseBlocks(lines.join('\n')).map(b => renderBlock(b, k => kinds[b.idx[k]] || '')).join(''), quotes);
+}
+
+// The selected text with anything struck out left out, so a quote taken
+// across a diff holds only words that are in the proposed markdown. Runs of
+// whitespace collapse to one space, the way captured markdown is written.
+function selectedText(sel) {
+  if (!sel.rangeCount) return '';
+  const frag = sel.getRangeAt(0).cloneContents();
+  frag.querySelectorAll('del, .u-del').forEach(e => e.remove());
+  return frag.textContent.replace(/\s+/g, ' ').trim();
 }
 
 // ---------- state ----------
@@ -607,7 +638,7 @@ function renderProposal(it, cur, ops, right) {
       return;
     }
     flushKeeps();
-    const html = op.op === 'edit' ? diffMarkdown(b?.markdown, op.markdown) : md(op.op === 'remove' ? b?.markdown : op.markdown, quotesFor(i));
+    const html = op.op === 'edit' ? diffMarkdown(b?.markdown, op.markdown, quotesFor(i)) : md(op.op === 'remove' ? b?.markdown : op.markdown, quotesFor(i));
     const settings = Object.entries(op.settings || {});
     right.append(h('article', { class: `op ${op.op}`, 'data-i': i, onmouseenter: () => link(i, 'hover'), onclick: e => { if (!e.target.closest('a') && !getSelection().toString()) link(i, 'right'); } },
       h('div', { class: 'op-head' },
@@ -626,7 +657,7 @@ function renderProposal(it, cur, ops, right) {
   const clear = () => { btn?.remove(); btn = null; };
   right.addEventListener('mouseup', () => setTimeout(() => {
     clear();
-    const sel = getSelection(), text = sel.toString().trim();
+    const sel = getSelection(), text = selectedText(sel);
     const card = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest('article.op');
     if (!text || !card || !right.contains(card)) return;
     const r = sel.getRangeAt(0).getBoundingClientRect(), pr = right.getBoundingClientRect();
