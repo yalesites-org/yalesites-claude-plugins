@@ -22,6 +22,7 @@ class PrepStatusTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.root = self.tmp.name
+        self.claim = None  # the token the last successful start printed
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -47,13 +48,29 @@ class PrepStatusTest(unittest.TestCase):
             args += ["--pr", pr]
         args += ["--packet", packet, "--scope", scope] + (["--force"] if force else [])
         code, out = self.run_cmd(*args)
-        return code, json.loads(out)
+        out = json.loads(out)
+        if out.get("claimed"):
+            self.claim = out["claim"]
+        return code, out
 
-    def ready(self, *prs, packet="ysp-1608", scope=SCOPE, **extra):
+    def ready(self, *prs, packet="ysp-1608", scope=SCOPE, claim="last", **extra):
         args = ["ready"]
         for pr in prs:
             args += ["--pr", pr]
         args += ["--packet", packet, "--scope", scope, "--questions", str(extra.get("questions", 0))]
+        claim = self.claim if claim == "last" else claim
+        if claim:
+            args += ["--claim", claim]
+        return self.run_cmd(*args)
+
+    def fail(self, *prs, reason="multidev missing", claim="last"):
+        args = ["fail"]
+        for pr in prs:
+            args += ["--pr", pr]
+        args += ["--reason", reason]
+        claim = self.claim if claim == "last" else claim
+        if claim:
+            args += ["--claim", claim]
         return self.run_cmd(*args)
 
     def age(self, key, delta):
@@ -238,6 +255,83 @@ class PrepStatusTest(unittest.TestCase):
         code, _ = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
         self.assertEqual(code, 0)
 
+    # Holding the claim
+
+    def test_start_prints_a_claim_token_and_stores_it_on_every_entry(self):
+        code, out = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.assertEqual(code, 0)
+        self.assertTrue(out["claim"])
+        prs = self.status()["prs"]
+        self.assertEqual(prs["yalesites-project#1608"]["claim"], out["claim"])
+        self.assertEqual(prs["component-library-twig#774"]["claim"], out["claim"])
+        # A fresh claim gets a fresh token.
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        self.age("component-library-twig#774", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        _, again = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.assertNotEqual(again["claim"], out["claim"])
+
+    def test_ready_and_fail_keep_the_token_on_the_entry(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        code, _ = self.ready(f"yalesites-project#1608={SHA}")
+        self.assertEqual(code, 0)
+        entry = self.status()["prs"]["yalesites-project#1608"]
+        self.assertEqual(entry["state"], "ready")
+        self.assertEqual(entry["claim"], self.claim)
+
+    def test_ready_refuses_when_another_run_took_the_claim(self):
+        # Run A outlives the TTL, run B claims the unit and is driving it.
+        _, a = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        self.age("component-library-twig#774", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        _, b = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        before = self.status()
+        # A finishes and reports ready with its old token.
+        code, out = self.ready(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                               claim=a["claim"])
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        out = json.loads(out)
+        self.assertFalse(out["recorded"])
+        self.assertIn("claimed by another run", out["reason"])
+        self.assertEqual(self.status(), before)
+        self.assertEqual(self.get("yalesites-project#1608")[1]["state"], "running")
+        # No token at all is not a claim either.
+        self.assertEqual(self.ready(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                                    claim=None)[0], prep_status.EXIT_REFUSED)
+        # B's own token still works.
+        code, _ = self.ready(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                             claim=b["claim"])
+        self.assertEqual(code, 0)
+        self.assertEqual(self.status()["prs"]["component-library-twig#774"]["state"], "ready")
+
+    def test_ready_refuses_after_the_reclaiming_run_already_finished(self):
+        _, a = self.start(f"yalesites-project#1608={SHA}")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        self.start(f"yalesites-project#1608={SHA}")
+        self.ready(f"yalesites-project#1608={SHA}", questions=3)
+        code, _ = self.ready(f"yalesites-project#1608={SHA}", claim=a["claim"], questions=9)
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        entry = self.status()["prs"]["yalesites-project#1608"]
+        self.assertEqual(entry["state"], "ready")
+        self.assertEqual(entry["questions"], 3)
+
+    def test_fail_refuses_when_another_run_took_the_claim(self):
+        _, a = self.start(f"yalesites-project#1608={SHA}")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        self.start(f"yalesites-project#1608={SHA}")
+        code, out = self.fail(f"yalesites-project#1608={SHA}", reason="Chrome did not launch", claim=a["claim"])
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        self.assertFalse(json.loads(out)["recorded"])
+        self.assertEqual(self.get("yalesites-project#1608")[1]["state"], "running")
+        code, _ = self.fail(f"yalesites-project#1608={SHA}", reason="Chrome did not launch")
+        self.assertEqual(code, 0)
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["state"], "failed")
+
+    def test_an_entry_without_a_claim_is_open_to_anyone(self):
+        self.run_cmd("fail", "--pr", f"yalesites-project#1605={SHA}", "--reason", "x")
+        code, _ = self.ready(f"yalesites-project#1605={SHA}", packet="ysp-1605", claim=None)
+        self.assertEqual(code, 0)
+        self.assertNotIn("claim", self.status()["prs"]["yalesites-project#1605"])
+
     # Heartbeat
 
     def test_heartbeat_keeps_a_slow_run_inside_the_ttl(self):
@@ -258,6 +352,32 @@ class PrepStatusTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertFalse(json.loads(out)["heartbeat"])
         self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["state"], "ready")
+
+    def test_heartbeat_does_not_revive_a_claim_past_the_ttl(self):
+        self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=5))
+        self.age("component-library-twig#774", prep_status.RUNNING_TTL + timedelta(minutes=5))
+        before = self.status()
+        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608", "--claim", self.claim)
+        self.assertEqual(code, 1)
+        out = json.loads(out)
+        self.assertFalse(out["heartbeat"])
+        self.assertIn("expired", out["reason"])
+        self.assertEqual(self.status(), before)
+        self.assertEqual(self.get("yalesites-project#1608")[1]["state"], "failed")
+        # The unit is free for the next run, which the zombie's heartbeat must not take back.
+        self.assertEqual(self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")[0], 0)
+
+    def test_heartbeat_under_another_runs_claim_fails(self):
+        _, a = self.start(f"yalesites-project#1608={SHA}")
+        self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+        _, b = self.start(f"yalesites-project#1608={SHA}")
+        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608", "--claim", a["claim"])
+        self.assertEqual(code, 1)
+        self.assertIn("another run", json.loads(out)["reason"])
+        code, _ = self.run_cmd("heartbeat", "--packet", "ysp-1608", "--claim", b["claim"])
+        self.assertEqual(code, 0)
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["claim"], b["claim"])
 
 
 if __name__ == "__main__":

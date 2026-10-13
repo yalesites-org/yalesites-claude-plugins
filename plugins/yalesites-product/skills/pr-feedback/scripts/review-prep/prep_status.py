@@ -8,11 +8,12 @@ session (SKILL.md Step 1) and anything outside Claude, such as a dashboard.
   python3 prep_status.py [--root DIR] run-start
   python3 prep_status.py [--root DIR] start     --pr REPO#N=SHA [--pr ...] --packet ID
                          --scope DIMS [--force]
-  python3 prep_status.py [--root DIR] heartbeat --packet ID
+  python3 prep_status.py [--root DIR] heartbeat --packet ID [--claim TOKEN]
   python3 prep_status.py [--root DIR] ready     --pr REPO#N=SHA [--pr ...] --packet ID
-                         --scope DIMS --questions N [--driven] [--results pass=8,fail=1]
-                         [--cleanup done|failed|none] [--note TEXT]
-  python3 prep_status.py [--root DIR] fail      --pr REPO#N=SHA [--pr ...] --reason TEXT
+                         --scope DIMS --claim TOKEN --questions N [--driven]
+                         [--results pass=8,fail=1] [--cleanup done|failed|none] [--note TEXT]
+  python3 prep_status.py [--root DIR] fail      --pr REPO#N=SHA [--pr ...] --claim TOKEN
+                         --reason TEXT
   python3 prep_status.py [--root DIR] get       REPO#N [--head SHA] [--scope DIMS]
   python3 prep_status.py [--root DIR] run-end
 
@@ -25,7 +26,7 @@ like this, keyed by `<repo>#<number>`:
   {"lastRun": "...", "runStartedAt": "...", "prs": {"yalesites-project#1608": {
      "state": "ready", "headSha": "...", "scope": ["functional", "product"],
      "unit": ["yalesites-project#1608", "component-library-twig#774"],
-     "packetId": "ysp-1608", "packetDir": ".../packets/ysp-1608",
+     "packetId": "ysp-1608", "packetDir": ".../packets/ysp-1608", "claim": "3f9c...",
      "updatedAt": "...", "questions": 3, "driven": true,
      "results": {"pass": 8, "fail": 1}, "cleanup": "done"}}}
 
@@ -40,14 +41,22 @@ with `previousState` saying what it was.
 and a JSON line saying why, when any PR in the unit is `running` inside the
 TTL, when every PR already reads `ready` for these heads and this scope, or
 when every PR already `failed` on these heads. `--force` overrides the last two,
-never the first. Writes are atomic (temp file, then rename) under a lock, so a
-reader never sees half a file.
+never the first. A claim that goes through prints a random `claim` token and
+stores it on every entry in the unit. `ready` and `fail` need that token back:
+when a stored entry carries a different one, another run has claimed the unit
+since (the first run outlived the TTL), and the write is refused with exit 2 so
+a finished zombie cannot overwrite the live run's entry. `heartbeat` only
+re-stamps entries still inside the TTL, and only under the same token when one
+is given; it exits 1 otherwise, which tells the run it has lost the claim.
+Writes are atomic (temp file, then rename) under a lock, so a reader never
+sees half a file.
 """
 import argparse
 import contextlib
 import fcntl
 import json
 import os
+import secrets
 import sys
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -194,6 +203,21 @@ def claim(data, prs, scope, force):
     return None
 
 
+def lost_claim(data, keys, token):
+    """The PR whose stored entry belongs to another claim, or None.
+
+    Only `start` hands out tokens, so a stored token that differs from the one
+    given means another run claimed the unit after this one did, whether that
+    run is still `running` or has already written `ready` or `failed`. An entry
+    without a token (none, or written before claims existed) is open to anyone.
+    """
+    for key in keys:
+        stored = data["prs"].get(key, {}).get("claim")
+        if stored and stored != token:
+            return key
+    return None
+
+
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--root", default=DEFAULT_ROOT)
@@ -210,6 +234,8 @@ def main(argv=None):
             s.add_argument("--scope", required=True)
         if name == "start":
             s.add_argument("--force", action="store_true")
+        else:
+            s.add_argument("--claim", default=None, help="the token `start` printed")
         if name == "ready":
             s.add_argument("--questions", type=int, required=True)
             s.add_argument("--driven", action="store_true")
@@ -221,6 +247,7 @@ def main(argv=None):
 
     h = sub.add_parser("heartbeat")
     h.add_argument("--packet", required=True)
+    h.add_argument("--claim", default=None, help="the token `start` printed")
 
     g = sub.add_parser("get")
     g.add_argument("key")
@@ -249,11 +276,23 @@ def main(argv=None):
         elif args.cmd == "heartbeat":
             hits = [e for e in data["prs"].values()
                     if e.get("state") == "running" and e.get("packetId") == args.packet]
-            for entry in hits:
-                entry["updatedAt"] = stamp
-            if not hits:
-                print(json.dumps({"heartbeat": False, "reason": f"no running entry for packet {args.packet}"}))
+            # An entry past the TTL already reads as interrupted, and another run may have
+            # taken the multidev on that reading. Stamping it back to life would put two
+            # runs on the same multidev, so a stale run is told it lost the claim instead.
+            live = [e for e in hits if effective(e)["state"] == "running"
+                    and (not args.claim or e.get("claim") == args.claim)]
+            if not live:
+                if not hits:
+                    reason = f"no running entry for packet {args.packet}"
+                elif args.claim and any(e.get("claim") != args.claim for e in hits):
+                    reason = f"packet {args.packet} was claimed by another run; stop driving"
+                else:
+                    reason = f"the claim on packet {args.packet} expired at " \
+                             f"{hits[0].get('updatedAt')} plus {RUNNING_TTL}; stop driving"
+                print(json.dumps({"heartbeat": False, "reason": reason}))
                 return 1
+            for entry in live:
+                entry["updatedAt"] = stamp
             print(json.dumps({"heartbeat": True, "packet": args.packet, "updatedAt": stamp}))
         else:
             prs = parse_prs(args.pr)
@@ -264,9 +303,22 @@ def main(argv=None):
                 if refused:
                     print(json.dumps({"claimed": False, "packet": args.packet, "reason": refused}))
                     return EXIT_REFUSED
+                token = secrets.token_hex(8)
+            else:
+                token = args.claim
+                taken = lost_claim(data, unit, token)
+                if taken:
+                    holder = data["prs"][taken]
+                    print(json.dumps({"recorded": False, "prs": unit, "reason":
+                                      f"{taken} was claimed by another run (packet {holder.get('packetId')}, "
+                                      f"now {holder.get('state')} since {holder.get('updatedAt')}); "
+                                      f"this run's claim is lost, so its result is not recorded"}))
+                    return EXIT_REFUSED
             for key, sha in prs:
                 entry = {"state": {"start": "running", "ready": "ready", "fail": "failed"}[args.cmd],
                          "headSha": sha, "unit": unit, "updatedAt": stamp}
+                if token:
+                    entry["claim"] = token
                 if args.cmd in ("start", "ready"):
                     entry["packetId"] = args.packet
                     entry["packetDir"] = os.path.join(root, "packets", args.packet)
@@ -280,7 +332,7 @@ def main(argv=None):
                     entry["reason"] = args.reason
                 data["prs"][key] = entry
             if args.cmd == "start":
-                print(json.dumps({"claimed": True, "packet": args.packet, "prs": unit}))
+                print(json.dumps({"claimed": True, "packet": args.packet, "prs": unit, "claim": token}))
         save(root, data)
     return 0
 
