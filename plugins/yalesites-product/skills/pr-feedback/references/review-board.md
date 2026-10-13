@@ -51,15 +51,25 @@ ln -s ~/.claude/yalesites/pr-review-prep/packets/<id> <scratchpad>/review-board/
 
 Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
 built here. The server follows the link, so the board reads the prepped files, and `answers.json`
-still lands inside the prepped packet, where Step R4 expects it. Delete a leftover `answers.json`
-there first, as below. The per-session folder is what keeps Step R2's health check honest: a
+still lands inside the prepped packet, where Step R4 expects it. Archive a leftover `answers.json`
+there first, as below, never delete it: in a prepped packet it is an earlier reviewer's record.
+The per-session folder is what keeps Step R2's health check honest: a
 server started on the shared folder would answer every session's check with the same `packets`
 path. Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
 
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
 batch. Copy every screenshot and clip the packet names into the folder. Use the `.webm` for clips:
-the board plays it in the browser. If an `answers.json` is already
-there from an earlier pass, delete it first, or the wait in Step R3 ends at once on stale answers.
+the board plays it in the browser. If an `answers.json` is already there from an earlier pass,
+rename it to `answers-<timestamp>.json` first, with the time now in ISO basic form, or the wait
+in Step R3 ends at once on stale answers:
+
+```bash
+mv <packet-dir>/answers.json "<packet-dir>/answers-$(date -u +%Y%m%dT%H%M%SZ).json"
+```
+
+That gives `answers-20261013T161200Z.json`. The archived file is the record of that pass and
+stays with the packet (Step R4, and `references/prep-mode.md` Step P4 for a prepped one). Never
+delete it.
 
 ### packet.json
 
@@ -273,7 +283,9 @@ When the review is posted, or abandoned:
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
 - Leave the packet folder. Like the drive-it screenshots and clips, it is the evidence for the
-  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it:
-  when the developer pushes and prep rebuilds the packet, the old folder is archived as
-  `<id>-<oldsha>` next to the new one (`references/prep-mode.md` Step P4), not deleted. The
-  symlink in this session's packets folder holds nothing and goes with the scratchpad.
+  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it,
+  along with any `answers-<timestamp>.json` an earlier pass left behind (Step R1): the next
+  review on the same packet archives, never deletes. When the developer pushes and prep rebuilds
+  the packet, the old folder is archived as `<id>-<oldsha>-<builtAt>` next to the new one
+  (`references/prep-mode.md` Step P4), not deleted. The symlink in this session's packets folder
+  holds nothing and goes with the scratchpad.

@@ -165,13 +165,15 @@ python3 <skill-dir>/scripts/review-prep/prep_status.py get REPO#NUMBER --head <h
 ```
 
 **Check the whole unit, not only this PR.** The entry's `unit` field lists every PR the packet
-was built for: prep mode records the siblings the brief named when it claimed the unit. For each
-sibling in `unit`, get its `headRefOid` with the same `gh pr view` as step 1 and run `get` on it
-too, with the same `--scope`. The unit is prepped only when **every** PR in it reads `ready`.
-When any sibling reads anything else, take that row below for the whole unit: the packet's plan,
-driven results, and questions describe the unit at the heads it was prepped at, and a sibling
-that moved makes them describe old code. If the brief, read on the `ready` path, names a sibling
-that `unit` does not list, the unit grew after the prep, so run the review the normal way.
+was built for: prep mode groups siblings the way `references/batch-mode.md` Step B1 does, every
+open PR whose title carries the same leading ticket number, and records that list when it claims
+the unit. For each sibling in `unit`, get its `headRefOid` with the same `gh pr view` as step 1
+and run `get` on it too, with the same `--scope`. The unit is prepped only when **every** PR in
+it reads `ready`. When any sibling reads anything else, take that row below for the whole unit:
+the packet's plan, driven results, and questions describe the unit at the heads it was prepped
+at, and a sibling that moved makes them describe old code. If the brief, read on the `ready`
+path, names a sibling that `unit` does not list, the unit grew after the prep, or a sibling's
+title is missing its ticket number, so run the review the normal way.
 
 | `state` | What to do |
 |---|---|
