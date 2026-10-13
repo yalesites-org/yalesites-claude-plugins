@@ -131,6 +131,19 @@ Record everything as it is created, in `.created` in the run folder, one line pe
 setting, `config <name> <key> <original value>` written **before** changing it, from
 `terminus drush ... -- config:get <name> <key>`. Step D5 works from this file and nothing else.
 
+**Title test content so anyone can tell it apart.** Kept content shows up in views, calendars,
+search, and listing blocks on other pages, where the next tester or a visreg pass will see it.
+Start every test page, event, post, profile, and reusable block title with
+`QA pr-<N> <YYYY-MM-DD>:` (for example `QA pr-1435 2026-10-13: Event with no end date`).
+
+**Reuse before creating, on a second run.** Step D5 keeps content and `qa-<role>` users on a
+`pr-<N>` multidev, so a later run on the same PR finds them already there. Before creating a
+user, check for it (`terminus drush ... -- user:information qa-<role>`) and reuse it if it
+exists, since `user:create` fails on a duplicate name. Before creating content, read the
+`.created` files of earlier run folders for the same PR (`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-*/`)
+and reuse any `kept` item that still exists and fits the step. Copy a reused item's line into
+this run's `.created` with `reused` on the end, so D5 and the report know it was not made here.
+
 ## Step D2: Log in, one session per role
 
 ```bash
@@ -367,9 +380,13 @@ reviewer) shows up in the same log, and its access-denied entries are not the ru
 
 ## Step D5: Clean up
 
-**On a `pr-<N>` multidev, keep the test content and revert only the settings.** Pantheon
-deletes a PR multidev when the PR merges, so leftover test pages cost nothing. Deleting them
-costs a lot: the review board links straight to those pages, and a finding the reviewer cannot
+**On a `pr-<N>` multidev, keep the test content and revert only the settings.** The
+multidev goes away with the PR: the yalesites-project build workflow runs `push-to-pantheon`
+with `delete_old_environments` on, which deletes the `pr-<N>` multidev of every closed PR,
+merged or not, after the next successful PR deploy. So a closed PR's multidev lasts until the
+next deploy, not a moment longer, and an open PR keeps its multidev, and anything kept on it,
+for as long as the PR stays open. Leftover test pages cost nothing there. Deleting them costs
+a lot: the review board links straight to those pages, and a finding the reviewer cannot
 reproduce by hand is one they cannot confirm. This is not hypothetical. On the 1435 Vite
 parity run, cleanup deleted the four calendar events that the top finding needed, and the
 reviewer opened the board link to an empty calendar.
@@ -382,10 +399,24 @@ reviewer opened the board link to an empty calendar.
 | Browser sessions | Close them | Close them |
 
 Revert settings even on `pr-<N>`: a changed setting alters every page for the next tester,
-who has no way to know it was changed. Kept content does not do that.
+who has no way to know it was changed. Kept content can show up for others too (a kept event
+sits in every calendar, a kept post in every listing and search), which is why D1 titles it
+`QA pr-<N> <date>:`, so whoever meets it knows what it is and that it is safe to ignore.
+
+When a finding depends on a changed setting, the kept page stops reproducing it the moment the
+setting is reverted. Say so in the screenshot caption and in the report, with the setting and
+the value needed to see it again (for example "needs `ys_core.settings theme` set to
+`theme_four`"), so the reviewer who opens the board link knows what to change first.
+
+Kept nodes still get their Layout Builder tempstore cleared. A step that cancelled or discarded
+a layout change can leave an unsaved draft behind, and the reviewer who opens the kept page's
+layout then finds it locked by the run's user, or sees draft content that differs from the
+screenshot. Run the `key_value_expire` delete below for every kept `node <nid>`, unless the
+unsaved draft is itself the finding, in which case say so in the report.
 
 For kept items, mark them in `.created` (`node 84 kept`) and list them in the report with
-their URLs, so the reviewer can find them.
+their URLs, so the reviewer can find them. The `qa-<role>` users have no password and are
+reachable only by `uli`; if a PR goes quiet for weeks, removing them is still the right call.
 
 "Anywhere else" covers `dev`, `test`, `live`, and any multidev that is not a PR's own
 (a shared or long-lived one). If you are unsure which kind of environment it is, ask before
