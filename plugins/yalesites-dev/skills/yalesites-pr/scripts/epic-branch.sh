@@ -6,6 +6,9 @@
 # carrying the YaleSites-Internal label "epic".
 # Usage: epic-branch.sh <issue-number> <repo> [--ensure]
 #   --ensure creates the epic branch (empty commit) and its draft Epic PR if missing.
+# The branch name is the first hit of: a "Base branch: `name`" line in the epic body,
+# an open Epic-labelled PR titled "<epic>: ..." (any repo), an existing <epic>-* branch
+# (any repo), else a generated <epic>-<slug>.
 # stdout is only the branch name. Diagnostics go to stderr. Works on bash 3.2.
 set -euo pipefail
 
@@ -19,7 +22,7 @@ default=develop
 [[ " ${repos[*]} " == *" $repo "* ]] || { echo "unknown repo: $repo" >&2; exit 2; }
 
 # shellcheck disable=SC2016  # $n is a GraphQL variable
-q='fragment F on Issue{number title labels(first:20){nodes{name}}}
+q='fragment F on Issue{number title body labels(first:20){nodes{name}}}
 query($n:Int!){repository(owner:"yalesites-org",name:"YaleSites-Internal"){issue(number:$n){...F parent{...F parent{...F parent{...F}}}}}}'
 info=$(gh api graphql -f query="$q" -F n="$issue" --jq '.data.repository.issue') \
   || { echo "cannot read issue $issue" >&2; exit 1; }
@@ -31,6 +34,27 @@ IFS=$'\t' read -r num title <<<"$epic"
 # The epic issue itself targets the default branch.
 if [[ $num == "$issue" ]]; then echo "$default"; exit 0; fi
 title=$(sed -E 's/^[[:space:]]*[Ee][Pp][Ii][Cc][[:space:]]*:[[:space:]]*//' <<<"$title")
+
+# Declared base branch in the epic body: > **Base branch:** `name`.
+# shellcheck disable=SC2016  # backticks are literal in the sed pattern
+declared=$(jq -r '[., .parent, .parent.parent, .parent.parent.parent]
+  | map(select(. != null and any(.labels.nodes[]; .name=="epic"))) | first | .body // ""' <<<"$info" \
+  | sed -nE 's/.*Base branch:[^`]*`([^`]+)`.*/\1/p' | head -1)
+if [[ -n $declared ]] && { [[ $declared == -* || $declared =~ ^(develop|main|master)$ ]] \
+  || ! git check-ref-format --branch "$declared" >/dev/null 2>&1; }; then
+  echo "epic $num declares an invalid base branch: $declared" >&2; exit 1
+fi
+
+# Prints the head branch of the open Epic PR titled "<epic>:" in repo $1 (empty if none);
+# fails on API error or 2+ matches.
+find_pr_branch() {
+  local m
+  m=$(gh pr list -R "$org/$1" --label Epic --state open --limit 100 --json title,headRefName \
+    --jq ".[] | select(.title | startswith(\"$num:\")) | .headRefName") \
+    || { echo "API error listing Epic PRs in $1" >&2; return 1; }
+  if [[ $m == *$'\n'* ]]; then echo "several Epic PRs for $num in $1: ${m//$'\n'/ }" >&2; return 1; fi
+  printf '%s' "$m"
+}
 
 # Prints the one branch named <epic>-* in repo $1 (empty if none); fails on API error or 2+ matches.
 find_branch() {
@@ -47,11 +71,22 @@ find_branch() {
 order=("$repo")
 [[ $repo != yalesites-project ]] && order+=(yalesites-project)
 for r in "${repos[@]}"; do [[ $r != "$repo" && $r != yalesites-project ]] && order+=("$r"); done
-branch="" found=""
-for r in "${order[@]}"; do
-  branch=$(find_branch "$r") || exit 1
-  if [[ -n $branch ]]; then found=$r; break; fi
-done
+branch=$declared
+if [[ -z $branch ]]; then
+  for r in "${order[@]}"; do
+    b=$(find_pr_branch "$r") || exit 1
+    if [[ -n $b && -n $branch && $b != "$branch" ]]; then
+      echo "Epic PRs for $num disagree on branch: $branch vs $b" >&2; exit 1
+    fi
+    [[ -n $b ]] && branch=$b
+  done
+fi
+if [[ -z $branch ]]; then
+  for r in "${order[@]}"; do
+    branch=$(find_branch "$r") || exit 1
+    [[ -n $branch ]] && break
+  done
+fi
 if [[ -z $branch ]]; then
   slug=$(printf '%s' "$title" | tr '[:upper:]' '[:lower:]' | tr -cs 'a-z0-9' '-' | sed -E 's/^-+|-+$//g')
   slug=$(printf '%s' "$slug" | cut -c1-"$((40 - ${#num} - 1))" | sed -E 's/-+$//')
@@ -60,7 +95,9 @@ fi
 
 if [[ $ensure == --ensure ]]; then
   api=repos/$org/$repo
-  if [[ $found != "$repo" ]]; then
+  refs=$(gh api "$api/git/matching-refs/heads/$branch" --jq '.[].ref') \
+    || { echo "API error checking $branch in $repo" >&2; exit 1; }
+  if ! grep -qxF "refs/heads/$branch" <<<"$refs"; then
     echo "creating $branch in $repo" >&2
     read -r head tree < <(gh api "$api/commits/$default" --jq '.sha+" "+.commit.tree.sha')
     new=$(gh api "$api/git/commits" -f message="chore($num): start epic branch
