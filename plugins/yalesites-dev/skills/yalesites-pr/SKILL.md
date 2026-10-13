@@ -12,7 +12,9 @@ allowed-tools:
   - Bash(git -C * diff *)
   - Bash(git -C * fetch *)
   - Bash(git -C * grep *)
+  - Bash(git -C * worktree *)
   - Bash(grep *)
+  - Bash(sed *)
   - Bash(git -C * checkout *)
   - Bash(git -C * add *)
   - Bash(git -C * rm *)
@@ -68,37 +70,40 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
 4. **ADR check** (always runs, with or without an issue, in every repo step 3 found)
 
-   ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. The convention, including how to recognize one, lives in the `yalesites` skill's `references/adr-conventions.md` (if that plugin is installed; the rule itself is stated here). In each repo that has the branch, list the Markdown files the branch **adds** against the PR's base for that repo (`{base}` is `develop` for yalesites-project, atomic, and component-library-twig, `main` for tokens, or the epic branch when step 6 targets one), and match them by path segment or by H1 heading. Use `{branch}`, never `HEAD`: a companion checkout may have something else checked out.
+   ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. What counts as an ADR path, an ADR heading, and a strong match is defined once, in the `yalesites` skill's `references/adr-conventions.md`; the commands below implement that definition and nothing else. `{base}` is the PR's base for that repo (`develop` for yalesites-project, atomic, and component-library-twig, `main` for tokens, or the epic branch when step 6 targets one). Use `{branch}`, never `HEAD`: a companion checkout may have something else checked out.
 
    ```bash
    git -C {repo} fetch -q origin {base}
-   git -C {repo} diff --name-only --diff-filter=A origin/{base}...{branch} -- '*.md' | grep -iE '(^|/)(adr|decisions?)/|(^|/)adr([-_][^/]*)?\.md$'
-   git -C {repo} grep -l -iE '^# .*(\bADR\b|decision record)' {branch} -- '*.md'
+   git -C {repo} diff --name-only --no-renames --diff-filter=A origin/{base}...{branch} -- '*.md'
+   git -C {repo} diff --name-only --no-renames --diff-filter=A origin/{base}...{branch} -- '*.md' | grep -iE '(^|/)(adr|decisions)/|(^|/)adr-[^/]*\.md$'
+   git -C {repo} grep -l -iE '^# (.*[^A-Za-z])?ADR([^A-Za-z]|$)|^# .*decision record' {branch} -- '*.md' | sed 's|^{branch}:||'
    ```
 
-   A path match is any line from the second command. A heading match is a file that appears in both the added list (the second command without the `grep`) and the third command's output, so a `## Decision record` section in a README does not count. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+   The second command is the added list, the third the path matches, the fourth the heading matches (with the `{branch}:` prefix `git grep` prints stripped off, so the paths compare as written). `--no-renames` makes a file moved into an ADR path count as added. A file in the added list that is in both the path and heading lists is a **strong match**; in only one, a **weak match**. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
 
    - **No match:** continue.
-   - **Match, with a user present:** stop, show the file and repo, and offer to move it (below) and open the ADR PR in YaleSites-Internal instead. More than one match: show them all and ask which to move; each gets its own name. Only continue with the file in the product repo if the user explicitly says to.
-   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): move only on a strong signal, meaning exactly one added `.md` under an `adr/` or `decisions/` directory or with a basename starting `adr-`. A heading-only match, or more than one strong match, is left in place and flagged in the PR body for the reviewer. Say in every PR body this run opens what was moved or flagged.
+   - **Match, with a user present:** stop, show every matching file and repo, and offer to move each (below) and open the ADR PR in YaleSites-Internal instead. Only continue with a file in the product repo if the user explicitly says to.
+   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): move only when there is exactly one strong match. A weak match, or more than one strong match, is left in place, named in the PR body, and logged for a person to decide. Say in every PR body this run opens what was moved or flagged.
 
-   The move needs a local YaleSites-Internal checkout. There usually is none, so clone one into `{scratch}`, the session's scratchpad folder named in the environment block (never the repo). Check the branch out in the product repo first, so `cp` and `git rm` read the right tree:
+   The move uses a YaleSites-Internal checkout in `{scratch}`, the session's scratchpad folder named in the environment block (never the repo), cloned once per session and reused on a rerun or a second file, and one ADR branch per issue. The product repo is never switched: a temporary worktree on `{branch}` keeps the dev's checkout and any uncommitted work untouched.
 
    ```bash
-   gh repo clone yalesites-org/YaleSites-Internal {scratch}/YaleSites-Internal
-   git -C {scratch}/YaleSites-Internal checkout -b {issue}-{slug} main
+   gh repo clone yalesites-org/YaleSites-Internal {scratch}/YaleSites-Internal   # skip if it exists; then git -C {scratch}/YaleSites-Internal fetch -q origin
+   git -C {scratch}/YaleSites-Internal checkout -b {issue}-{slug} main             # or checkout {issue}-{slug} when the branch already exists
    mkdir -p {scratch}/YaleSites-Internal/docs/adr
-   git -C {repo} checkout {branch}
-   cp {repo}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{slug}.md
+   git -C {repo} worktree add {scratch}/adr-move/{repo-name} {branch}
+   cp {scratch}/adr-move/{repo-name}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{slug}.md
    git -C {scratch}/YaleSites-Internal add docs/adr
    git -C {scratch}/YaleSites-Internal commit -m "docs(adr): {issue} {short title}"
-   git -C {repo} rm {path}
-   git -C {repo} commit -m "chore({issue}): move ADR to YaleSites-Internal"
+   git -C {scratch}/adr-move/{repo-name} rm {path}
+   git -C {scratch}/adr-move/{repo-name} commit -m "chore({issue}): move ADR to YaleSites-Internal"
+   git -C {scratch}/adr-move/{repo-name} push origin {branch}
+   git -C {repo} worktree remove {scratch}/adr-move/{repo-name}
    ```
 
-   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`) and removed from the product branch, so the product PR no longer ships it. With no issue number, use the branch slug and say so. If the product branch held nothing but the ADR: skip its PR, delete the remote branch if step 5 already pushed it (`git -C {repo} push origin --delete {branch}`), and leave that repo out of the step 7 cross-links. Step 5 pushes the remaining branches; step 6 opens the ADR PR against `main`.
+   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`); when more than one file moves, `{slug}` is each file's own basename. With no issue number, use the branch slug and say so. The push in that block is not optional: the branch is usually on origin already, so "push if not already pushed" in step 5 would skip it and the product PR would still ship the ADR. If the product branch held nothing but the ADR: skip its PR, delete the branch from origin if it is already there (`git -C {repo} push origin --delete {branch}`), and leave that repo out of the step 7 cross-links. Step 5 pushes the ADR branch; step 6 opens the ADR PR against `main`.
 
-5. **Push the branch** in each affected repo if not already pushed, and the ADR branch when step 4 made one
+5. **Push the branch** in each affected repo if not already pushed (a repo step 4 committed to was pushed there), and the ADR branch when step 4 made one
    ```bash
    git push -u origin {branch}
    git -C {repo-path} push -u origin {branch}

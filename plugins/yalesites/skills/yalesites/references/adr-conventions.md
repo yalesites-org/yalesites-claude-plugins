@@ -14,14 +14,14 @@ If the same issue also needs code changes, those still go in the product repos a
 
 ## Recognizing one in a diff
 
-Treat an **added** Markdown file as an ADR when either holds:
+Two signals, defined here and nowhere else. `yalesites-pr` implements them with commands; it does not redefine them.
 
-- a path segment is `adr` or `decisions`, or the file name starts with `adr-` (`docs/adr-foo.md`, `docs/adr/0002-x.md`, `docs/decisions/0002-search.md`, `ADR-001.md`). Segment matches only: `loadRoutes.js` or a `decision-tree` component do not count
-- its H1 heading contains `ADR` or `decision record` (`docs/architecture/0001-x.md` with `# ADR 1: ...` at the top). A `## Decision record` section inside a README is not an ADR
+- **ADR path:** a path segment that is exactly `adr` or `decisions`, or a file name starting with `adr-` (case-insensitive). Examples: `docs/adr/0002-x.md`, `docs/decisions/0002-search.md`, `docs/adr-foo.md`, `ADR-001.md`. Not `loadRoutes.js`, `decision-tree/x.md`, or `docs/decision/x.md`. As a regex over the path: `(^|/)(adr|decisions)/|(^|/)adr-[^/]*\.md$`.
+- **ADR heading:** the file's H1 contains the word `ADR` or the phrase `decision record` (`# ADR 1: ...`, `# Our decision record for ...`). A `## Decision record` section inside a README is not an H1, so it does not count.
 
-The first kind is a strong signal an unattended run may act on; the second only gets flagged for a person.
+A **strong match** is an added Markdown file with both. A **weak match** has one. Only added files count (`git diff --no-renames --diff-filter=A`, so a file moved into an ADR path counts as added). An edit to an ADR that already exists in a product repo is not blocked; note it and leave the move to a follow-up.
 
-Only added files count. An edit to an ADR that already exists in a product repo is not blocked; note it and leave the move to a follow-up.
+An unattended run may move exactly one strong match on its own. Anything else (a weak match, or more than one strong match) is left in place, named in the PR body, and logged for a person.
 
 ## The PR
 

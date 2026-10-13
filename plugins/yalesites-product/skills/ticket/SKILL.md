@@ -452,8 +452,6 @@ Stay within PM scope: these are product-goal and boundary questions, not impleme
 
 If the technical approach isn't settled, make the first child ticket a spike or ADR (architecture decision record) — audit the current state and propose a design, to be reviewed and approved before the rest of the child tickets are written or estimated. This was #1162 in the Views Rework epic, and it's why the later child tickets could be scoped accurately. Don't force full detail into every child ticket up front if the design is still an open question — scope what you can, and let the spike inform the rest.
 
-When the spike's deliverable is an ADR document, the spike ticket gets the ADR-location acceptance criterion from "2. Acceptance Criteria" above, like any other spike ticket.
-
 ### Step 3: Write the epic (parent ticket)
 
 Use this structure, modeled on #1161. Same GitHub-reading rules as a regular ticket (see "How this reads on GitHub" above): lead with a TL;DR, keep Summary / Scope / Child Tickets visible, and collapse the longer context (Current State, Proposed Approach) into a named `<details>` block.
