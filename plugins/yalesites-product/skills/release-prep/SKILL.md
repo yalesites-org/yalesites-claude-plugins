@@ -22,7 +22,7 @@ Phase 5 in particular is **not** a late-stage phase. Testers need their steps th
 
 | Phase | Deliverable |
 |-------|------------|
-| 1. Release Notes | GitHub comment (paste into release PR) |
+| 1. Release Notes | GitHub comment on the milestone's comms ticket (see "Where the notes go" below) |
 | 2. Feature Documentation | New or updated page draft for yalesites.yale.edu |
 | 3. Email Communication | Concise release announcement email |
 | 4. Current Issues & Fixes | Updated version of the yalesites.yale.edu issues page |
@@ -42,11 +42,77 @@ Confirm the following (if not already established):
 4. **Is the Current Issues & Fixes page update needed this cycle?** — not always required
 5. **Do you have the current content of the Current Issues & Fixes page?** — paste it in, since yalesites.yale.edu is blocked from direct fetch
 
+Once the featured feature and the Current Issues question are settled, record them (see "Recording progress"). They are the two answers nothing else can read.
+
+---
+
+## Recording progress
+
+The work dashboard shows a release prep board for each milestone: the seven phases, where each one stands, and what keeps it moving. Most of that it reads for itself, so **do not record what is already visible**: the release PR to `master` marks the RC cut and the ship, the comms ticket's checkboxes and the notes comment on it carry Phases 1 and 3, a "Release Testing Steps" body search covers Phase 5, the milestone's `Docs:` tickets and the docs board cover Phase 2, a commit touching the yalesites skill's `references/` covers Phase 6, and the milestone's open count covers Phase 7.
+
+What it cannot read lives in one small state file per milestone, which this skill and the dashboard share:
+
+```
+~/.claude/yalesites/release-prep/<slug>.json
+```
+
+`<slug>` is the milestone title lowercased with every run of non-alphanumerics replaced by `-` and the ends trimmed: `12-01-26 Feature Release` becomes `12-01-26-feature-release`.
+
+```json
+{
+  "milestone": "12-01-26 Feature Release",
+  "phases": {
+    "5": { "state": "done", "note": "steps on all 41 open Done tickets", "at": "2026-10-20T15:02:00Z", "by": "skill" }
+  },
+  "decisions": {
+    "featuredFeature": { "value": "Office Hours block (YaleSites-Internal#1901)", "at": "2026-10-20T14:40:00Z", "by": "skill" },
+    "currentIssuesNeeded": { "value": true, "at": "2026-10-20T14:40:00Z", "by": "skill" }
+  },
+  "updatedAt": "2026-10-20T15:02:00Z"
+}
+```
+
+Rules:
+
+- **Merge, never overwrite.** Read the file first; the dashboard writes the same file with `"by": "dashboard"` when Mike marks a phase or answers a question on the board. Replace only the key you are recording and bump `updatedAt`.
+- **A phase mark is `done` or `skipped`, with a short `note`.** There is no `in_progress`: the dashboard infers that from the signals above. Mark `done` at the end of a phase, and `skipped` when a phase does not apply (a hotfix with no feature skips Phase 2; a release that does not touch Current Issues skips Phase 4, which the `currentIssuesNeeded: false` decision already says).
+- **Decisions are the two answers from Before Starting.** `featuredFeature` is a short string naming the feature and its ticket. `currentIssuesNeeded` is `true` or `false`.
+- **Signals win.** If the dashboard can see a phase is done, it shows done whatever the file says, so a stale mark never hides progress, and a missing mark never hides a finished phase. Record for the phases whose finish the signals cannot see: Phase 2 once the docs drafts are handed over, Phase 3 once the email is confirmed sent, Phase 4 once the page is updated, Phase 7 once the milestone is closed at zero.
+
+One merge-write, safe to run with no file there yet:
+
+```bash
+python3 - "$HOME/.claude/yalesites/release-prep/12-01-26-feature-release.json" <<'EOF'
+import json, os, sys, datetime
+path = sys.argv[1]
+state = {"milestone": "12-01-26 Feature Release", "phases": {}, "decisions": {}}
+if os.path.exists(path):
+    state = json.load(open(path))
+now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
+state.setdefault("phases", {})["5"] = {"state": "done", "note": "steps on all open Done tickets", "at": now, "by": "skill"}
+state["updatedAt"] = now
+os.makedirs(os.path.dirname(path), exist_ok=True)
+json.dump(state, open(path, "w"), indent=2)
+EOF
+```
+
+Swap the `phases` line for a `decisions` one to record an answer:
+
+```python
+state.setdefault("decisions", {})["currentIssuesNeeded"] = {"value": True, "at": now, "by": "skill"}
+```
+
 ---
 
 ## Phase 1: Release Notes (GitHub Comment)
 
 **Run this phase at least twice.** The first pass, at the RC cut, produces the draft and unblocks Phase 5. The second pass, right before the release goes out, re-runs the same search to catch everything that landed during the QA period: bug fixes found in testing, late additions, and anything pulled from the release. Treat the first draft as provisional and diff it against the second pass rather than assuming it's still complete.
+
+### Where the notes go
+
+Each release has one comms ticket on its milestone in `yalesites-org/YaleSites-Internal`, titled `Web: Release notes, webpage, and email communication for YaleSites vX.Y.Z`, type Communications, with acceptance criteria in three checkbox groups: **Release notes draft**, **Release Notes webpage on yalesites.yale.edu**, and **Release email**. YaleSites-Internal#1485 is the model. Post each pass of the notes as a comment on that ticket, with the `<!-- yalesites:agent -->` block at the bottom, and tick the boxes as they are met. The ticket is where the page and the email are tracked too, and it is what the work dashboard reads to show Phases 1 and 3, so a draft posted anywhere else is a draft the board cannot see.
+
+If the milestone has no comms ticket yet, create it first with the `ticket` skill, modelled on #1485, and milestone it to the release.
 
 ### Finding what's in the release
 
@@ -241,6 +307,8 @@ When the output needs to be pasted directly into a Drupal WYSIWYG block form (CK
 
 ### Output
 Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This draft gets pasted into the CMS.
+
+Record the answer to "needed this cycle?" as the `currentIssuesNeeded` decision as soon as it is given, and mark Phase 4 `done` once the page is updated (see "Recording progress"). The dashboard checks the live page for the version, but a hotfix note that names no version is invisible to it.
 
 ---
 
@@ -704,6 +772,8 @@ Broader backlog problems — tickets with no acceptance criteria, missing board 
 
 ### Step 9: Report back
 
+Once the milestone is closed at zero open and the Step 8 sweep is done, mark Phase 7 `done` in the state file (see "Recording progress"), with the closed and carried counts in the note. Then report:
+
 - How many tickets were closed, how many moved to `Done` first (bucket C), and how many were left open
 - How many carried to the next milestone, how many had their milestone cleared, and whether the milestone was closed
 - Any item where the board and the code disagreed, since a repeat offender usually means a broken process rather than a one-off
@@ -763,4 +833,5 @@ All draft files saved to the workspace folder.
 - Issues live in `yalesites-org/YaleSites-Internal`; PRs live in `yalesites-org/yalesites-project` — don't mix them up when making API calls
 - Phase 6 edits the skill's own reference files — this keeps the knowledge base self-maintaining across releases
 - Phase 7 is the only phase that writes to the YaleSites Board, and it never writes without explicit approval — board mechanics and field options live in the `ticket` skill's `references/board-status.md`
+- The state file under `~/.claude/yalesites/release-prep/` is shared with the work dashboard's release prep board. Record decisions and phase completions there (see "Recording progress"); never clear a mark the dashboard wrote
 - Broad backlog quality problems are out of Phase 7's scope and belong to the planned `backlog-hygiene` skill, which isn't released yet — Phase 7 only reconciles status against what shipped
