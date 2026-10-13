@@ -29,9 +29,10 @@ class ReviewBoardServerTest(unittest.TestCase):
             f.write(bytes(range(100)))
         with open(os.path.join(cls.tmp.name, "..", "outside.txt"), "w") as f:
             f.write("secret")
-        # A prepped packet lives outside the packets folder and is reached through a symlink.
+        # A prepped packet lives outside the packets folder, in a versioned folder named by
+        # prep_status.py, and is reached through a symlink named for the packet id.
         cls.prepped = tempfile.TemporaryDirectory()
-        cls.prepped_packet = os.path.join(os.path.realpath(cls.prepped.name), "ysp-2")
+        cls.prepped_packet = os.path.join(os.path.realpath(cls.prepped.name), "ysp-2-abc1234-20261004T130500Z")
         os.makedirs(cls.prepped_packet)
         with open(os.path.join(cls.prepped_packet, "packet.json"), "w") as f:
             json.dump({"title": "Prepped", "questions": []}, f)

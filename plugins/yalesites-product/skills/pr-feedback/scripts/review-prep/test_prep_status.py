@@ -4,6 +4,7 @@ import contextlib
 import io
 import json
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -42,18 +43,22 @@ class PrepStatusTest(unittest.TestCase):
         code, out = self.run_cmd(*args)
         return code, json.loads(out)
 
-    def start(self, *prs, packet="ysp-1608", scope=SCOPE, force=False):
+    def start(self, *prs, packet="ysp-1608", scope=SCOPE, force=False, run_dir=None):
         args = ["start"]
         for pr in prs:
             args += ["--pr", pr]
         args += ["--packet", packet, "--scope", scope] + (["--force"] if force else [])
+        if run_dir:
+            args += ["--run-dir", run_dir]
         code, out = self.run_cmd(*args)
         out = json.loads(out)
         if out.get("claimed"):
             self.claim = out["claim"]
         return code, out
 
-    def ready(self, *prs, packet="ysp-1608", scope=SCOPE, claim="last", **extra):
+    def ready(self, *prs, packet="ysp-1608", scope=SCOPE, claim="last", packet_dir="auto", **extra):
+        """`packet_dir="auto"` names a folder only when no start has run, so a ready that
+        follows a start inherits the claim's packetDir, as the real flow does."""
         args = ["ready"]
         for pr in prs:
             args += ["--pr", pr]
@@ -61,6 +66,10 @@ class PrepStatusTest(unittest.TestCase):
         claim = self.claim if claim == "last" else claim
         if claim:
             args += ["--claim", claim]
+        if packet_dir == "auto":
+            packet_dir = None if self.claim else os.path.join(self.root, "packets", f"{packet}-test")
+        if packet_dir:
+            args += ["--packet-dir", packet_dir]
         return self.run_cmd(*args)
 
     def fail(self, *prs, reason="multidev missing", claim="last"):
@@ -85,7 +94,7 @@ class PrepStatusTest(unittest.TestCase):
         self.run_cmd("ready", "--pr", f"yalesites-project#1608={SHA}",
                      "--pr", "component-library-twig#774=fff0000aaa", "--packet", "ysp-1608",
                      "--scope", SCOPE, "--questions", "3", "--driven", "--results", "pass=8,fail=1",
-                     "--cleanup", "done")
+                     "--cleanup", "done", "--packet-dir", "/packets/ysp-1608-abc1234-20261004T130500Z")
         prs = self.status()["prs"]
         self.assertEqual(prs["yalesites-project#1608"]["state"], "ready")
         self.assertEqual(prs["yalesites-project#1608"]["results"], {"pass": 8, "fail": 1})
@@ -96,7 +105,12 @@ class PrepStatusTest(unittest.TestCase):
         self.assertEqual(prs["component-library-twig#774"]["packetId"], "ysp-1608")
         self.assertEqual(prs["component-library-twig#774"]["headSha"], "fff0000aaa")
         self.assertEqual(prs["component-library-twig#774"]["unit"], prs["yalesites-project#1608"]["unit"])
-        self.assertTrue(prs["yalesites-project#1608"]["packetDir"].endswith(os.path.join("packets", "ysp-1608")))
+        self.assertEqual(prs["yalesites-project#1608"]["packetDir"], "/packets/ysp-1608-abc1234-20261004T130500Z")
+
+    def test_ready_without_a_claim_needs_a_packet_dir(self):
+        with self.assertRaises(SystemExit):
+            self.ready(f"yalesites-project#1608={SHA}", packet_dir=None)
+        self.assertFalse(os.path.exists(os.path.join(self.root, "status.json")))
 
     def test_fail_records_the_reason(self):
         self.run_cmd("fail", "--pr", f"yalesites-project#1605={SHA}", "--reason", "multidev pr-1605 missing")
@@ -121,11 +135,40 @@ class PrepStatusTest(unittest.TestCase):
         with self.assertRaises(SystemExit):
             self.start(f"atomic#524={SHA}", scope=" , ")
 
-    def test_corrupt_file_is_treated_as_empty(self):
-        with open(os.path.join(self.root, "status.json"), "w") as f:
+    def test_corrupt_file_refuses_every_write_and_keeps_a_copy(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        path = os.path.join(self.root, "status.json")
+        with open(path, "w") as f:
             f.write("{not json")
-        self.run_cmd("run-start")
+        for args in (["run-start"], ["start", "--pr", f"atomic#524={SHA}", "--packet", "atomic-524",
+                                     "--scope", SCOPE],
+                     ["heartbeat", "--packet", "ysp-1608", "--claim", self.claim],
+                     ["fail", "--pr", f"yalesites-project#1608={SHA}", "--claim", self.claim, "--reason", "x"],
+                     ["run-end"]):
+            code, out = self.run_cmd(*args)
+            self.assertEqual(code, prep_status.EXIT_REFUSED, args)
+            out = json.loads(out)
+            self.assertFalse(out["written"])
+            self.assertIn("not valid JSON", out["reason"])
+        with open(path) as f:
+            self.assertEqual(f.read(), "{not json")
+        copies = [n for n in os.listdir(self.root) if n.startswith("status.json.corrupt-")]
+        self.assertEqual(len(copies), 1)
+        self.assertRegex(copies[0], r"^status\.json\.corrupt-\d{8}T\d{6}Z$")
+        with open(os.path.join(self.root, copies[0])) as f:
+            self.assertEqual(f.read(), "{not json")
+        code, entry = self.get("yalesites-project#1608")
+        self.assertEqual(code, prep_status.EXIT_REFUSED)
+        self.assertEqual(entry["state"], "unreadable")
+        # Fixing the file by hand brings every command back.
+        with open(path, "w") as f:
+            f.write("{}")
+        self.assertEqual(self.run_cmd("run-start")[0], 0)
         self.assertIn("runStartedAt", self.status())
+
+    def test_empty_file_is_corrupt_not_empty(self):
+        open(os.path.join(self.root, "status.json"), "w").close()
+        self.assertEqual(self.run_cmd("run-start")[0], prep_status.EXIT_REFUSED)
 
     def test_no_temp_files_left_behind(self):
         self.run_cmd("run-start")
@@ -332,13 +375,95 @@ class PrepStatusTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertNotIn("claim", self.status()["prs"]["yalesites-project#1605"])
 
+    # Folders
+
+    def test_start_records_a_versioned_packet_dir_and_the_run_dir(self):
+        run_dir = "/runs/yalesites-project-1608-2026-10-04"
+        code, out = self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                               run_dir=run_dir)
+        self.assertEqual(code, 0)
+        self.assertRegex(out["packetDir"], re.escape(os.path.join(self.root, "packets", "ysp-1608-abc1234-"))
+                         + r"\d{8}T\d{6}Z$")
+        self.assertEqual(out["runDir"], run_dir)
+        prs = self.status()["prs"]
+        for key in ("yalesites-project#1608", "component-library-twig#774"):
+            self.assertEqual(prs[key]["packetDir"], out["packetDir"])
+            self.assertEqual(prs[key]["runDir"], run_dir)
+        self.assertEqual(self.get("yalesites-project#1608")[1]["runDir"], run_dir)
+
+    def test_a_rebuild_gets_a_new_folder_and_never_renames(self):
+        stamps = iter(["2026-10-04T13:05:00+00:00", "2026-10-04T14:20:00+00:00"])
+        original = prep_status.now
+        prep_status.now = lambda: next(stamps)
+        try:
+            _, first = self.start(f"yalesites-project#1608={SHA}")
+            self.assertTrue(first["packetDir"].endswith("ysp-1608-abc1234-20261004T130500Z"))
+            self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))
+            _, second = self.start(f"yalesites-project#1608={SHA}")
+            self.assertTrue(second["packetDir"].endswith("ysp-1608-abc1234-20261004T142000Z"))
+        finally:
+            prep_status.now = original
+        self.assertNotEqual(first["packetDir"], second["packetDir"])
+
+    def test_ready_and_fail_keep_the_folders_from_the_claim(self):
+        _, out = self.start(f"yalesites-project#1608={SHA}", run_dir="/runs/ysp-1608")
+        self.assertEqual(self.ready(f"yalesites-project#1608={SHA}")[0], 0)
+        entry = self.status()["prs"]["yalesites-project#1608"]
+        self.assertEqual(entry["packetDir"], out["packetDir"])
+        self.assertEqual(entry["runDir"], "/runs/ysp-1608")
+        self.age("yalesites-project#1608", timedelta(minutes=1))
+        _, out = self.start(f"yalesites-project#1608={SHA}", run_dir="/runs/ysp-1608", force=True)
+        self.assertEqual(self.fail(f"yalesites-project#1608={SHA}")[0], 0)
+        entry = self.status()["prs"]["yalesites-project#1608"]
+        self.assertEqual(entry["state"], "failed")
+        self.assertEqual(entry["packetDir"], out["packetDir"])
+        self.assertEqual(entry["runDir"], "/runs/ysp-1608")
+
+    # Settling the whole claim
+
+    def test_fail_marks_every_pr_under_the_claim(self):
+        self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                   run_dir="/runs/ysp-1608")
+        code, out = self.fail(f"yalesites-project#1608={SHA}", reason="multidev pr-1608 missing")
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["prs"], ["yalesites-project#1608", "component-library-twig#774"])
+        prs = self.status()["prs"]
+        for key in ("yalesites-project#1608", "component-library-twig#774"):
+            self.assertEqual(prs[key]["state"], "failed", key)
+            self.assertEqual(prs[key]["reason"], "multidev pr-1608 missing")
+            self.assertEqual(prs[key]["unit"], ["yalesites-project#1608", "component-library-twig#774"])
+            self.assertEqual(prs[key]["runDir"], "/runs/ysp-1608")
+        self.assertEqual(prs["component-library-twig#774"]["headSha"], "fff0000aaa")
+        # The unit is free for the next run at once, not after the TTL.
+        self.assertEqual(self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa",
+                                    force=True)[0], 0)
+
+    def test_ready_marks_every_pr_under_the_claim(self):
+        self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
+        self.assertEqual(self.ready(f"yalesites-project#1608={SHA}", questions=2)[0], 0)
+        prs = self.status()["prs"]
+        self.assertEqual(prs["component-library-twig#774"]["state"], "ready")
+        self.assertEqual(prs["component-library-twig#774"]["questions"], 2)
+        self.assertEqual(prs["component-library-twig#774"]["headSha"], "fff0000aaa")
+        self.assertEqual(self.get("component-library-twig#774", head="fff0000aaa", scope=SCOPE)[1]["state"],
+                         "ready")
+
+    def test_settling_one_claim_leaves_other_units_alone(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        first = self.claim
+        self.start(f"atomic#524={SHA}", packet="atomic-524")
+        self.fail(f"atomic#524={SHA}")
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["state"], "running")
+        self.assertEqual(self.fail(f"yalesites-project#1608={SHA}", claim=first)[0], 0)
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["state"], "failed")
+
     # Heartbeat
 
     def test_heartbeat_keeps_a_slow_run_inside_the_ttl(self):
         self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
         self.age("yalesites-project#1608", prep_status.RUNNING_TTL - timedelta(minutes=1))
         self.age("component-library-twig#774", prep_status.RUNNING_TTL - timedelta(minutes=1))
-        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608")
+        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608", "--claim", self.claim)
         self.assertEqual(code, 0)
         self.assertTrue(json.loads(out)["heartbeat"])
         self.age("yalesites-project#1608", timedelta(minutes=5))  # pretend time passed after the stamp
@@ -348,10 +473,17 @@ class PrepStatusTest(unittest.TestCase):
 
     def test_heartbeat_without_a_running_entry_fails(self):
         self.ready(f"yalesites-project#1608={SHA}")
-        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608")
+        code, out = self.run_cmd("heartbeat", "--packet", "ysp-1608", "--claim", "deadbeef")
         self.assertEqual(code, 1)
         self.assertFalse(json.loads(out)["heartbeat"])
         self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["state"], "ready")
+
+    def test_heartbeat_needs_a_claim(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        before = self.status()
+        with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):
+            self.run_cmd("heartbeat", "--packet", "ysp-1608")
+        self.assertEqual(self.status(), before)
 
     def test_heartbeat_does_not_revive_a_claim_past_the_ttl(self):
         self.start(f"yalesites-project#1608={SHA}", "component-library-twig#774=fff0000aaa")
