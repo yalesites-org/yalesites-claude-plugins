@@ -21,12 +21,15 @@ import subprocess
 import sys
 from urllib.parse import urlparse
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+# realpath, so a symlinked install still finds capture.js and packet.py beside it.
+HERE = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, HERE)
+from packet import ITEM_ID  # noqa: E402  one id rule for validate, capture, and the board
+
 CLI = ["npx", "-y", "@playwright/cli@0.1.22"]
 SESSION = "docs-board-capture"
 SITE_HOST = "yalesites.yale.edu"
 SITE = "https://" + SITE_HOST
-ITEM_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
 def build_code(url, shot, width, body):

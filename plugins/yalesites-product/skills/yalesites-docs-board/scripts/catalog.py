@@ -28,11 +28,14 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
+# realpath, so a symlinked install still finds packet.py and the sibling web-content skill.
+HERE = os.path.dirname(os.path.realpath(__file__))
+sys.path.insert(0, HERE)
+from packet import read_json  # noqa: E402
+
 SITE = "https://yalesites.yale.edu"
 SITEMAP = SITE + "/sitemap.xml"
 CACHE = os.path.expanduser("~/.claude/yalesites/docs-board/catalog.json")
-# realpath, so a symlinked install still finds the sibling web-content skill.
-HERE = os.path.dirname(os.path.realpath(__file__))
 INVENTORY = os.path.join(HERE, "..", "..", "yalesites-web-content", "references", "content-inventory.csv")
 UA = "yalesites-docs-board/1.0 (+https://github.com/yalesites-org/yalesites-claude-plugins)"
 
@@ -42,11 +45,6 @@ SKIP_PREFIXES = ("/upcoming-events/",)
 
 STOP = set("a an and are as at be by docs doc for from how in into is it of on or page the this to user guide with add update document new yalesites".split())
 
-
-
-def read_json(path):
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
 
 def norm_path(url):
     path = urlparse(url).path or "/"
@@ -164,20 +162,22 @@ def refresh(force=False, max_age_hours=24, out=CACHE):
 def stem(t):
     """Crude, but enough that a ticket saying "export" finds "Exporting Content".
 
-    Only a trailing "s" is stripped from plurals, never "es": "images" has to
-    land on "image", and "courses" on "course". After "ed" or "ing", a doubled
-    consonant is collapsed so "embedded" lands on "embed" and "tagged" on "tag".
-    Letters that commonly end a word doubled (ll, ss, ff, zz) are left alone, so
-    "installed" still lands on "install".
+    The plural "s" comes off first, then "ing" or "ed", so "settings",
+    "setting", and "set" all land on "set", and "headings" on "head" like
+    "heading" does. Only a trailing "s" is stripped, never "es": "images" has
+    to land on "image", and "courses" on "course". After "ed" or "ing", a
+    doubled consonant is collapsed so "embedded" lands on "embed" and "tagged"
+    on "tag". Letters that commonly end a word doubled (ll, ss, ff, zz) are
+    left alone, so "installed" still lands on "install".
     """
-    for suffix in ("ing", "ed", "s"):
+    if len(t) > 4 and t.endswith("s") and not t.endswith("ss"):
+        t = t[:-1]  # "address", "access", "process" are not plurals
+    for suffix in ("ing", "ed"):
         if len(t) > len(suffix) + 3 and t.endswith(suffix):
-            if suffix == "s" and t.endswith("ss"):
-                return t  # "address", "access", "process" are not plurals
             t = t[: -len(suffix)]
-            if suffix != "s" and len(t) >= 4 and t[-1] == t[-2] and t[-1] not in "aeioulsfz":
+            if len(t) >= 4 and t[-1] == t[-2] and t[-1] not in "aeioulsfz":
                 t = t[:-1]
-            return t
+            break
     return t
 
 

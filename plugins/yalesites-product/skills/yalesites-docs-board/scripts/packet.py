@@ -228,13 +228,20 @@ def render(packet_dir, item_id):
     # A kept section of a repo file (split-md) is the file's own bytes, trailing
     # blank lines included, so it goes back verbatim and all-keep ops give the
     # file back unchanged. Page blocks, and edited and added text, get one blank
-    # line after them, or just the final newline at the end.
+    # line after them, or just the final newline at the end. When edited or
+    # added text follows a kept section that ends without a blank line (the
+    # file's last section usually does), the gap is padded to one, or the new
+    # paragraph would fuse onto the kept one. Kept followed by kept is left
+    # alone: that is the file as it was.
     out = ""
     for n, (p, verbatim) in enumerate(parts):
-        if verbatim:
-            out += p
-        else:
+        if not verbatim:
             out += p.strip("\r\n") + ("\n" if n == len(parts) - 1 else "\n\n")
+            continue
+        out += p
+        authored_next = n + 1 < len(parts) and not parts[n + 1][1]
+        if authored_next and not p.endswith("\n\n"):
+            out += "\n" if p.endswith("\n") else "\n\n"
     return out
 
 

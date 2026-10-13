@@ -40,6 +40,16 @@ const data = await page.evaluate(() => {
   };
 
   // Rendered HTML back to the light markdown the board and drafts use.
+  //
+  // Hidden is not the same as not content. A collapsed accordion body or an
+  // inactive tab panel is display:none, but its text is the block, and an edit
+  // op written from a capture that dropped it would diff against half the
+  // block and fail page-build's "the live text matches the capture" check. So
+  // nothing is skipped for being hidden. Only chrome is skipped, by name:
+  // screen-reader-only labels, skip links, the admin toolbar, and the
+  // accordion's own expand/collapse buttons. Add to CHROME, never to a
+  // style check.
+  const CHROME = '.visually-hidden, .sr-only, .element-invisible, .skip-link, .skip-links, .toolbar, #toolbar-administration, .accordion__controls';
   const md = (node) => {
     const inline = (n) => [...n.childNodes].map(c => {
       if (c.nodeType === 3) return c.textContent.replace(/\s+/g, ' ');
@@ -61,7 +71,7 @@ const data = await page.evaluate(() => {
     const walk = (n) => {
       for (const c of n.children) {
         const t = c.tagName;
-        if (getComputedStyle(c).display === 'none') continue;
+        if (c.matches(CHROME)) continue;
         if (/^H[1-6]$/.test(t)) out.push(`${'#'.repeat(Math.max(2, +t[1]))} ${inline(c).trim()}`);
         else if (t === 'P') { const s = inline(c).trim(); if (s) out.push(s); }
         else if (t === 'UL' || t === 'OL') {
@@ -87,8 +97,11 @@ const data = await page.evaluate(() => {
   };
 
   const main = document.querySelector('main') || document.body;
-  const sections = [...main.querySelectorAll(':scope .layout')].filter(s => !s.closest('.layout .layout'))
-    .map((s, i) => ({
+  // Top-level Layout Builder sections, computed once. A two-column section
+  // nests a .layout per column, so a block's nearest .layout is not always
+  // the section: walk up to the outermost one before looking it up.
+  const topLayouts = [...main.querySelectorAll(':scope .layout')].filter(s => !s.closest('.layout .layout'));
+  const sections = topLayouts.map((s, i) => ({
       index: i,
       // Multi-column sections are YDS layouts and carry their shape in a data
       // attribute (fifty-fifty, thirty-seventy) instead of a layout-- class.
@@ -96,7 +109,11 @@ const data = await page.evaluate(() => {
       theme: s.dataset.componentTheme || null,
       ...box(s),
     }));
-  const sectionOf = el => { const s = el.closest('.layout'); return s ? [...main.querySelectorAll('.layout')].filter(x => !x.closest('.layout .layout')).indexOf(s) : -1; };
+  const sectionOf = el => {
+    let s = null;
+    for (let n = el.closest('.layout'); n; n = n.parentElement && n.parentElement.closest('.layout')) s = n;
+    return s ? topLayouts.indexOf(s) : -1;
+  };
   const regionOf = el => {
     const r = el.closest('.layout__region, .yds-layout__primary, .yds-layout__secondary, .yds-layout__tertiary');
     if (!r) return '';

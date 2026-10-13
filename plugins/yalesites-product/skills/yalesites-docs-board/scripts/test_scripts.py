@@ -70,8 +70,13 @@ class CatalogTest(unittest.TestCase):
 
     def test_stem_keeps_singular_and_plural_together(self):
         for a, b in (("image", "images"), ("course", "courses"), ("embed", "embedded"), ("export", "exporting"),
-                     ("install", "installed"), ("tag", "tagged"), ("block", "blocks"), ("address", "addressed")):
+                     ("install", "installed"), ("tag", "tagged"), ("block", "blocks"), ("address", "addressed"),
+                     ("set", "setting"), ("set", "settings"), ("setting", "settings"), ("head", "heading"),
+                     ("head", "headings"), ("heading", "headings"), ("export", "exports")):
             self.assertEqual(catalog.stem(a), catalog.stem(b), (a, b))
+        self.assertEqual(catalog.stem("process"), "process")
+        cat = {"pages": [{"path": "/site-settings", "title": "Site Settings", "teaser": "", "headings": []}]}
+        self.assertEqual(len(catalog.search(cat, "Docs: site setting")), 1)
         cat = {"pages": [{"path": "/working-with-images", "title": "Working with Images", "teaser": "", "headings": []}]}
         self.assertEqual(len(catalog.search(cat, "Docs: image block alt text")), 1)
 
@@ -114,6 +119,17 @@ class CaptureTest(unittest.TestCase):
         for name in ("URL", "SHOT", "WIDTH"):
             self.assertIn(name, body)
         self.assertNotIn("const URL", body)
+
+    def test_capture_js_skips_chrome_by_name_not_by_style(self):
+        # Collapsed accordion bodies and inactive tab panels are display:none
+        # and must still be captured, so md() may not look at computed style.
+        body = open(os.path.join(HERE, "capture.js")).read()
+        self.assertNotIn("getComputedStyle", body)
+        self.assertIn("const CHROME", body)
+
+    def test_item_id_rule_is_shared_with_packet(self):
+        self.assertIs(capture.ITEM_ID, packet.ITEM_ID)
+        self.assertIs(catalog.read_json, packet.read_json)
 
 
 def write_packet(folder, items, blocks=None, screenshot=True, kind=None):
@@ -245,7 +261,29 @@ class SplitAndStatusTest(unittest.TestCase):
                             {"op": "keep", "ref": "s2"},
                             {"op": "add", "block": "Section", "markdown": "# C\nlast"}]}
             write_packet(d, [item], secs, screenshot=False, kind="file")
-            self.assertEqual(packet.render(d, "1"), "# A\nnew text\n\n# A2\nbetween\n\n# B\nmore\n# C\nlast\n")
+            self.assertEqual(packet.render(d, "1"), "# A\nnew text\n\n# A2\nbetween\n\n# B\nmore\n\n# C\nlast\n")
+
+    def test_render_pads_a_kept_section_before_added_text(self):
+        # The file's last section ends on a single newline. An add after it
+        # must start its own paragraph, not fuse onto "Run it."
+        readme = "# Title\n\nIntro.\n\n## Usage\n\nRun it.\n"
+        secs = packet.split_md(readme)
+        self.assertEqual([s["id"] for s in secs], ["s1", "s2"])
+        with tempfile.TemporaryDirectory() as d:
+            item = {"id": "1", "ticket": {"ref": "yalesites-org/x#1", "url": "u", "title": "t"}, "kind": "internal",
+                    "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
+                    "ops": [{"op": "keep", "ref": "s1"}, {"op": "keep", "ref": "s2"},
+                            {"op": "add", "block": "Section", "markdown": "More text here."}]}
+            write_packet(d, [item], secs, screenshot=False, kind="file")
+            self.assertEqual(packet.render(d, "1"), readme + "\nMore text here.\n")
+        # A kept section with no final newline at all gets a full blank line.
+        secs = packet.split_md("# A\ntext")
+        with tempfile.TemporaryDirectory() as d:
+            item = {"id": "1", "ticket": {"ref": "yalesites-org/x#1", "url": "u", "title": "t"}, "kind": "internal",
+                    "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
+                    "ops": [{"op": "keep", "ref": "s1"}, {"op": "add", "block": "Section", "markdown": "# B\nmore"}]}
+            write_packet(d, [item], secs, screenshot=False, kind="file")
+            self.assertEqual(packet.render(d, "1"), "# A\ntext\n\n# B\nmore\n")
 
     def test_status_merges_per_ticket(self):
         with tempfile.TemporaryDirectory() as d:
