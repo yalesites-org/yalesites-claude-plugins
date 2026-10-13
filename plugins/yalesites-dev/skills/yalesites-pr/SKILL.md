@@ -2,7 +2,7 @@
 name: yalesites-pr
 description: Use when creating pull requests in YaleSites repositories (yalesites-project, atomic, component-library-twig, tokens)
 disable-model-invocation: false
-argument-hint: "[issue-number (optional — parsed from branch if omitted)]"
+argument-hint: "[issue-number (optional, parsed from branch if omitted)] [--unattended] [--body-file <path>]"
 allowed-tools:
   - Bash(git branch *)
   - Bash(git -C * branch *)
@@ -12,18 +12,20 @@ allowed-tools:
   - Bash(git -C * diff *)
   - Bash(git -C * fetch *)
   - Bash(git -C * grep *)
-  - Bash(git -C * worktree *)
+  - Bash(git -C * worktree add *)
+  - Bash(git -C * worktree remove *)
   - Bash(grep *)
-  - Bash(sed *)
-  - Bash(git -C * checkout *)
-  - Bash(git -C * add *)
+  - Bash(cut *)
+  - Bash(git -C * switch *)
+  - Bash(git -C * add docs/adr)
   - Bash(git -C * rm *)
   - Bash(git -C * commit *)
   - Bash(git rm *)
   - Bash(git commit *)
-  - Bash(gh repo clone *)
-  - Bash(mkdir *)
-  - Bash(cp *)
+  - Bash(gh repo clone yalesites-org/YaleSites-Internal *)
+  - Bash(gh pr list *)
+  - Bash(mkdir -p */YaleSites-Internal/docs/adr)
+  - Bash(cp * */YaleSites-Internal/docs/adr/*)
   - Bash(gh issue view *)
   - Bash(gh issue create *)
   - Bash(gh issue edit *)
@@ -68,7 +70,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - Check if the same branch exists with commits in any other repos (atomic, component-library-twig, tokens)
    - If so, those repos get PRs first — yalesites-project is always last (its CI/CD picks up companion branches during build)
 
-4. **ADR check** (always runs, with or without an issue, in every repo step 3 found)
+4. **ADR check** (always runs, with or without an issue, in the current repo plus every companion repo step 3 found)
 
    ADRs (architecture decision records) live in `yalesites-org/YaleSites-Internal` under `docs/adr/`, never in a product repo. What counts as an ADR path, an ADR heading, and a strong match is defined once, in the `yalesites` skill's `references/adr-conventions.md`; the commands below implement that definition and nothing else. `{base}` is the PR's base for that repo (`develop` for yalesites-project, atomic, and component-library-twig, `main` for tokens, or the epic branch when step 6 targets one). Use `{branch}`, never `HEAD`: a companion checkout may have something else checked out.
 
@@ -76,32 +78,51 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    git -C {repo} fetch -q origin {base}
    git -C {repo} diff --name-only --no-renames --diff-filter=A origin/{base}...{branch} -- '*.md'
    git -C {repo} diff --name-only --no-renames --diff-filter=A origin/{base}...{branch} -- '*.md' | grep -iE '(^|/)(adr|decisions)/|(^|/)adr-[^/]*\.md$'
-   git -C {repo} grep -l -iE '^# (.*[^A-Za-z])?ADR([^A-Za-z]|$)|^# .*decision record' {branch} -- '*.md' | sed 's|^{branch}:||'
+   git -C {repo} grep -l -iE '^# (.*[^A-Za-z])?ADR([^A-Za-z]|$)|^# .*decision record' {branch} -- '*.md' | cut -d: -f2-
    ```
 
-   The second command is the added list, the third the path matches, the fourth the heading matches (with the `{branch}:` prefix `git grep` prints stripped off, so the paths compare as written). `--no-renames` makes a file moved into an ADR path count as added. A file in the added list that is in both the path and heading lists is a **strong match**; in only one, a **weak match**. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+   The second command is the added list, the third the path matches, the fourth the heading matches (`git grep` prints `{branch}:path`, and `cut` drops the prefix so the paths compare as written). `--no-renames` makes a file moved into an ADR path count as added. A file in the added list that is in both the path and heading lists is a **strong match**; in only one, a **weak match**. Only added files count: an edit to an ADR that already exists in a product repo goes through, with a note in the PR body that the file should move in a follow-up.
+
+   **Attended or unattended.** The run is unattended when the caller passes `--unattended` (for example a `--bg` run from `/not_dave_new`), and then it never pauses; a caller that pre-drafts the PR passes `--body-file`, and the skill appends its ADR note to that body rather than writing its own. Without `--unattended`, a user is present and every stop below is a real question.
 
    - **No match:** continue.
-   - **Match, with a user present:** stop, show every matching file and repo, and offer to move each (below) and open the ADR PR in YaleSites-Internal instead. Only continue with a file in the product repo if the user explicitly says to.
-   - **Match, unattended** (no user to answer, for example a `--bg` run from `/not_dave_new`): move only when there is exactly one strong match. A weak match, or more than one strong match, is left in place, named in the PR body, and logged for a person to decide. Say in every PR body this run opens what was moved or flagged.
+   - **Match, attended:** stop, show every matching file and repo, and offer to move each (below) and open the ADR PR in YaleSites-Internal instead. Only continue with a file in the product repo if the user explicitly says to.
+   - **Match, unattended:** move only when there is exactly one strong match. A weak match, or more than one strong match, is left in place, named in the PR body, and logged for a person to decide. Every PR body this run opens says what was moved or flagged.
 
-   The move uses a YaleSites-Internal checkout in `{scratch}`, the session's scratchpad folder named in the environment block (never the repo), cloned once per session and reused on a rerun or a second file, and one ADR branch per issue. The product repo is never switched: a temporary worktree on `{branch}` keeps the dev's checkout and any uncommitted work untouched.
+   The move uses a YaleSites-Internal checkout in `{scratch}`, the session's scratchpad folder named in the environment block (never the repo), cloned once per session and reused on a rerun or a second file. One ADR branch per issue, `{issue}-{slug}` with the issue's slug (or the branch slug when there is no issue), holds every moved file; each file is named `{issue}-{file-slug}.md`, where `{file-slug}` is its own basename without the extension and without any leading number (`docs/adr/0002-search.md` becomes `1711-search.md`). The product repo's checkout is never switched or dirtied:
 
    ```bash
    gh repo clone yalesites-org/YaleSites-Internal {scratch}/YaleSites-Internal   # skip if it exists; then git -C {scratch}/YaleSites-Internal fetch -q origin
-   git -C {scratch}/YaleSites-Internal checkout -b {issue}-{slug} main             # or checkout {issue}-{slug} when the branch already exists
+   git -C {scratch}/YaleSites-Internal switch -c {issue}-{slug} origin/main       # or switch {issue}-{slug} when the branch already exists
    mkdir -p {scratch}/YaleSites-Internal/docs/adr
-   git -C {repo} worktree add {scratch}/adr-move/{repo-name} {branch}
-   cp {scratch}/adr-move/{repo-name}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{slug}.md
+   git -C {repo} branch --show-current
+   ```
+
+   If that last command prints `{branch}` (the usual case: the dev runs this skill from the feature branch), work in `{repo}` itself:
+
+   ```bash
+   cp {repo}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{file-slug}.md
+   git -C {scratch}/YaleSites-Internal add docs/adr
+   git -C {scratch}/YaleSites-Internal commit -m "docs(adr): {issue} {short title}"
+   git -C {repo} rm {path}
+   git -C {repo} commit -m "chore({issue}): move ADR to YaleSites-Internal"
+   git -C {repo} push origin {branch}
+   ```
+
+   Otherwise (a companion repo with something else checked out) use a detached temporary worktree on the remote branch, so the checkout's own branch ref and index are untouched and the push is a fast-forward of `origin/{branch}`:
+
+   ```bash
+   git -C {repo} worktree add --detach {scratch}/adr-move/{repo-name} origin/{branch}
+   cp {scratch}/adr-move/{repo-name}/{path} {scratch}/YaleSites-Internal/docs/adr/{issue}-{file-slug}.md
    git -C {scratch}/YaleSites-Internal add docs/adr
    git -C {scratch}/YaleSites-Internal commit -m "docs(adr): {issue} {short title}"
    git -C {scratch}/adr-move/{repo-name} rm {path}
    git -C {scratch}/adr-move/{repo-name} commit -m "chore({issue}): move ADR to YaleSites-Internal"
-   git -C {scratch}/adr-move/{repo-name} push origin {branch}
+   git -C {scratch}/adr-move/{repo-name} push origin HEAD:{branch}
    git -C {repo} worktree remove {scratch}/adr-move/{repo-name}
    ```
 
-   The file is renamed to `{issue}-{slug}.md` on the way (the naming rule in `adr-conventions.md`); when more than one file moves, `{slug}` is each file's own basename. With no issue number, use the branch slug and say so. The push in that block is not optional: the branch is usually on origin already, so "push if not already pushed" in step 5 would skip it and the product PR would still ship the ADR. If the product branch held nothing but the ADR: skip its PR, delete the branch from origin if it is already there (`git -C {repo} push origin --delete {branch}`), and leave that repo out of the step 7 cross-links. Step 5 pushes the ADR branch; step 6 opens the ADR PR against `main`.
+   The push in either block is not optional: the branch is usually on origin already, so "push if not already pushed" in step 5 would skip it and the product PR would still ship the ADR. If the product branch held nothing but the ADR: skip its PR and leave that repo out of the step 7 cross-links. Delete the branch from origin only when `gh pr list --repo yalesites-org/{repo} --head {branch}` shows no open PR **and** the run is attended and the user confirms (`git -C {repo} push origin --delete {branch}`); an unattended run leaves the branch and says so in the ADR PR body. Step 5 pushes the ADR branch; step 6 opens the ADR PR against `main`.
 
 5. **Push the branch** in each affected repo if not already pushed (a repo step 4 committed to was pushed there), and the ADR branch when step 4 made one
    ```bash
@@ -137,7 +158,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
    - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
 
-   **An ADR PR from step 4 is the exception.** YaleSites-Internal has no `develop` branch and nothing deploys from it, so that PR uses `--repo yalesites-org/YaleSites-Internal --base main`, the same `{issue number}: {issue title}` title, and a body of a TL;DR line, a link to the ADR file on the branch, and the `References` line. No multidev, Netlify, or testing-step links. Once it exists, link it from the issue with `gh issue comment`. The full shape is in the `yalesites` skill's `references/adr-conventions.md`.
+   **An ADR PR from step 4 is the exception.** YaleSites-Internal has no `develop` branch and nothing deploys from it, so that PR uses `--repo yalesites-org/YaleSites-Internal --base main`, the same `{issue number}: {issue title}` title, and a body of a TL;DR line, a link to the ADR file on the branch, and the `References` line. No multidev, Netlify, or testing-step links. It gets the same `--assignee` and reviewer as the product PR and the `needs review` label, and an unattended run opens it without pausing. Once it exists, link it from the issue with `gh issue comment`. The full shape is in the `yalesites` skill's `references/adr-conventions.md`.
 
 7. **Update cross-links and fill in the preview URLs** — once all PRs exist, every number is
    known. In one `gh pr edit` per repo, add the companion links **and** replace every `<N>`
