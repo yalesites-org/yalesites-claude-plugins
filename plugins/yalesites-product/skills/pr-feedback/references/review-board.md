@@ -207,14 +207,21 @@ message, per Step 3b.
 
 ## Step R3: Wait for the answers, then read them back
 
-Arm one background wait. It ends the moment they press Send:
+Arm one wait with the `Monitor` tool. It ends the moment they press Send:
 
-```bash
-until [ -f <packet-dir>/answers.json ]; do sleep 1; done; cat <packet-dir>/answers.json
+```
+Monitor({
+  command: 'until [ -f "<packet-dir>/answers.json" ]; do sleep 1; done; echo "answers.json written"',
+  description: "review board answers for <packet-id>",
+  timeout_ms: 1800000
+})
 ```
 
-Do not poll in a loop and do not ask "are you done?" The wait wakes the session. If the reviewer
-types their answers in chat instead, use those and leave the wait to expire.
+That `until` loop belongs in `Monitor`, never in Bash, foreground or `run_in_background`: a
+sleep-based wait in Bash is blocked, and `Monitor` is the tool made for waiting on a file. Its
+single event wakes the session; read `<packet-dir>/answers.json` then. If it expires before the
+reviewer is done, arm it again. Do not poll in a loop and do not ask "are you done?" If the
+reviewer types their answers in chat instead, use those and `TaskStop` the monitor.
 
 `answers.json` looks like this:
 
