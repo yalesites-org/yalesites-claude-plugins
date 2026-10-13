@@ -372,6 +372,7 @@ A single bulleted list of everything required to close the issue. Cover all rele
 - UX considerations (field labels, design option names, UI behavior). Where Step 1b identified an affected archetype, write the expectation as a testable criterion rather than a general aspiration — "a New Recruit can complete this without asking a teammate" is checkable, "should be intuitive" isn't.
 - Accessibility: flag anything that needs WCAG 2.1 AA validation for the accessibility engineer
 - Documentation: note if any existing docs need updating or new docs need to be created
+- Spikes and ADRs: when the deliverable is an ADR (architecture decision record), add the criterion that it lands in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, not in a product repo. This applies to a standalone spike ticket as much as to the first child of an epic, so the dev or their agent does not default to the repo the code lives in. The full convention is the `yalesites` skill's `references/adr-conventions.md`.
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over.
 
