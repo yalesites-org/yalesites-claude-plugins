@@ -117,9 +117,13 @@ acceptance-criteria coverage across all the repos the ticket touches. Send every
 single message so they run concurrently.
 
 **Check for prepped boards first.** Run `SKILL.md` Step 1's status check on every PR in the work
-set. A unit whose PRs all read `ready` was prepped against its current heads
-(`references/prep-mode.md`), so it gets no subagent: its plan, driven results, and questions are
-already in its packet. Say in the work-set table which units are prepped.
+set, with each PR's head and the scope from Step B0. A unit whose PRs all read `ready` was
+prepped against its current heads for this scope (`references/prep-mode.md`), so it gets no
+subagent: its plan, driven results, and questions are already in its packet, and its `prep.json`
+carries the full `heldCalls` and `findingsForDev`, tagged by dimension and unfiltered, in the
+same shape a subagent returns below. Read them from there wherever Steps B3 to B5 would use the
+subagent's return, so Step 4 feedback for a prepped unit still carries the brief's mechanical
+findings. Say in the work-set table which units are prepped.
 
 Use the `general-purpose` agent type. Each prompt must state these limits, because a subagent
 cannot ask and will otherwise improvise:
@@ -246,7 +250,12 @@ Rules that keep this useful instead of noise:
 
 **On the review board** (`references/review-board.md`), build one `batch-<yyyy-mm-dd>` packet
 for every unit. For a prepped unit, copy its questions out of its `packet.json` (setting `pr` on
-each) and its images into the batch folder, rather than writing them again. Set `pr` on each question so its page is tagged with the PR, keep a unit's
+each) and its images and clips into the batch folder, rather than writing them again. Every
+packet numbers its files from `01`, so two units' `01-...` files would overwrite each other and
+the board would show one unit's screenshot on the other's question. Prefix each copied file with
+the packet id (`ysp-1608-01-fail-editor-overflow-360.png`) and rewrite every `src` to the new
+name, including a `compare` block's `images[].src` and a `video` block's `src` and `poster`.
+Set `pr` on each question so its page is tagged with the PR, keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.
 

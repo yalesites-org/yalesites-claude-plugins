@@ -7,7 +7,9 @@ saves the reviewer's answers next to the packet they belong to.
   python3 server.py --packets <dir> [--port 8765]
 
 A packet is <dir>/<id>/packet.json plus the images and clips it names. The board lives at
-http://localhost:<port>/?packet=<id>. Submitting writes <dir>/<id>/answers.json.
+http://localhost:<port>/?packet=<id>. Submitting writes <dir>/<id>/answers.json. <dir>/<id>
+may be a symlink to a packet kept elsewhere (a prepped one); files are then served from, and
+answers.json written to, the folder it points at.
 
 If the port is taken, the next free one (up to 20 higher) is used, unless
 --exact-port is set, in which case it exits instead. The chosen URL is printed
@@ -27,6 +29,23 @@ PACKET_ID = re.compile(r"^[A-Za-z0-9._-]+$")
 RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 
 
+def packet_file(packets_dir, rel):
+    """Resolve `<id>/<file>` under the packets folder, or None if it escapes.
+
+    A packet folder may be a symlink to a packet kept elsewhere (a prepped one,
+    served from a per-session folder), so the escape check is made against the
+    packet folder's own real path, not against the packets folder.
+    """
+    packet, _, rest = rel.partition("/")
+    if not PACKET_ID.match(packet) or set(packet) == {"."}:
+        return None
+    root = os.path.realpath(os.path.join(packets_dir, packet))
+    full = os.path.realpath(os.path.join(root, rest)) if rest else root
+    if full == root or full.startswith(root + os.sep):
+        return full
+    return None
+
+
 def make_handler(packets_dir):
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args, **kwargs):
@@ -39,11 +58,8 @@ def make_handler(packets_dir):
         def translate_path(self, path):
             url_path = unquote(urlparse(path).path)
             if url_path.startswith("/packets/"):
-                rel = url_path[len("/packets/"):]
-                full = os.path.realpath(os.path.join(packets_dir, rel))
-                if full == packets_dir or full.startswith(packets_dir + os.sep):
-                    return full
-                return os.path.join(packets_dir, "__denied__")
+                return packet_file(packets_dir, url_path[len("/packets/"):]) \
+                    or os.path.join(packets_dir, "__denied__")
             if url_path in ("/", "/index.html"):
                 return os.path.join(BOARD_DIR, "index.html")
             return os.path.join(BOARD_DIR, "__not_found__")

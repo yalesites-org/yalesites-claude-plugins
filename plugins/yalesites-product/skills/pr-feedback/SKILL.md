@@ -157,18 +157,28 @@ properly rather than shallowly.
 ### Start from a prepped board
 
 Prep mode (`references/prep-mode.md`) may already have done Steps 1 to 3 for this PR, including
-the driven run. Check before loading anything else:
+the driven run. Check before loading anything else, with the head from step 1 and the scope
+Step 0 resolved (the reviewer's dimensions as a comma list, or `all` on the unscoped path):
 
 ```bash
-python3 <skill-dir>/scripts/review-prep/prep_status.py get REPO#NUMBER --head <headRefOid>
+python3 <skill-dir>/scripts/review-prep/prep_status.py get REPO#NUMBER --head <headRefOid> --scope functional,product
 ```
+
+**Check the whole unit, not only this PR.** The entry's `unit` field lists every PR the packet
+was built for: prep mode records the siblings the brief named when it claimed the unit. For each
+sibling in `unit`, get its `headRefOid` with the same `gh pr view` as step 1 and run `get` on it
+too, with the same `--scope`. The unit is prepped only when **every** PR in it reads `ready`.
+When any sibling reads anything else, take that row below for the whole unit: the packet's plan,
+driven results, and questions describe the unit at the heads it was prepped at, and a sibling
+that moved makes them describe old code. If the brief, read on the `ready` path, names a sibling
+that `unit` does not list, the unit grew after the prep, so run the review the normal way.
 
 | `state` | What to do |
 |---|---|
 | `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir`, and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done |
 | `running` | A prep run is working on it now. Say so, and offer to wait for it or to review now. Never drive the same multidev from two sessions at once |
-| `stale` | The developer pushed after the prep. Say so, then run the review the normal way. The old packet is not reused |
-| `failed` | Say the recorded reason in one line, then run the review the normal way. A failure from the environment (no multidev, branch not deployed) usually fails the live run too, so check it first |
+| `stale` | The developer pushed after the prep, or the packet was built for a different reviewer scope: `reason` says which. Say so, then run the review the normal way. The old packet is not reused. If `previousState` is `running`, a prep run is still driving the old head on this multidev: wait for it to finish, or for its 90-minute TTL, before any browser run of your own |
+| `failed` | Say the recorded reason in one line, then run the review the normal way. A failure from the environment (no multidev, branch not deployed) usually fails the live run too, so check it first. A failure is only reported against the head it was recorded on; after a push it reads as `stale` |
 | `none`, or the script is missing | Run the review the normal way, without comment |
 
 If `prep.json` says cleanup failed, name the items still on the multidev before anything else.
@@ -310,8 +320,10 @@ option cards. The reviewer can pin, box, and comment on what they see, and one c
 back. Both parts below go on it, Part 2 as the last page. `AskUserQuestion` is the fallback for
 the cases that reference lists (no in-lane calls, no local browser, or a reviewer who prefers
 chat). The sorting rules below decide what goes on the board, and they do not change.
-When Step 1 found a current prepped board, the packet is already built: start the board on it
-(`review-board.md` Step R2) instead of building a new one.
+When Step 1 found a current prepped board, the packet is already built: serve it from this
+session's own packets folder through a symlink (`review-board.md` Step R1) instead of building a
+new one. Its `prep.json` carries every held call tagged by dimension, so the out-of-lane calls to
+name below come from there.
 
 **Part 1, the held calls.** Put the brief's **Your calls** items to the user. They
 are already scoped to real product decisions (copy, defaults, role gating, scope) because the

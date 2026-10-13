@@ -29,6 +29,15 @@ class ReviewBoardServerTest(unittest.TestCase):
             f.write(bytes(range(100)))
         with open(os.path.join(cls.tmp.name, "..", "outside.txt"), "w") as f:
             f.write("secret")
+        # A prepped packet lives outside the packets folder and is reached through a symlink.
+        cls.prepped = tempfile.TemporaryDirectory()
+        cls.prepped_packet = os.path.join(os.path.realpath(cls.prepped.name), "ysp-2")
+        os.makedirs(cls.prepped_packet)
+        with open(os.path.join(cls.prepped_packet, "packet.json"), "w") as f:
+            json.dump({"title": "Prepped", "questions": []}, f)
+        with open(os.path.join(cls.prepped_packet, "01-fail.png"), "wb") as f:
+            f.write(b"png")
+        os.symlink(cls.prepped_packet, os.path.join(cls.packets, "ysp-2"))
         cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(cls.packets))
         cls.base = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
         threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
@@ -39,6 +48,7 @@ class ReviewBoardServerTest(unittest.TestCase):
         cls.httpd.server_close()
         os.remove(os.path.join(cls.tmp.name, "..", "outside.txt"))
         cls.tmp.cleanup()
+        cls.prepped.cleanup()
 
     def status(self, path, data=None, headers=None):
         req = urllib.request.Request(self.base + path, data=data, headers=headers or {},
@@ -70,6 +80,18 @@ class ReviewBoardServerTest(unittest.TestCase):
     def test_packet_paths_cannot_escape(self):
         self.assertEqual(self.status("/packets/../outside.txt")[0], 404)
         self.assertEqual(self.status("/packets/%2e%2e/outside.txt")[0], 404)
+        self.assertEqual(self.status("/packets/ysp-1/../ysp-2/packet.json")[0], 404)
+        self.assertEqual(self.status("/packets/ysp-2/../outside.txt")[0], 404)
+
+    def test_symlinked_packet_is_served_and_answered_in_place(self):
+        code, body = self.status("/packets/ysp-2/packet.json")
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body)["title"], "Prepped")
+        self.assertEqual(self.status("/packets/ysp-2/01-fail.png"), (200, b"png"))
+        code, _ = self.status("/api/answers?packet=ysp-2", json.dumps({"answers": [2]}).encode())
+        self.assertEqual(code, 204)
+        with open(os.path.join(self.prepped_packet, "answers.json")) as f:
+            self.assertEqual(json.load(f), {"answers": [2]})
 
     def test_clips_serve_byte_ranges_for_seeking(self):
         clip = "/packets/ysp-1/clip.webm"

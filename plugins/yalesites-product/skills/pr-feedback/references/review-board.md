@@ -40,10 +40,21 @@ One packet per review, or one per batch. The packet folder lives in the session 
   06-fail-editor-escape-focus.webm
 ```
 
-**A prepped packet is already built.** When `SKILL.md` Step 1 found one, skip this step and
-start the server on the prep packets folder, `~/.claude/yalesites/pr-review-prep/packets`,
-instead of the scratchpad (Step R2). Delete a leftover `answers.json` in it first, as below.
-Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
+**A prepped packet is already built.** When `SKILL.md` Step 1 found one, do not write a packet,
+and do not start the server on the shared prep folder. Make this session's packets folder as
+usual and put a symlink in it that points at the prepped packet:
+
+```bash
+mkdir -p <scratchpad>/review-board/packets
+ln -s ~/.claude/yalesites/pr-review-prep/packets/<id> <scratchpad>/review-board/packets/<id>
+```
+
+Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
+built here. The server follows the link, so the board reads the prepped files, and `answers.json`
+still lands inside the prepped packet, where Step R4 expects it. Delete a leftover `answers.json`
+there first, as below. The per-session folder is what keeps Step R2's health check honest: a
+server started on the shared folder would answer every session's check with the same `packets`
+path. Prep mode builds its packets with this same step (`references/prep-mode.md` Step P4).
 
 Use `<repo-short>-<number>` for the id (`ysp-1598`, `clt-728`), or `batch-<yyyy-mm-dd>` for a
 batch. Copy every screenshot and clip the packet names into the folder. Use the `.webm` for clips:
@@ -149,6 +160,11 @@ there:
 | `{"app": "pr-feedback-review-board", "packets": "<this session's packets folder>"}` | This session's board is already running. Reuse it and skip starting one |
 | Anything else (another session's board, another app) | Taken. Try the next port up |
 
+The `packets` path in the health check is only proof of ownership because it is this session's
+scratchpad folder, which no other session serves. A match on a shared folder, such as the prep
+packets folder, is not proof the server belongs to this session, which is why Step R1 never
+serves that folder directly.
+
 **In the Claude desktop app, with the Browser pane tools,** let the pane run the server. Add this
 to `configurations` in the project's `.claude/launch.json` (create the file with
 `"version": "0.0.1"` if there is none):
@@ -250,4 +266,7 @@ When the review is posted, or abandoned:
 - Undo the `.claude/launch.json` change: remove the `pr-review-board` entry, or the whole file if
   you created it. Never commit it.
 - Leave the packet folder. Like the drive-it screenshots and clips, it is the evidence for the
-  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it.
+  review. A prepped packet stays where prep mode put it, and its `answers.json` stays with it:
+  when the developer pushes and prep rebuilds the packet, the old folder is archived as
+  `<id>-<oldsha>` next to the new one (`references/prep-mode.md` Step P4), not deleted. The
+  symlink in this session's packets folder holds nothing and goes with the scratchpad.

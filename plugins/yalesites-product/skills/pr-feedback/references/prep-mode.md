@@ -18,7 +18,7 @@ it.
 
 | Part of the review | In prep mode |
 |---|---|
-| Step 0, whose review this is | Kept, silently. The packet is scoped to the reviewer's dimensions |
+| Step 0, whose review this is | Kept, silently. The packet is scoped to the reviewer's dimensions, and that scope is recorded in the status entry and `prep.json` (Steps P2 and P4), so a review scoped differently does not reuse it |
 | Step 0b, session title | Skipped |
 | Step 1, the brief | Kept. No current brief means `pr-prereview {repo}#{number} --dry-run`, as Step 1 says |
 | Step 2, spot-check | Kept |
@@ -47,36 +47,41 @@ Then apply `batch-mode.md` Step B1: its readiness rules (carries `needs review`,
 `DEMO ONLY`, or `DO NOT MERGE` title), its sibling grouping into units, and its skip for `needs
 work`. A PR that is mid-fix will move again, so prepping it wastes a run.
 
-**Skip a unit whose packet is current.** For each PR, check the status file (Step P5):
+**Order the units with one sort key:** `yalesites-project` units first, because they are the ones
+with a browser run to save, then newest `updatedAt` first within each group (a unit's `updatedAt`
+is its newest PR's). Walk the list in that order.
 
-```bash
-python3 <skill-dir>/scripts/review-prep/prep_status.py get <repo>#<number> --head <headRefOid>
-```
-
-| `state` | What to do |
-|---|---|
-| `ready` | The packet matches the head. Skip the unit |
-| `running` | Another prep run has it. Skip the unit |
-| `stale`, `failed`, `none` | Prep it |
-
-A `failed` unit is retried once per new head, not every run. If the failure was recorded against
-the same head and the reason is the environment (no multidev, branch not deployed), skip it until
-the head moves.
-
-**Cap each run at 3 units**, newest `updatedAt` first. A driven run takes 15 to 20 minutes, and
-the next scheduled run picks up the rest. Units on `yalesites-project` go first, because they are
-the ones with a browser run to save.
+**Cap each run at 3 prepped units.** A driven run takes 15 to 20 minutes, and the next scheduled
+run picks up the rest. A unit the claim in Step P2 refuses does not count against the cap: move on
+to the next one in the list. Which units are worth prepping is decided by that claim, not here:
+do not pre-filter the list with `get`.
 
 Call `prep_status.py run-start` once before the first unit, and `run-end` once after the last.
 
-## Step P2: Brief, spot-check, plan
+## Step P2: Claim the unit, then brief, spot-check, plan
 
-For each unit, mark it running first, with every PR in the unit and its head:
+**Claim the unit first, with `start`.** It is the only claim there is. Do not check with `get`
+and then call `start`: two runs (the schedule and a dashboard "Prep board" click) can both read
+`stale` in between and both drive the same multidev, creating the same `qa-<role>` users and
+removing each other's test content. `start` runs under the status file's lock and either takes
+the unit or refuses, in one step. Name every PR in the unit with its head, and the reviewer scope
+Step 0 resolved (the dimensions as a comma list, or `all` on the unscoped path):
 
 ```bash
 python3 <skill-dir>/scripts/review-prep/prep_status.py start \
-  --pr yalesites-project#1608=<head> --pr component-library-twig#774=<head> --packet ysp-1608
+  --pr yalesites-project#1608=<head> --pr component-library-twig#774=<head> \
+  --packet ysp-1608 --scope functional,product
 ```
+
+| `start` says | What to do |
+|---|---|
+| `claimed: true` | Prep it. The entry is `running`, with the scope and the unit's PR list recorded |
+| Refused: another prep run has it | Skip the unit. The other run is driving that multidev now. `--force` does not override this one |
+| Refused: the packet is current | Skip the unit. Every PR in it reads `ready` for these heads and this scope |
+| Refused: already failed on these heads | Skip the unit. A failed unit is retried once per new head, not every run; a dashboard button that wants a rebuild now passes `--force` |
+
+A refusal is exit code 2 with the reason as one JSON line on stdout. Record it in the digest
+(Step P6) as skipped, with that reason.
 
 Then run `SKILL.md` Steps 0, 1, and 2 exactly as written, without the chat output. Write the
 Step 3 test plan, beyond-AC rows included, to `plan.md` in the run folder. The review session
@@ -118,6 +123,18 @@ and a prepped board built on a broken environment is worse than none.
 looked at before it gets a result, and `results.md` is written as usual. The packet carries them
 to the reviewer instead.
 
+**Heartbeat between steps.** A `running` entry expires 90 minutes after its last stamp, and a
+unit with a slow multidev, several roles, or a clip retry can run longer than that. Once it
+expires, a live review reads it as `failed: interrupted` and drives the same multidev. So after
+every D-step, and after each role in a multi-role run, re-stamp the unit:
+
+```bash
+python3 <skill-dir>/scripts/review-prep/prep_status.py heartbeat --packet ysp-1608
+```
+
+A run that dies stops stamping, and reads as interrupted once the 90 minutes pass. That is the
+only way a dead run is ever reported, so do not skip the heartbeat on a short unit either.
+
 For a unit with nothing to drive (Storybook, `atomic`, `tokens`, or a failed preflight), the
 packet still gets built in Step P4, from the brief alone, and the plan in `plan.md` is the
 hand-off walkthrough for the review session.
@@ -139,22 +156,43 @@ Follow `review-board.md` Step R1, with two differences:
   ```
 
   Use the unit's `yalesites-project` PR for the id when it has one (`ysp-1608`), or its first PR
-  otherwise. Replace the folder if one exists, so no `answers.json` from an earlier head survives.
+  otherwise. **If the folder already exists, archive it, never delete it:** rename it to
+  `<id>-<oldsha>`, where `<oldsha>` is the first 7 characters of the head it was built from (the
+  unit's first PR in its `prep.json`), for example `ysp-1608-4ae17e5`. An `answers.json` in it is
+  the record of an earlier review, which `review-board.md` Step R4 promises stays with the packet,
+  and a review session may still have that board open. Build the new packet in a fresh `<id>`
+  folder, so no old `answers.json` ends the next review's wait early.
 - **Write `prep.json` next to `packet.json`.** It holds what the review session needs and the
   board does not show:
 
   ```json
   {
     "prs": { "yalesites-project#1608": "<head>", "component-library-twig#774": "<head>" },
+    "scope": ["functional", "product"],
     "briefSha": "<sha the brief was written against>",
     "runDir": "~/.claude/yalesites/pr-feedback/runs/yalesites-project-1608-2026-10-04",
     "results": { "pass": 8, "fail": 1, "ask": 2, "blocked": 0 },
     "fails": ["04-fail-editor-overflow-360.png"],
-    "outOfLane": ["The `--variant` default on line 88 is a code call, for our lead developer."],
+    "heldCalls": [
+      { "dimension": "product", "question": "Should the new field default to on for existing sites?", "onBoard": "default-on" },
+      { "dimension": "code", "question": "Keep the `--variant` default on line 88, or make it explicit?", "onBoard": null, "owner": "lead developer" }
+    ],
+    "findingsForDev": [
+      { "dimension": "functional", "file": "web/modules/custom/ys_core/src/Form/SettingsForm.php", "line": 88,
+        "what": "The default is set twice", "why": "The second assignment wins silently", "blocking": false }
+    ],
     "cleanup": "done",
     "builtAt": "2026-10-04T13:05:00Z"
   }
   ```
+
+  `scope` is the reviewer scope from Step P2, as recorded in the status entry (`["all"]` on the
+  unscoped path). `heldCalls` and `findingsForDev` carry **every** item from the brief, tagged
+  with its dimension and unfiltered, in the shape `batch-mode.md` Step B2 has a subagent return.
+  The board holds only the in-lane questions, so this is where the review session gets the
+  out-of-lane calls to name (`SKILL.md` Step 3b) and the mechanical findings for Step 4, and
+  where batch mode reads them for a prepped unit instead of fanning out a subagent. `onBoard`
+  is the question id when the call went on the board, and `null` when it did not.
 
 The questions follow Step 3b's sorting: in-lane held calls and every `ask` screenshot go on the
 board. `fail` results do not become questions, because a failure is a finding, not a call. Put
@@ -168,10 +206,12 @@ When a unit is done, mark every PR in it ready:
 ```bash
 python3 <skill-dir>/scripts/review-prep/prep_status.py ready \
   --pr yalesites-project#1608=<head> --pr component-library-twig#774=<head> --packet ysp-1608 \
-  --questions 3 --driven --results pass=8,fail=1,ask=2,blocked=0 --cleanup done
+  --scope functional,product --questions 3 --driven --results pass=8,fail=1,ask=2,blocked=0 \
+  --cleanup done
 ```
 
-Leave out `--driven` when there was no browser run. When a unit stops early, mark it failed with
+`--scope` is the same value the claim in Step P2 used. Leave out `--driven` when there was no
+browser run. When a unit stops early, mark it failed with
 a reason a person can act on, in one line: "multidev pr-1605 does not exist (25/25 cap?)", "the
 server runs profile 2.30.1, the branch has 2.30.3", "Chrome did not launch". The status file is
 what a dashboard reads, so the reason is the whole message.
