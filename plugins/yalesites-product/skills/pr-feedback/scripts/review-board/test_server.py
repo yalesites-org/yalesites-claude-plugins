@@ -40,6 +40,16 @@ class ServerTestBase(unittest.TestCase):
             f.write(bytes(range(100)))
         with open(os.path.join(cls.tmp.name, "..", "outside.txt"), "w") as f:
             f.write("secret")
+        # A prepped packet lives outside the packets folder, in a versioned folder named by
+        # prep_status.py, and is reached through a symlink named for the packet id.
+        cls.prepped = tempfile.TemporaryDirectory()
+        cls.prepped_packet = os.path.join(os.path.realpath(cls.prepped.name), "ysp-2-abc1234-20261004T130500Z")
+        os.makedirs(cls.prepped_packet)
+        with open(os.path.join(cls.prepped_packet, "packet.json"), "w") as f:
+            json.dump({"title": "Prepped", "questions": []}, f)
+        with open(os.path.join(cls.prepped_packet, "01-fail.png"), "wb") as f:
+            f.write(b"png")
+        os.symlink(cls.prepped_packet, os.path.join(cls.packets, "ysp-2"))
         cls.httpd = ThreadingHTTPServer(("127.0.0.1", 0), server.make_handler(cls.packets, **cls.handler_kwargs))
         cls.port = cls.httpd.server_address[1]
         cls.base = f"http://127.0.0.1:{cls.port}"
@@ -51,6 +61,7 @@ class ServerTestBase(unittest.TestCase):
         cls.httpd.server_close()
         os.remove(os.path.join(cls.tmp.name, "..", "outside.txt"))
         cls.tmp.cleanup()
+        cls.prepped.cleanup()
 
     def status(self, path, data=None, headers=None):
         req = urllib.request.Request(self.base + path, data=data, headers=headers or {},
@@ -89,6 +100,18 @@ class ReviewBoardServerTest(ServerTestBase):
     def test_packet_paths_cannot_escape(self):
         self.assertEqual(self.status("/packets/../outside.txt")[0], 404)
         self.assertEqual(self.status("/packets/%2e%2e/outside.txt")[0], 404)
+        self.assertEqual(self.status("/packets/ysp-1/../ysp-2/packet.json")[0], 404)
+        self.assertEqual(self.status("/packets/ysp-2/../outside.txt")[0], 404)
+
+    def test_symlinked_packet_is_served_and_answered_in_place(self):
+        code, body = self.status("/packets/ysp-2/packet.json")
+        self.assertEqual(code, 200)
+        self.assertEqual(json.loads(body)["title"], "Prepped")
+        self.assertEqual(self.status("/packets/ysp-2/01-fail.png"), (200, b"png"))
+        code, _ = self.post("/api/answers?packet=ysp-2", json.dumps({"answers": [2]}).encode())
+        self.assertEqual(code, 204)
+        with open(os.path.join(self.prepped_packet, "answers.json")) as f:
+            self.assertEqual(json.load(f), {"answers": [2]})
 
     def test_clips_serve_byte_ranges_for_seeking(self):
         clip = "/packets/ysp-1/clip.webm"
@@ -175,6 +198,18 @@ class DocsBoardServerTest(ServerTestBase):
         self.assertEqual(code, 403)
         code, _ = self.status("/api/decisions?packet=ysp-1", b"{}", {"Content-Type": "text/plain"})
         self.assertEqual(code, 403)
+
+    def test_post_cannot_write_outside_a_packet_folder(self):
+        # `..` and `.` match PACKET_ID, so they must be refused by the folder resolution itself.
+        parent = os.path.dirname(self.packets)
+        self.assertEqual(self.status("/api/answers?packet=..", json.dumps({"answers": []}).encode())[0], 404)
+        self.assertFalse(os.path.exists(os.path.join(parent, "answers.json")))
+        self.assertFalse(os.path.exists(os.path.join(parent, "answers.json.tmp")))
+        self.assertEqual(self.status("/api/answers?packet=.", json.dumps({"answers": []}).encode())[0], 404)
+        self.assertFalse(os.path.exists(os.path.join(self.packets, "answers.json")))
+        self.assertFalse(os.path.exists(os.path.join(self.packets, "answers.json.tmp")))
+        self.assertEqual(self.status("/api/answers?packet=...", b"{}")[0], 404)
+        self.assertEqual(self.status("/api/answers?packet=%2e%2e", b"{}")[0], 404)
 
 
 class PortChoiceTest(unittest.TestCase):

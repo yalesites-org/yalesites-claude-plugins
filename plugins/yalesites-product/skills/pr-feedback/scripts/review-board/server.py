@@ -12,7 +12,9 @@ A packet is <dir>/<id>/packet.json plus the files it names. The board lives at
 http://localhost:<port>/?packet=<id>. A POST to --route (default /api/answers)
 writes <dir>/<id>/<--out> (default answers.json). The defaults are pr-feedback's
 review board. yalesites-docs-board starts this same server with its own
---board-dir, --route, --out, and --app, so one copy serves both.
+--board-dir, --route, --out, and --app, so one copy serves both. <dir>/<id> may be
+a symlink to a packet kept elsewhere (a prepped one); files are then served from,
+and the output file written to, the folder it points at.
 
 A POST is accepted only from the board itself: the Host (and the Origin, when a
 browser sends one) must be localhost or 127.0.0.1 on this port, and the body
@@ -39,6 +41,23 @@ RANGE = re.compile(r"^bytes=(\d*)-(\d*)$")
 LOCAL_HOSTS = ("localhost", "127.0.0.1")
 
 
+def packet_file(packets_dir, rel):
+    """Resolve `<id>/<file>` under the packets folder, or None if it escapes.
+
+    A packet folder may be a symlink to a packet kept elsewhere (a prepped one,
+    served from a per-session folder), so the escape check is made against the
+    packet folder's own real path, not against the packets folder.
+    """
+    packet, _, rest = rel.partition("/")
+    if not PACKET_ID.match(packet) or set(packet) == {"."}:
+        return None
+    root = os.path.realpath(os.path.join(packets_dir, packet))
+    full = os.path.realpath(os.path.join(root, rest)) if rest else root
+    if full == root or full.startswith(root + os.sep):
+        return full
+    return None
+
+
 def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP):
     board_dir = os.path.realpath(board_dir)
 
@@ -53,11 +72,8 @@ def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP
         def translate_path(self, path):
             url_path = unquote(urlparse(path).path)
             if url_path.startswith("/packets/"):
-                rel = url_path[len("/packets/"):]
-                full = os.path.realpath(os.path.join(packets_dir, rel))
-                if full == packets_dir or full.startswith(packets_dir + os.sep):
-                    return full
-                return os.path.join(packets_dir, "__denied__")
+                return packet_file(packets_dir, url_path[len("/packets/"):]) \
+                    or os.path.join(packets_dir, "__denied__")
             if url_path in ("/", "/index.html"):
                 return os.path.join(board_dir, "index.html")
             return os.path.join(board_dir, "__not_found__")
@@ -142,8 +158,8 @@ def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP
             if ctype != "application/json":
                 self.send_json(403, {"error": "Content-Type must be application/json"})
                 return
-            folder = os.path.join(packets_dir, packet)
-            if not os.path.isdir(folder):
+            folder = packet_file(packets_dir, packet)
+            if folder is None or not os.path.isdir(folder):
                 self.send_error(404, "Unknown packet")
                 return
             length = int(self.headers.get("Content-Length", 0))
