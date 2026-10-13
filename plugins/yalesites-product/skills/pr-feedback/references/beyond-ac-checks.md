@@ -74,15 +74,24 @@ and run the same steps in each.
 - Visreg multidevs carry `e2etest`, a `site_admin`. Use it.
 - There is usually no editor or contributor test user. Creating one is a write to the multidev,
   so ask the user once per PR first (the same gate as creating test content). Name them
-  `qa-<role>`. On the PR's own multidev, check for one first and create only if it is
-  missing, since an earlier run on the same PR may have left it:
+  `qa-<role>`. Which snippet applies depends on where you are:
+
+  On the reviewed PR's own multidev, an existing `qa-<role>` was left by an earlier run on
+  this PR, so check first and create only if it is missing:
   ```bash
   terminus drush <site>.<env> -- user:information qa-editor \
     || { terminus drush <site>.<env> -- user:create qa-editor --mail=qa-editor@example.invalid \
          && terminus drush <site>.<env> -- user:role:add editor qa-editor; }
   ```
-  A reused user is recorded as `user qa-editor reused` in `.created`. Anywhere else, an
-  existing `qa-<role>` is not ours: do not reuse it and do not remove it; ask the user.
+  A reused user is recorded as `user qa-editor reused` in `.created`.
+
+  Anywhere else (`dev`, a shared multidev, another PR's multidev used as a baseline), an
+  existing `qa-<role>` is not ours. Run `user:information qa-editor` first: if it finds a user,
+  stop and ask before doing anything with it; only if it finds nothing, create:
+  ```bash
+  terminus drush <site>.<env> -- user:create qa-editor --mail=qa-editor@example.invalid
+  terminus drush <site>.<env> -- user:role:add editor qa-editor
+  ```
   What happens to them afterwards follows Step D5 of `drive-it.md`: on the PR's own
   multidev they stay, so role checks can be repeated with `uli`; anywhere else the ones this
   run created are removed when testing ends (`-y user:cancel --delete-content qa-editor`).

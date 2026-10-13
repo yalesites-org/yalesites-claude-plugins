@@ -121,8 +121,11 @@ Put them in a legend in the packet `subtitle`, one entry per label, so the mappi
 once at the top of every page:
 
 ```
-Develop = pr-1612, develop at 41ed37c (Storybook 8, webpack) · Vite = pr-1413, 1435 branch at b556763 (Storybook 10, Vite)
+Develop = pr-1612, develop at 41ed37c (Storybook 8, webpack) | Vite = pr-1413, 1435 branch at b556763 (Storybook 10, Vite)
 ```
+
+Separate legend entries with ` | `, not ` · `: the board header joins the PR ref, the issue
+link, and the subtitle with ` · `, so a legend using the same mark reads as more header items.
 
 Use the same labels everywhere in the packet: captions, block labels, mark notes, question
 text, and option details. Put the same side on the left in every pair, the baseline first.

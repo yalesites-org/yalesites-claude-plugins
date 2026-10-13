@@ -119,9 +119,10 @@ site itself; a PR multidev is a disposable copy. Still, ask the user once per PR
 Only these kinds, because Step D5 knows how to handle each one. Anything else a step would
 need is out of bounds: say so and hand that step off.
 
-Say in the same question what happens afterwards: on a `pr-<N>` multidev the test content
-stays after the run, so the reviewer can open it and check the findings by hand, and settings
-go back to their original values. See Step D5.
+Say in the same question what happens afterwards: on this PR's own `pr-<N>` multidev the test
+content stays after the run, so the reviewer can open it and check the findings by hand, and
+settings go back to their original values. Anywhere else, including another PR's multidev
+used as a baseline, everything the run made is removed. See Step D5.
 
 Offer the alternative in the same question: test on an existing page such as
 `/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
@@ -143,8 +144,11 @@ run on the same PR finds them already there. Before creating a user, check for i
 (`terminus drush ... -- user:information qa-<role>`) and reuse it if it exists, since
 `user:create` fails on a duplicate name. Before creating content, read the `.created` files of
 earlier run folders for the same PR (`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-*/`) and
-reuse a `kept` item that still exists and fits the step. Write a reused item into this run's
-`.created` as `node 84 reused`, so D5 knows this run did not make it and must never remove it.
+reuse a `kept` item that still exists, is still ours, and fits the step. Still ours means its
+title still starts with `QA pr-<N>` (check with the `sqlq` title query from D5) or, for a user,
+its name still starts with `qa-`: a multidev rebuilt from `dev` can reuse a node id for real
+content. Write a reused item into this run's `.created` as `node 84 reused`, so D5 knows this
+run did not make it and must never remove it.
 
 Reuse only what the step reads. A step that tests creating or saving (and any step whose
 earlier finding was a create or save bug) runs against the new code only if it creates the
@@ -465,8 +469,9 @@ an unsaved Layout Builder draft for it either. After deleting the node, clear it
 
 Report cleanup item by item, kept items included. If anything could not be removed or
 reverted, say which item and why. Do not report cleanup as done while `.created` lists a
-setting that has not been reverted, or, off a `pr-<N>` multidev, anything still in place. Leave the
-screenshots, clips, and `results.md`: they are the evidence for the review.
+setting that has not been reverted, or, anywhere other than the reviewed PR's own multidev,
+anything still in place. Leave the screenshots, clips, and `results.md`: they are the evidence
+for the review.
 
 ## Handing results to the rest of the skill
 
