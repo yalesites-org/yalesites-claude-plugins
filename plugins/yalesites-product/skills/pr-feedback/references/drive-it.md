@@ -121,16 +121,60 @@ site itself; a PR multidev is a disposable copy. Still, in a live review, ask th
 - creating `qa-<role>` users
 - changing a setting
 
-Only these kinds, because Step D5 has a removal or revert step for each. Anything else a step
-would need is out of bounds: say so and hand that step off.
+Only these kinds, because Step D5 knows how to handle each one. Anything else a step would
+need is out of bounds: say so and hand that step off.
+
+Say in the same question what happens afterwards: on this PR's own `pr-<N>` multidev the test
+content stays after the run, so the reviewer can open it and check the findings by hand, and
+settings go back to their original values. Anywhere else, including another PR's multidev
+used as a baseline, everything the run made is removed. See Step D5.
 
 Offer the alternative in the same question: test on an existing page such as
 `/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
 
-Record everything as it is created, in `.created` in the run folder, one line per item:
-`node <nid>`, `block_content <id>`, `media <mid>`, `file <fid>`, `user qa-<role>`, and for a
-setting, `config <name> <key> <original value>` written **before** changing it, from
-`terminus drush ... -- config:get <name> <key>`. Step D5 works from this file and nothing else.
+Record everything as it is created, in `.created` in the run folder, one line per item,
+starting with the environment it lives on: `pr-1413 node <nid>`, `pr-1413 block_content <id>`,
+`pr-1413 media <mid>`, `pr-1413 file <fid>`, `pr-1413 user qa-<role>`, and for a setting,
+`pr-1413 config <name> <key> <original value>` written **before** changing it, from
+`terminus drush ... -- config:get <name> <key>`. The environment column is what D5 keys on: a
+parity run creates content on the reviewed PR's multidev and on a baseline, and `node 84` alone
+cannot say which. Step D5 works from this file and nothing else.
+
+**Title test content so anyone can tell it apart.** Kept content shows up in views, calendars,
+search, and listing blocks on other pages, where the next tester or a visreg pass will see it.
+Start every test page, event, post, profile, and reusable block title with
+`QA pr-<N> <YYYY-MM-DD>:`, where N is the number of the PR under review, not the ticket (for
+example `QA pr-1413 2026-10-13: Event with no end date` for the 1435 ticket's PR).
+
+**Reuse before creating, on a second run of the same PR, on that PR's own multidev only.**
+Step D5 keeps content and `qa-<role>` users on the multidev of the PR under review, so a later
+run on the same PR finds them already there. Before creating a user, check for it
+(`terminus drush ... -- user:information qa-<role>`) and reuse it if it exists, since
+`user:create` fails on a duplicate name. Before creating content, read the `.created` files of
+earlier run folders for the same PR (`~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-*/`) and
+reuse a `kept` item that still exists, is still ours, and fits the step. Only nodes and users
+can be shown to be ours, so only they are reused; kept media, files, and reusable blocks have no
+ownership check and are recreated instead. A node is still ours when its title still starts
+with `QA pr-<N> ` with the trailing space (check with the `sqlq` title query from D5;
+`QA pr-141` must not match `QA pr-1413 ...`). A user is still ours when `user:information`
+shows its roles are exactly `<role>` plus authenticated; the name alone proves nothing, since
+you looked it up by name, and a multidev rebuilt from `dev` can carry someone else's
+`qa-editor` with other roles, or reuse a node id for real content. A user with any other role
+set means stop and ask. Write a reused item into this run's `.created` as
+`pr-<N> node 84 reused`, so D5 knows this run did not make it and must never remove it.
+
+An earlier run folder for this PR whose `.created` has no `kept` or `reused` markers is a run
+that stopped before D5 (a crash, a preflight failure, a user stop). Its lines for this PR's own
+multidev are kept candidates under the same ownership checks: a node or user that passes is
+reusable and becomes `kept` at this run's D5; one that fails is reported, not touched; its media,
+files, and reusable blocks are reported as leftovers for the user to decide on.
+
+Reuse only what the step reads. A step that tests creating or saving (and any step whose
+earlier finding was a create or save bug) runs against the new code only if it creates the
+item again, so recreate for those steps rather than reusing a node the old code saved.
+
+Anywhere other than the PR's own multidev, an existing `qa-<role>` user or `QA pr-` content is
+not ours: do not reuse it and do not remove it. Ask the user how to proceed.
 
 ## Step D2: Log in, one session per role
 
@@ -222,8 +266,11 @@ sits at x=465" is evidence. "It looks right" is not.
 Save them under one folder per run, so the user can find them later and attach them to GitHub:
 
 ```
-~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-<YYYY-MM-DD>/
+~/.claude/yalesites/pr-feedback/runs/<repo>-<N>-<YYYY-MM-DD>-<HHMM>/
 ```
+
+The time suffix gives every run its own folder and its own `.created`, so a second run on
+the same day neither overwrites the first run's results nor mixes its items into one file.
 
 Name each file `<NN>-<result>-<role>-<slug>.png`, where `<result>` is one of:
 
@@ -300,6 +347,16 @@ the step's screenshot, with `.webm`. What we learned in trial runs:
 
 - **Resize first, and pass a matching `--size`.** The default frame fits 800x800, which shrinks
   a desktop page until text is hard to read.
+- **Fit the whole component in the frame, for the whole clip.** Measure the element first
+  (`boundingBox()` on it) and size the viewport to its height plus a little margin, keeping the
+  width you are testing at. Then scroll its top edge to the top of the frame before
+  `video-start`. 1280x720 is not a default to reach for: a month calendar is about 1,100px tall
+  at 1280px wide, and a 720px clip of it cut off the rows and the month controls the bug
+  depended on, so the reviewer could not follow it. If the component is taller than a sensible
+  frame, record the part the bug happens in and say so in the caption. Keep the planned
+  viewport when the behavior depends on viewport height (sticky headers, `vh`-sized heroes,
+  modals and dialogs centered on the viewport): a taller frame changes the layout under test.
+  Scroll or record in parts instead, and say so in the caption.
 - **Drive the steps you want seen with CLI commands** (`click <ref>`, `press`, `fill`).
   `--cursor` draws a pointer that travels to each action and paces it by 800ms, so a viewer can
   follow. Actions inside one `run-code` call run at machine speed: add a
@@ -361,8 +418,63 @@ reviewer) shows up in the same log, and its access-denied entries are not the ru
 
 ## Step D5: Clean up
 
-Remove exactly what `.created` lists, and nothing else. Check each target before removing it
-(its title, name, or current value), and work through the kinds in this order:
+**On the multidev of the PR under review, keep the test content and revert only the
+settings.** That is `pr-<N>` for the PR's own number, and only that one: another PR's multidev
+used as a baseline (the 1435 parity run used pr-1612 for develop) belongs to that PR's
+reviewer, who never agreed to our content in their calendars and listings, so it gets the
+"anywhere else" treatment. The PR's own multidev goes away with the PR: the yalesites-project build workflow runs `push-to-pantheon`
+with `delete_old_environments` on, which deletes the `pr-<N>` multidev of every closed PR,
+merged or not, after the next successful PR deploy. So a closed PR's multidev lasts until the
+next deploy, not a moment longer, and an open PR keeps its multidev, and anything kept on it,
+for as long as the PR stays open. Leftover test pages cost nothing there. Deleting them costs
+a lot: the review board links straight to those pages, and a finding the reviewer cannot
+reproduce by hand is one they cannot confirm. This is not hypothetical. On the 1435 Vite
+parity run, cleanup deleted the four calendar events that the top finding needed, and the
+reviewer opened the board link to an empty calendar.
+
+| Kind | On the PR's own `pr-<N>` | Anywhere else |
+|---|---|---|
+| Setting | Revert it | Revert it |
+| Test page, reusable block, media, file | **Keep it** | Remove it |
+| `qa-<role>` user | **Keep it**, so role checks can be repeated with `uli` | Remove it |
+| Anything marked `reused` | Leave it | Leave it: this run did not make it |
+| Browser sessions | Close them | Close them |
+
+Revert settings even on the PR's own multidev: a changed setting alters every page for the next tester,
+who has no way to know it was changed. Kept content can show up for others too (a kept event
+sits in every calendar, a kept post in every listing and search), which is why D1 titles it
+`QA pr-<N> <date>:`, so whoever meets it knows what it is and that it is safe to ignore.
+
+When a finding depends on a changed setting, the kept page stops reproducing it the moment the
+setting is reverted. Say so in the screenshot caption and in the report, with the setting and
+the value needed to see it again (for example "needs `ys_core.settings theme` set to
+`theme_four`"), so the reviewer who opens the board link knows what to change first.
+
+Kept nodes still get their Layout Builder tempstore cleared. A step that cancelled or discarded
+a layout change can leave an unsaved draft behind, and the reviewer who opens the kept page's
+layout then finds it locked by the run's user, or sees draft content that differs from the
+screenshot. Run the `key_value_expire` delete below for every kept `node <nid>`, unless the
+unsaved draft is itself the finding, in which case say so in the report.
+
+One line format for what stays. At D5, every item left in place ends up in `.created` as
+`<env> <kind> <id> kept` (for example `pr-1413 node 84 kept`), whether this run created it or
+reused it (rewrite a `reused` line to `kept` once it is confirmed still there). Kept handling (the tempstore clear above, the URL
+in the report) applies to all of them, and the next run looks only for `kept`. List kept
+items in the report with their URLs, so the reviewer can find them. The `qa-<role>` users have
+no password and are reachable only by `uli`; if a PR goes quiet for weeks, removing them is
+still the right call, with `-y user:cancel --reassign-content qa-<role>` so the kept content
+they authored stays and the board links keep working.
+
+"Anywhere else" covers `dev`, `test`, `live`, any other PR's multidev, and any shared or
+long-lived multidev. If you are unsure which kind of environment it is, ask before leaving
+anything behind.
+
+When removing, remove exactly what `.created` lists as made by this run, and nothing else:
+never a `reused` line, since `user:cancel --delete-content` on a user this run did not create
+would also delete content it never made. Read the environment off each line and decide keep
+or remove per line, so a parity run keeps `pr-1413 node 84` and removes `pr-1612 node 91`.
+Check each target before removing or reverting it (its title, name, or current value), and
+work through the kinds in this order:
 
 | Kind | Check | Remove | Confirm |
 |---|---|---|---|
@@ -373,15 +485,18 @@ Remove exactly what `.created` lists, and nothing else. Check each target before
 | Test page | `sqlq "SELECT nid,title FROM node_field_data WHERE nid=<nid>"` | `entity:delete node <nid>` | its URL returns 404 |
 | `qa-<role>` user | `user:information qa-<role>` | `-y user:cancel --delete-content qa-<role>` | `user:information` finds no user |
 
-Every command runs as `terminus drush yalesites-platform.pr-<N> -- <command>`. Deleting media
+Every command runs as `terminus drush yalesites-platform.<env> -- <command>`, with `<env>` taken
+from the `.created` line being handled, never assumed to be the reviewed PR's multidev. Deleting media
 does not delete its file, so each upload needs both lines. Deleting a test page does not delete
 an unsaved Layout Builder draft for it either. After deleting the node, clear it:
 `sqlq "DELETE FROM key_value_expire WHERE collection LIKE 'tempstore.shared.layout_builder%' AND (name = 'node.<nid>' OR name LIKE 'node.<nid>.%')"`. Then close every browser session
 (`npx -y @playwright/cli@0.1.22 -s=<session> close`).
 
-Report cleanup item by item. If anything could not be removed, say which item and why. Do not
-report cleanup as done while `.created` lists something still on the multidev. Leave the
-screenshots, clips, and `results.md`: they are the evidence for the review.
+Report cleanup item by item, kept items included. If anything could not be removed or
+reverted, say which item and why. Do not report cleanup as done while `.created` lists a
+setting that has not been reverted, or, anywhere other than the reviewed PR's own multidev,
+anything still in place. Leave the screenshots, clips, and `results.md`: they are the evidence
+for the review.
 
 ## Handing results to the rest of the skill
 

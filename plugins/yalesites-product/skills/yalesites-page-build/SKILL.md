@@ -59,7 +59,8 @@ Then ask the user to log in with CAS in that window, and wait for them to say so
 |---|---|
 | The page does not exist yet | New node: `/node/add/page`, saved with **Create New Draft** |
 | The page exists and is published, and the change is for a future release | Forward draft through the **Tasks** sidebar (Step 4b). The live revision stays up. Release day is one Publish. |
-| The page exists and the Tasks sidebar says `Status: Draft` | **Stop and ask.** Someone already has unpublished work on it. Building on top would mix their draft with ours. |
+| The page exists and `Status: Draft` is **our own staged draft**. Two cases, both tested on `/node/<nid>/revisions`. A forward draft (Step 4b): a revision carrying our `DRAFT for <release date> release:` log message, with the release date exactly as Step 4b wrote it (`12-01-26`, the milestone's date, never a version number), sits **above** the one marked **Current revision**, and no revision with someone else's log message sits above ours. A never-published new node (Step 4a, which writes no log message): a `node <nid>` line in a page-build run folder's `.created` and every revision authored by our account. An old `.created` entry or an old messaged revision from a shipped release does not count on a published page: the node may have been staged by us before and drafted by a teammate since. Layout Builder saves add blank-message revisions, so read the whole list, not the top entry | Edit it in place: a forward draft on `/node/<nid>/latest`; a never-published new node (made in Step 4a) on `/node/<nid>/layout`, since `/latest` returns Access denied when the draft is the default revision. No new draft, no new node. This is the case when a later pass adds screenshots or copy to a page we staged earlier. |
+| The page exists and the Tasks sidebar says `Status: Draft`, and it is not ours by the test above | **Stop and ask.** Someone already has unpublished work on it. Building on top would mix their draft with ours. |
 | The draft replaces a published page with a new URL | Build it as a new node. The swap (publish, redirect, unpublish the old one) is a release-day task. List it in the handoff. |
 
 Before creating a new node, check `/admin/content?title=<title>` for a node you (or a failed earlier attempt) already made. A save that looks like it did nothing may still have created a node.
@@ -135,9 +136,10 @@ Report, in this order:
 1. The draft URL and node ID, and that it is unpublished (with the 403 or the unchanged-live proof)
 2. What was built, block by block, with the Layout Builder labels used
 3. Anything that differs from the page draft, and why
-4. Release-day steps: publish, redirects, unpublishing a replaced page, cross-links on other pages, screenshots still owed
-5. Pre-existing problems noticed on the page (broken links, old Editoria11y alerts), offered as separate fixes rather than slipped into this draft
-6. Where the screenshots are
+4. RC task: screenshots still owed, to be taken on the RC multidev during the QA period (`yalesites-web-content`, Step 4, Screenshots), not on release day
+5. Release-day steps: publish, redirects, unpublishing a replaced page, cross-links on other pages
+6. Pre-existing problems noticed on the page (broken links, old Editoria11y alerts), offered as separate fixes rather than slipped into this draft
+7. Where the screenshots are
 
 Update the page draft `.md` so it matches what was built. Then close the browser (`$RUN/pw close`). Leave `.created` and the screenshots in the run folder.
 
@@ -148,5 +150,6 @@ Only when the user asks. For a new node, delete it from its Tasks sidebar (**Del
 ## Related skills
 
 - `yalesites-web-content`: writes the page draft this skill builds
+- `yalesites-docs-board`: sends approved drafts here in a batch, each with a block-by-block build plan (its ops)
 - `pr-feedback`: `references/drive-it.md` has the shared Playwright CLI setup and the screenshot discipline this skill borrows
 - `release-prep`: publishes the staged drafts on release day

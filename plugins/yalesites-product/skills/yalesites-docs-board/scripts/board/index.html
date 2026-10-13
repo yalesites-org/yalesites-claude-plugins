@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Docs board</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1f1e1c; --muted: #6b6a66; --faint: #9a9893;
+    --border: rgba(0,0,0,.12); --border-strong: rgba(0,0,0,.24);
+    --accent: #185fa5; --accent-bg: #e6f1fb; --accent-text: #0c447c;
+    --mine: #c2410c; --mine-bg: #fdeee6; --mine-text: #7c2d12;
+    --ok: #3b6d11; --ok-bg: #eaf3de; --danger: #a32d2d; --mark: rgba(239,159,39,.35);
+    --add: #2f7d32; --add-bg: #e5f4e3; --del: #b42318; --del-bg: #fde8e6; --edit: #b25e09; --edit-bg: #fdf1df;
+    --radius: 8px; --pane-h: calc(100vh - 62px - 32px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a19; --surface: #242423; --text: #ecebe8; --muted: #a8a7a2; --faint: #7a7975;
+      --border: rgba(255,255,255,.12); --border-strong: rgba(255,255,255,.26);
+      --accent: #85b7eb; --accent-bg: #0c2e52; --accent-text: #b5d4f4;
+      --mine: #f0997b; --mine-bg: #4a1b0c; --mine-text: #f5c4b3;
+      --ok: #97c459; --ok-bg: #1f3608; --danger: #f09595; --mark: rgba(239,159,39,.3);
+      --add: #8fd18b; --add-bg: #1d3a1c; --del: #f4a39b; --del-bg: #4a1c18; --edit: #f2b866; --edit-bg: #46300d;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  button, textarea, input { font: inherit; color: inherit; }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 16px; align-items: center; height: 62px; }
+  header.top .title { flex: 1; min-width: 0; }
+  header.top h1 { font-size: 17px; font-weight: 500; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  header.top .sub { font-size: 13px; color: var(--muted); }
+  .progress { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .layout { display: grid; grid-template-columns: 250px minmax(0, 1fr); min-height: calc(100vh - 62px); }
+  nav { border-right: 1px solid var(--border); padding: 16px 12px; background: var(--surface); }
+  nav button { display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius); padding: 8px 10px; cursor: pointer; align-items: flex-start; }
+  nav button:hover { background: var(--bg); }
+  nav button[aria-current="true"] { background: var(--accent-bg); border-color: var(--accent); }
+  nav .dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); font-size: 12px; display: grid; place-items: center; margin-top: 1px; }
+  nav .approve .dot { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
+  nav .changes .dot { background: var(--mine-bg); border-color: var(--mine); color: var(--mine); }
+  nav .skip .dot { background: var(--bg); color: var(--muted); }
+  nav .lbl { font-size: 14px; line-height: 1.35; min-width: 0; }
+  nav .lbl small { display: block; color: var(--muted); font-size: 12px; }
+  main { padding: 16px 24px 80px; min-width: 0; }
+  .tag { display: inline-block; text-decoration: none; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); margin-right: 6px; }
+  .tag.kind-new { background: var(--add-bg); color: var(--add); }
+  .tag.kind-internal { background: var(--edit-bg); color: var(--edit); }
+  .tag.built { background: var(--bg); color: var(--muted); border: 1px solid var(--border-strong); }
+  nav .built .dot { background: var(--bg); border-color: var(--faint); color: var(--faint); }
+  nav .built .lbl { color: var(--muted); }
+  h2.i-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px; line-height: 1.3; }
+  p.i-summary { font-size: 17px; margin: 0 0 6px; max-width: 90ch; }
+  .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 8px 0 12px; align-items: center; }
+  .legend .sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+  .legend .spacer { flex: 1; }
+  .feedback-banner { background: var(--mine-bg); color: var(--mine-text); border: 1px solid var(--mine); border-radius: var(--radius); padding: 10px 14px; margin: 8px 0 12px; font-size: 15px; }
+  .split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .pane { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; min-width: 0; }
+  .pane-head { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--muted); }
+  .pane-head strong { color: var(--text); font-weight: 500; }
+  .pane-head .spacer { flex: 1; }
+  .pane-body { overflow: auto; height: var(--pane-h); position: relative; padding: 12px; scroll-behavior: smooth; }
+  .shot { position: relative; line-height: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: crosshair; }
+  .shot img { width: 100%; display: block; pointer-events: none; }
+  .shot.locked { cursor: default; }
+  .ov { position: absolute; border: 2.5px solid; border-radius: 3px; cursor: pointer; line-height: 1.2; }
+  .ov .n, .ins-bar .n { position: absolute; left: 4px; top: 4px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .ov.edit { border-color: var(--edit); background: rgba(178,94,9,.08); } .ov.edit .n { background: var(--edit); }
+  .ov.remove { border-color: var(--del); background: rgba(180,35,24,.12); } .ov.remove .n { background: var(--del); }
+  .ov.keep { border: 2px dashed transparent; }
+  .ov.keep:hover, .ov.keep.lit { border-color: var(--faint); }
+  .ins-bar { position: absolute; height: 0; border-top: 4px solid var(--add); cursor: pointer; }
+  .ins-bar .n { background: var(--add); top: -14px; }
+  .ins-bar .lbl { position: absolute; right: 0; top: 4px; font-size: 12px; background: var(--add); color: #fff; padding: 1px 8px; border-radius: 0 0 6px 6px; white-space: nowrap; }
+  .lit { outline: 4px solid var(--accent); outline-offset: 2px; z-index: 2; }
+  .pin { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; line-height: 1; color: #fff; background: var(--mine); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); z-index: 3; }
+  .hint { font-size: 13px; color: var(--faint); margin-top: 8px; line-height: 1.5; }
+  .placement { font-size: 15px; }
+  .placement dl { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0 0 14px; }
+  .placement dt { color: var(--muted); }
+  .placement dd { margin: 0; }
+  .placement ul { margin: 0; padding-left: 20px; }
+  .empty-note { border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 16px; color: var(--muted); font-size: 15px; margin-bottom: 14px; }
+  article.op { border: 1px solid var(--border); border-left: 5px solid var(--border-strong); border-radius: 8px; padding: 10px 14px; margin: 0 0 10px; background: var(--surface); }
+  article.op.edit { border-left-color: var(--edit); }
+  article.op.add { border-left-color: var(--add); background: var(--add-bg); }
+  article.op.remove { border-left-color: var(--del); }
+  article.op.remove .doc { text-decoration: line-through; color: var(--muted); }
+  article.op.keep { border-left-color: var(--border); color: var(--muted); }
+  article.op.lit { outline: 3px solid var(--accent); outline-offset: 1px; }
+  .op-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .op-head .n { min-width: 22px; height: 22px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; }
+  .op.edit .n { background: var(--edit); } .op.add .n { background: var(--add); } .op.remove .n { background: var(--del); }
+  .badge { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; }
+  .op.edit .badge { color: var(--edit); } .op.add .badge { color: var(--add); } .op.remove .badge { color: var(--del); }
+  .btype { font-size: 13px; font-weight: 500; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 0 8px; border-radius: 99px; }
+  .op-head .where { margin-left: auto; font-size: 12px; color: var(--faint); }
+  .why { font-size: 14px; color: var(--muted); margin: 8px 0 0; padding-top: 8px; border-top: 1px dashed var(--border); }
+  .why b { color: var(--text); font-weight: 500; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chip { font-size: 12px; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border-strong); background: var(--surface); }
+  details.keeps { margin: 0 0 10px; }
+  details.keeps > summary { cursor: pointer; font-size: 13px; color: var(--faint); padding: 4px 6px; list-style: none; }
+  details.keeps > summary::before { content: '▸ '; } details.keeps[open] > summary::before { content: '▾ '; }
+  .doc { font-size: 15px; line-height: 1.55; overflow-wrap: anywhere; }
+  .doc h2, .doc h3, .doc h4 { font-size: 16px; font-weight: 600; margin: 10px 0 4px; }
+  .doc h2 { font-size: 18px; }
+  .doc p { margin: 0 0 8px; }
+  .doc ul, .doc ol { margin: 0 0 8px; padding-left: 22px; }
+  .doc li > ul, .doc li > ol { margin-bottom: 0; }
+  .doc code { font: 13px ui-monospace, Menlo, monospace; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .doc pre { background: var(--bg); padding: 8px 10px; border-radius: 6px; overflow: auto; font: 13px/1.45 ui-monospace, Menlo, monospace; margin: 0 0 8px; }
+  .doc table { border-collapse: collapse; font-size: 13px; margin: 0 0 8px; width: 100%; }
+  .doc th, .doc td { border: 1px solid var(--border); padding: 3px 6px; text-align: left; vertical-align: top; }
+  .doc blockquote { margin: 0 0 8px; padding-left: 10px; border-left: 3px solid var(--border-strong); }
+  .doc ins { background: var(--add-bg); color: var(--add); text-decoration: none; border-radius: 3px; box-shadow: 0 0 0 1px var(--add) inset; padding: 0 2px; }
+  .doc del { background: var(--del-bg); color: var(--del); border-radius: 3px; }
+  .doc .u-add { background: var(--add-bg); box-shadow: -6px 0 0 var(--add); }
+  .doc .u-del { background: var(--del-bg); text-decoration: line-through; color: var(--del); box-shadow: -6px 0 0 var(--del); }
+  .doc mark.mine { background: var(--mine-bg); outline: 1px solid var(--mine); color: inherit; }
+  .clean .doc del, .clean .doc .u-del, .clean article.op.remove { display: none; }
+  .clean .doc ins, .clean .doc .u-add { background: none; color: inherit; box-shadow: none; }
+  .clean article.op { border-left-color: var(--border); background: var(--surface); }
+  .clean .why, .clean .chips, .clean .op-head { display: none; }
+  .clean details.keeps { display: contents; } .clean details.keeps > summary { display: none; }
+  .file-sec { border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; margin: 0 0 10px; }
+  .file-sec.edit { border-left: 5px solid var(--edit); } .file-sec.remove { border-left: 5px solid var(--del); }
+  .sel-btn { position: absolute; z-index: 10; border: 1px solid var(--mine); background: var(--mine-bg); color: var(--mine-text); border-radius: 99px; font-size: 13px; padding: 4px 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  details.build { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 16px; margin: 16px 0 0; }
+  details.build > summary { cursor: pointer; font-weight: 500; }
+  h3.section { font-size: 15px; font-weight: 500; color: var(--muted); margin: 24px 0 10px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+  .opt { text-align: left; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 12px; padding: 14px 16px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; }
+  .opt:hover { border-color: var(--accent); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .opt .o-label { font-size: 17px; font-weight: 500; }
+  .opt .o-detail { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .comments { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .comments li { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; align-items: start; font-size: 15px; }
+  .comments .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: var(--mine); margin-top: 2px; }
+  .comments blockquote { margin: 0 0 4px; padding-left: 10px; border-left: 3px solid var(--mine); color: var(--muted); font-size: 14px; }
+  .comments .on { font-size: 12px; color: var(--faint); }
+  .comments input { width: 100%; border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
+  .icon-btn { border: none; background: none; color: var(--faint); cursor: pointer; padding: 2px 6px; font-size: 18px; line-height: 1; }
+  .icon-btn:hover { color: var(--danger); }
+  textarea { width: 100%; min-height: 110px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 12px 14px; background: var(--surface); font-size: 16px; resize: vertical; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .err { color: var(--danger); font-size: 14px; margin-top: 8px; }
+  .pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 28px; padding-top: 18px; border-top: 1px solid var(--border); }
+  .btn { border: 1px solid var(--border-strong); background: var(--surface); border-radius: var(--radius); padding: 8px 16px; cursor: pointer; font-size: 15px; text-decoration: none; color: inherit; }
+  .btn:hover { background: var(--bg); }
+  .btn.small { padding: 3px 10px; font-size: 13px; }
+  .btn[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  table.summary { border-collapse: collapse; width: 100%; max-width: 900px; font-size: 15px; }
+  table.summary th, table.summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  table.summary th { font-weight: 500; color: var(--muted); font-size: 13px; }
+  .d-approve { color: var(--ok); font-weight: 500; } .d-changes { color: var(--mine); font-weight: 500; } .d-skip, .d-built { color: var(--muted); }
+  .locked-note { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 12px 16px; margin: 24px 0 0; color: var(--muted); font-size: 15px; background: var(--surface); }
+  .locked-note strong { color: var(--text); font-weight: 500; }
+  .done-card { max-width: 560px; margin: 60px auto; text-align: center; }
+  .done-card h2 { font-size: 26px; font-weight: 500; }
+  .done-card p { color: var(--muted); font-size: 17px; }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; } nav { border-right: none; border-bottom: 1px solid var(--border); }
+    .split { grid-template-columns: 1fr; } .pane-body { height: auto; max-height: 80vh; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="title"><h1 id="h-title">Loading docs board…</h1><div class="sub" id="h-sub"></div></div>
+  <div class="progress" id="h-progress"></div>
+</header>
+<div class="layout">
+  <nav id="nav" aria-label="Tickets"></nav>
+  <main id="main"></main>
+</div>
+<script>
+const params = new URLSearchParams(location.search);
+const packetId = params.get('packet') || 'demo';
+const base = `packets/${encodeURIComponent(packetId)}/`;
+let packet, state, current = 0, submitted = false, clean = false;
+const currents = {};
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  // Skip the leftovers of `cond && h(...)`, so a 0 or undefined never renders as text.
+  for (const kid of kids.flat()) if (kid != null && kid !== false && kid !== '' && kid !== 0) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+};
+const add = (parent, ...kids) => parent.append(...kids.filter(k => k != null && k !== false && k !== '' && k !== 0));
+
+// ---------- markdown, and markdown with a diff in it ----------
+
+// Sentinels survive esc(), so diff markers can be placed in the source and
+// turned into tags after the markdown is rendered.
+const INS = ['\u0001', '\u0002'], DEL = ['\u0003', '\u0004'];
+const unsentinel = s => s.replaceAll(INS[0], '<ins>').replaceAll(INS[1], '</ins>').replaceAll(DEL[0], '<del>').replaceAll(DEL[1], '</del>');
+
+// Code spans come out first and go back last, so the bold and italic
+// regexes never see the asterisks in `*.twig`. The placeholder uses its own
+// control character, so it never collides with the diff sentinels.
+const CODE = '\u0005';
+function inline(t) {
+  const codes = [];
+  const s = esc(t)
+    .replace(/`([^`]+)`/g, (m, c) => { codes.push(`<code>${c}</code>`); return `${CODE}${codes.length - 1}${CODE}`; })
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    .replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (m, txt, href) => {
+      const url = href.startsWith('/') ? 'https://yalesites.yale.edu' + href : href;
+      return /^(https?:|mailto:)/.test(url) ? `<a href="${url}" target="_blank" rel="noopener" title="${href}">${txt}</a>` : `${txt} (${href})`;
+    })
+    .replace(new RegExp(`${CODE}(\\d+)${CODE}`, 'g'), (m, i) => codes[i]);
+  return unsentinel(s);
+}
+
+// Wrap each quoted passage in <mark>, in text nodes only. Walking the rendered
+// DOM means a quote like "yale" or "strong" can never land inside a tag name
+// or an href, which splitting the HTML string would do.
+function markQuotes(root, quotes) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  while (walker.nextNode()) nodes.push(walker.currentNode);
+  for (const node of nodes) {
+    const text = node.nodeValue, hits = [];
+    for (const q of quotes) for (let at = text.indexOf(q); at >= 0; at = text.indexOf(q, at + q.length)) hits.push([at, at + q.length]);
+    if (!hits.length) continue;
+    hits.sort((a, b) => a[0] - b[0]);
+    const frag = document.createDocumentFragment();
+    let pos = 0;
+    for (const [from, to] of hits) {
+      if (from < pos) continue;  // overlaps the previous mark
+      if (from > pos) frag.append(text.slice(pos, from));
+      frag.append(h('mark', { class: 'mine' }, text.slice(from, to)));
+      pos = to;
+    }
+    if (pos < text.length) frag.append(text.slice(pos));
+    node.replaceWith(frag);
+  }
+}
+
+// Lines grouped into blocks: heading, paragraph, list, table, quote, code.
+// Fences follow packet.py split_md: ``` or ~~~ of three or more characters,
+// closed only by the same character at the same or greater length with
+// nothing else on the line, so the board and render agree on what is code.
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+const closesFence = (line, fence) => {
+  const m = FENCE.exec(line);
+  return !!m && m[1][0] === fence[0] && m[1].length >= fence.length && !line.slice(m[0].length).trim();
+};
+function parseBlocks(src) {
+  const lines = String(src ?? '').replace(/\r/g, '').split('\n');
+  const out = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const fence = FENCE.exec(line);
+    if (fence) {
+      const body = [], idx = []; i++;
+      while (i < lines.length && !closesFence(lines[i], fence[1])) { idx.push(i); body.push(lines[i++]); }
+      out.push({ t: 'code', lines: body, idx }); continue;
+    }
+    if (!line.trim()) continue;
+    if (/^#{1,6} /.test(line)) { out.push({ t: 'h', lines: [line], idx: [i] }); continue; }
+    const prev = out[out.length - 1];
+    // An indented line inside a list is part of the item above it: a nested
+    // item, or a second paragraph of the item (see capture.js).
+    const inList = prev && prev.t === 'list' && !prev.closed && /^\s+\S/.test(line);
+    const kind = inList ? 'list' : /^\s*\|/.test(line) ? 'table' : /^\s*([-*]|\d+\.) /.test(line) ? 'list' : /^\s*>/.test(line) ? 'quote' : 'p';
+    if (prev && prev.t === kind && !prev.closed) { prev.lines.push(line); prev.idx.push(i); }
+    else out.push({ t: kind, lines: [line], idx: [i] });
+    if (!lines[i + 1]?.trim()) out[out.length - 1].closed = true;
+  }
+  return out;
+}
+
+const cls = c => c ? ` class="${c}"` : '';
+function renderBlock(b, unitClass = () => '') {
+  if (b.t === 'h') { const m = b.lines[0].match(/^(#{1,6}) (.*)$/); const lv = Math.min(4, Math.max(2, m[1].length)); return `<h${lv}${cls(unitClass(0))}>${inline(m[2])}</h${lv}>`; }
+  // Code lines are never word-diffed (see diffMarkdown), but each carries its
+  // own add/del class, and unsentinel runs after esc so a sentinel can never
+  // reach the <pre> as a raw control character.
+  if (b.t === 'code') return `<pre>${b.lines.map((l, k) => { const c = unitClass(k), t = unsentinel(esc(l)); return c ? `<span class="${c}">${t}</span>` : t; }).join('\n')}</pre>`;
+  if (b.t === 'quote') return `<blockquote>${b.lines.map((l, k) => `<span${cls(unitClass(k))}>${inline(l.replace(/^\s*>\s?/, ''))}</span>`).join('<br>')}</blockquote>`;
+  if (b.t === 'list') {
+    // Items nest by indent: a marker further in than the item above opens a
+    // list inside it, and an indented line with no marker is another line
+    // of that item. Each line keeps its own add/del class.
+    const root = { kids: [] }, stack = [{ ind: -1, node: root }];
+    b.lines.forEach((l, k) => {
+      const m = l.match(/^(\s*)(?:([-*]|\d+\.) (?:\[[ x]\] )?)?(.*)$/);
+      const item = stack[stack.length - 1].node, text = inline(m[3]);
+      if (!m[2] && item !== root) { item.more.push(`<span${cls(unitClass(k))}>${text}</span>`); return; }
+      const ind = m[2] ? m[1].length : 0;
+      while (stack.length > 1 && stack[stack.length - 1].ind >= ind) stack.pop();
+      const node = { text, c: unitClass(k), ordered: /\d/.test(m[2] || ''), more: [], kids: [] };
+      stack[stack.length - 1].node.kids.push(node);
+      stack.push({ ind, node });
+    });
+    const render = n => {
+      const items = n.kids.map(it => `<li${cls(it.c)}>${[it.text, ...it.more].join('<br>')}${it.kids.length ? render(it) : ''}</li>`).join('');
+      return n.kids[0].ordered ? `<ol>${items}</ol>` : `<ul>${items}</ul>`;
+    };
+    return render(root);
+  }
+  if (b.t === 'table') {
+    const rows = b.lines.map((l, k) => ({ k, cells: l.trim().replace(/^\||\|$/g, '').split(/(?<!\\)\|/).map(c => c.trim().replace(/\\\|/g, '|')) }))
+      .filter(r => !r.cells.every(c => /^:?-{2,}:?$/.test(c.replace(/[\u0001-\u0004]/g, ''))));
+    if (!rows.length) return '';
+    const [head, ...body] = rows;
+    return `<table><thead><tr${cls(unitClass(head.k))}>${head.cells.map(c => `<th>${inline(c)}</th>`).join('')}</tr></thead><tbody>${
+      body.map(r => `<tr${cls(unitClass(r.k))}>${r.cells.map(c => `<td>${inline(c)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  }
+  // Each paragraph line carries its own class, like list and quote lines. A
+  // run of lines with one class is one <p>; the class changing starts a new
+  // <p>, so a removed line and the added line that replaced it never share
+  // one <p> and one class.
+  const runs = [];
+  b.lines.forEach((l, k) => {
+    const c = unitClass(k);
+    if (runs.length && runs[runs.length - 1].c === c) runs[runs.length - 1].lines.push(l);
+    else runs.push({ c, lines: [l] });
+  });
+  return runs.map(r => `<p${cls(r.c)}>${r.lines.map(l => inline(l)).join('<br>')}</p>`).join('');
+}
+// Mark the reviewer's quotes in rendered html's text nodes.
+const withQuotes = (html, quotes = []) => {
+  const qs = quotes.filter(q => q && String(q).length);
+  if (!qs.length) return html;
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html;
+  markQuotes(tpl.content, qs);
+  return tpl.innerHTML;
+};
+// Render first, then mark the quotes in the result.
+const md = (src, quotes = []) => withQuotes(parseBlocks(src).map(b => renderBlock(b)).join(''), quotes);
+
+// Longest common subsequence over arrays, returning [op, a, b] runs.
+function lcs(a, b, eq = (x, y) => x === y) {
+  const n = a.length, m = b.length;
+  if (n * m > 4_000_000) return [...a.map(x => ['-', x]), ...b.map(y => ['+', y])];
+  const dp = Array.from({ length: n + 1 }, () => new Uint32Array(m + 1));
+  for (let i = n - 1; i >= 0; i--) for (let j = m - 1; j >= 0; j--)
+    dp[i][j] = eq(a[i], b[j]) ? dp[i + 1][j + 1] + 1 : Math.max(dp[i + 1][j], dp[i][j + 1]);
+  const out = []; let i = 0, j = 0;
+  while (i < n && j < m) {
+    if (eq(a[i], b[j])) { out.push(['=', a[i], b[j]]); i++; j++; }
+    else if (dp[i + 1][j] >= dp[i][j + 1]) out.push(['-', a[i++]]);
+    else out.push(['+', b[j++]]);
+  }
+  while (i < n) out.push(['-', a[i++]]);
+  while (j < m) out.push(['+', b[j++]]);
+  return out;
+}
+
+// Links, bold and italic runs, and code spans are single tokens, so a diff
+// marker never lands inside one and the rendered tags stay balanced (a marker
+// inside *two words* would give crossed <em> and <del> tags). Table pipes are
+// their own tokens too, so a change never spans two cells, and a pipe is kept
+// in the output whether it was added or removed: it is structure, not text.
+// A row that lost a column still has every cell, with the dropped cell's
+// text struck out in its own column instead of merged into its neighbour.
+const TOKEN = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]*\]\([^)]*\)|`[^`]*`|\s+|\||[^\s|]+/g;
+function wordDiff(a, b) {
+  const ta = a.match(TOKEN) || [], tb = b.match(TOKEN) || [];
+  let out = '', run = null, buf = '';
+  // Whitespace at either end of a run stays outside the marker, so a struck
+  // cell is <del>b</del> and never a bare <del> </del> spilling into the next
+  // cell. A run that is only whitespace is written plain.
+  const flush = () => {
+    if (run && buf) {
+      const [, lead, core, trail] = buf.match(/^(\s*)([\s\S]*?)(\s*)$/);
+      out += lead + (core ? (run === '+' ? INS[0] + core + INS[1] : DEL[0] + core + DEL[1]) : '') + trail;
+    }
+    run = null; buf = '';
+  };
+  for (const [op, x, y] of lcs(ta, tb)) {
+    if (op === '=') { flush(); out += y; continue; }
+    // lcs puts the token in the second slot for both + and -.
+    if (x === '|') { flush(); out += x; continue; }
+    if (run !== op) flush();
+    run = op; buf += x;
+  }
+  flush();
+  return out;
+}
+
+const similar = (a, b) => {
+  const wa = new Set(a.toLowerCase().match(/\w+/g) || []), wb = new Set(b.toLowerCase().match(/\w+/g) || []);
+  if (!wa.size || !wb.size) return 0;
+  let n = 0; for (const w of wa) if (wb.has(w)) n++;
+  return n / Math.max(wa.size, wb.size);
+};
+
+// The structural part of a line (heading marks, list marker, quote mark) and
+// the text after it. Two lines are only word-diffed when their shapes match,
+// and only the text is diffed: a marker wrapped in sentinels would stop
+// parseBlocks from seeing a heading or a list item, and `## Foo` to `### Foo`
+// would render as a paragraph reading `#####`. Lines inside a code fence
+// have shape "code" and are never paired, so a reworded code line shows as
+// a removed line and an added line, not old and new words run together.
+const SHAPES = [[/^(#{1,6}) /, m => 'h' + m[1].length], [/^\s*(?:[-*]|\d+\.) /, m => /\d/.test(m[0]) ? 'ol' : 'ul'], [/^\s*>\s?/, () => 'q'], [/^\s*\|/, () => 't']];
+function shape(line, inCode) {
+  if (inCode) return { k: 'code', pre: '', body: line };
+  for (const [re, kind] of SHAPES) {
+    const m = re.exec(line);
+    if (m) { const pre = kind(m) === 't' ? '' : m[0]; return { k: kind(m), pre, body: line.slice(pre.length) }; }
+  }
+  return { k: 'p', pre: '', body: line };
+}
+// Which lines sit inside a code fence, by the same fence rule parseBlocks uses.
+function codeLines(lines) {
+  const out = new Array(lines.length).fill(false);
+  let fence = null;
+  for (let i = 0; i < lines.length; i++) {
+    const m = FENCE.exec(lines[i]);
+    if (!fence) { if (m) fence = m[1]; continue; }
+    if (closesFence(lines[i], fence)) fence = null; else out[i] = true;
+  }
+  return out;
+}
+
+// Diff two markdown texts line by line, then word by word inside lines that
+// were reworded rather than replaced. Quotes are marked in the result the
+// same way md() marks them.
+function diffMarkdown(before, after, quotes = []) {
+  const A = String(before ?? '').replace(/\r/g, '').split('\n'), B = String(after ?? '').replace(/\r/g, '').split('\n');
+  const codeA = codeLines(A), codeB = codeLines(B);
+  const runs = lcs(A, B, (x, y) => x.trim() === y.trim());
+  const lines = [], kinds = [];
+  let ia = 0, ib = 0;
+  for (let i = 0; i < runs.length; i++) {
+    if (runs[i][0] === '=') { lines.push(runs[i][2]); kinds.push(''); ia++; ib++; continue; }
+    const dels = [], adds = [];
+    while (i < runs.length && runs[i][0] !== '=') {
+      if (runs[i][0] === '-') dels.push(shape(runs[i][1], codeA[ia++])); else adds.push(shape(runs[i][1], codeB[ib++]));
+      i++;
+    }
+    i--;
+    const pairs = Math.min(dels.length, adds.length);
+    for (let k = 0; k < Math.max(dels.length, adds.length); k++) {
+      const d = dels[k], a = adds[k];
+      if (k < pairs && d.k === a.k && d.k !== 'code' && d.body.trim() && a.body.trim() && similar(d.body, a.body) >= 0.4) {
+        lines.push(a.pre + wordDiff(d.body, a.body)); kinds.push(''); continue;
+      }
+      if (d != null && (d.pre + d.body).trim()) { lines.push(d.pre + d.body); kinds.push('u-del'); }
+      if (a != null) { lines.push(a.pre + a.body); kinds.push((a.pre + a.body).trim() ? 'u-add' : ''); }
+    }
+  }
+  // Render block by block, tagging each source line with its add/del class.
+  return withQuotes(parseBlocks(lines.join('\n')).map(b => renderBlock(b, k => kinds[b.idx[k]] || '')).join(''), quotes);
+}
+
+// The selected text with anything struck out left out, so a quote taken
+// across a diff holds only words that are in the proposed markdown. Runs of
+// whitespace collapse to one space, the way captured markdown is written.
+function selectedText(sel) {
+  if (!sel.rangeCount) return '';
+  const frag = sel.getRangeAt(0).cloneContents();
+  frag.querySelectorAll('del, .u-del').forEach(e => e.remove());
+  return frag.textContent.replace(/\s+/g, ' ').trim();
+}
+
+// ---------- state ----------
+
+const itemKey = it => `${it.id}@${it.revision || 1}`;
+const storeKey = () => `docs-board:${packetId}`;
+const blank = () => ({ decision: null, notes: '', comments: [] });
+function save() { localStorage.setItem(storeKey(), JSON.stringify(state)); }
+const st = it => (state.items[itemKey(it)] ||= blank());
+// A request for changes needs an instruction: notes, or at least one comment
+// with a note written in it. A quote or pin with an empty note says nothing.
+// A locked item (built on an earlier round, flagged by packet.py status) is
+// settled: it needs no decision and never blocks Send.
+const isDecided = it => { if (it.locked) return true; const s = st(it); return !!s.decision && (s.decision !== 'changes' || !!s.notes.trim() || s.comments.some(c => (c.note || '').trim())); };
+// Built items are out of the count: they are not up for a decision.
+const progress = () => {
+  const open = packet.items.filter(it => !it.locked), built = packet.items.length - open.length;
+  return `${open.filter(isDecided).length} of ${open.length} decided${built ? `, ${built} built` : ''}`;
+};
+
+async function loadCurrent(it) {
+  if (!it.current || currents[it.id]) return;
+  try {
+    const res = await fetch(base + it.current, { cache: 'no-store' });
+    currents[it.id] = await res.json();
+    currents[it.id]._dir = it.current.includes('/') ? it.current.slice(0, it.current.lastIndexOf('/') + 1) : '';
+  } catch { currents[it.id] = { blocks: [], error: true }; }
+}
+
+async function init() {
+  try {
+    const res = await fetch(base + 'packet.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    packet = await res.json();
+  } catch {
+    $('#h-title').textContent = `Couldn't load packet "${packetId}"`;
+    return;
+  }
+  document.title = `Docs: ${packet.title}`;
+  // packet.py validate requires ticket.title and ticket.url, but a packet can
+  // reach the board without passing it. Fill in what is missing so one bare
+  // item cannot take the whole board down.
+  packet.items = packet.items || [];
+  for (const it of packet.items) {
+    const t = it.ticket = { ...(it.ticket || {}) };
+    t.ref = t.ref || `item ${it.id}`;
+    t.title = t.title || t.ref;
+    // A ref can carry a -suffix (one ticket, two pages); the issue is the number.
+    const m = /^([\w.-]+\/[\w.-]+)#(\d+)(?:-[A-Za-z0-9]+)?$/.exec(t.ref);
+    t.url = t.url || (m ? `https://github.com/${m[1]}/issues/${m[2]}` : '#');
+  }
+  // Decisions are kept per item revision. A revised item starts undecided,
+  // and everything already approved stays approved.
+  const saved = JSON.parse(localStorage.getItem(storeKey()) || 'null');
+  state = { items: {} };
+  for (const it of packet.items) if (saved?.items?.[itemKey(it)]) state.items[itemKey(it)] = saved.items[itemKey(it)];
+  await Promise.all(packet.items.map(loadCurrent));
+  $('#h-title').textContent = packet.title;
+  $('#h-sub').textContent = packet.subtitle || `${packet.items.length} ${packet.items.length === 1 ? 'ticket' : 'tickets'}`;
+  const first = packet.items.findIndex(it => !isDecided(it));
+  current = first >= 0 ? first : 0;
+  render();
+}
+
+function render() {
+  renderNav();
+  const main = $('#main');
+  main.replaceChildren();
+  if (submitted) return renderDone(main);
+  if (current < packet.items.length) renderItem(main, packet.items[current]);
+  else renderSend(main);
+  $('#h-progress').textContent = progress();
+}
+
+const KIND = { edit: 'Edit page', new: 'New page', internal: 'Internal doc' };
+const MARK = { approve: '✓', changes: '↺', skip: '–', built: '✓' };
+function renderNav() {
+  const nav = $('#nav');
+  nav.replaceChildren(...packet.items.map((it, i) => {
+    const s = st(it), d = it.locked ? 'built' : isDecided(it) ? s.decision : '';
+    return h('button', { class: d, 'aria-current': i === current && !submitted ? 'true' : 'false', onclick: () => go(i) },
+      h('span', { class: 'dot', 'aria-label': d || 'not decided' }, MARK[d] || String(i + 1)),
+      h('span', { class: 'lbl' }, it.ticket.title.replace(/^Docs:\s*/i, ''),
+        h('small', {}, [it.ticket.ref.replace(/^yalesites-org\//, ''), KIND[it.kind], it.revision > 1 ? `rev ${it.revision}` : null, it.locked ? 'built' : null].filter(Boolean).join(' · '))));
+  }), h('button', { 'aria-current': current === packet.items.length && !submitted ? 'true' : 'false', onclick: () => go(packet.items.length) },
+    h('span', { class: 'dot' }, '➜'), h('span', { class: 'lbl' }, 'Send to Claude', h('small', {}, 'Check and send every decision'))));
+}
+
+function go(i) { current = i; submitted = false; render(); window.scrollTo(0, 0); }
+
+// ---------- one ticket ----------
+
+// Numbers for changes only, shared by the overlay and the card.
+function numbered(it) {
+  let n = 0;
+  return (it.ops || []).map(op => ({ ...op, num: op.op === 'keep' ? null : ++n }));
+}
+
+function renderItem(main, it) {
+  const s = st(it), cur = currents[it.id], ops = numbered(it);
+  const counts = ['edit', 'add', 'remove'].map(k => [k, ops.filter(o => o.op === k).length]).filter(([, n]) => n);
+  const target = it.target || {};
+  const targetLink = it.kind === 'edit' ? h('a', { class: 'tag', href: target.url, target: '_blank', rel: 'noopener' }, (target.url || '').replace(/^https?:\/\/yalesites\.yale\.edu/, '') + ' ↗')
+    : it.kind === 'internal' ? h(target.url ? 'a' : 'span', { class: 'tag', href: target.url, target: '_blank', rel: 'noopener' }, `${target.repo}: ${target.file}`)
+    : h('span', { class: 'tag' }, target.path);
+  add(main,
+    h('div', {}, h('a', { class: 'tag', href: it.ticket.url, target: '_blank', rel: 'noopener' }, it.ticket.ref), h('span', { class: `tag kind-${it.kind}` }, KIND[it.kind]), targetLink,
+      it.locked && h('span', { class: 'tag built' }, 'Built')),
+    h('h2', { class: 'i-title' }, it.ticket.title),
+    it.summary && h('p', { class: 'i-summary' }, it.summary),
+    it.previousFeedback && h('div', { class: 'feedback-banner' }, h('strong', {}, `Revision ${it.revision}. `), 'You asked for: ', it.previousFeedback));
+
+  const cleanBtn = h('button', { class: 'btn small', 'aria-pressed': clean ? 'true' : 'false', onclick: () => { clean = !clean; rerender(); } }, clean ? 'Show changes' : 'Clean preview');
+  main.append(h('div', { class: 'legend' },
+    h('span', {}, h('span', { class: 'sw', style: 'background:var(--edit)' }), 'Edited'),
+    h('span', {}, h('span', { class: 'sw', style: 'background:var(--add)' }), 'Added'),
+    h('span', {}, h('span', { class: 'sw', style: 'background:var(--del)' }), 'Removed'),
+    h('span', {}, counts.map(([k, n]) => `${n} ${k === 'edit' ? 'edited' : k === 'add' ? 'added' : 'removed'}`).join(', ') || 'No changes'),
+    h('span', { class: 'spacer' }), cleanBtn));
+
+  const left = h('div', { class: 'pane-body', id: 'left' });
+  const right = h('div', { class: 'pane-body' + (clean ? ' clean' : ''), id: 'right' });
+  const leftHead = h('div', { class: 'pane-head' });
+  if (it.kind === 'edit' && cur?.screenshot) {
+    leftHead.append(h('strong', {}, 'Live page now'), h('span', {}, cur.title || ''), h('span', { class: 'spacer' }),
+      h('a', { class: 'btn small', href: base + cur._dir + cur.screenshot, target: '_blank', rel: 'noopener' }, 'Full size ↗'));
+    left.append(renderShot(it, cur, ops));
+  } else if (it.kind === 'internal' && cur?.blocks?.length) {
+    leftHead.append(h('strong', {}, 'File now'), h('span', {}, target.file));
+    left.append(renderFile(it, cur, ops));
+  } else {
+    leftHead.append(h('strong', {}, it.kind === 'internal' ? 'New file' : 'New page'));
+    left.append(renderPlacement(it));
+  }
+  const rightHead = h('div', { class: 'pane-head' }, h('strong', {}, clean ? 'Proposed, as it will read' : 'Proposed'),
+    h('span', {}, it.kind === 'internal' ? 'markdown sections' : 'Layout Builder blocks, top to bottom'));
+  renderProposal(it, cur, ops, right);
+  main.append(h('div', { class: 'split' },
+    h('section', { class: 'pane', 'aria-label': 'Current' }, leftHead, left),
+    h('section', { class: 'pane', 'aria-label': 'Proposed' }, rightHead, right)));
+
+  if (it.build || it.notes?.length || it.draft) {
+    main.append(h('details', { class: 'build' },
+      h('summary', {}, it.kind === 'internal' ? 'Where it goes and notes' : 'Title, teaser, config, and notes for the build'),
+      h('div', { class: 'doc', html: md(it.build || '') }),
+      it.notes?.length && h('div', { class: 'doc', html: md('### Notes\n' + it.notes.map(n => `- ${n}`).join('\n')) }),
+      it.draft && h('p', { class: 'hint' }, 'Full draft: ', h('a', { href: base + it.draft, target: '_blank', rel: 'noopener' }, it.draft))));
+  }
+
+  if (it.locked) renderLocked(main, it); else renderDecision(main, it, s);
+}
+
+// A built item is read-only: it was built on an earlier round, and nothing
+// here is sent again. The pager still walks past it.
+function renderLocked(main, it) {
+  const idx = packet.items.indexOf(it);
+  main.append(h('div', { class: 'locked-note' }, h('strong', {}, 'Built. '),
+    it.kind === 'internal' ? 'This file was written and committed on an earlier round.' : 'This page was built as an unpublished draft on an earlier round.',
+    ' It is shown for reference and left out of what you send.'));
+  main.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => go(idx - 1), style: idx === 0 ? 'visibility:hidden' : '' }, '← Back'),
+    h('button', { class: 'btn primary', onclick: () => go(idx + 1) }, idx === packet.items.length - 1 ? 'Next: send →' : 'Next ticket →')));
+}
+
+function rerender() {
+  const l = $('#left')?.scrollTop, r = $('#right')?.scrollTop, y = scrollY;
+  render();
+  if ($('#left')) { $('#left').style.scrollBehavior = 'auto'; $('#left').scrollTop = l; $('#left').style.scrollBehavior = ''; }
+  if ($('#right')) { $('#right').style.scrollBehavior = 'auto'; $('#right').scrollTop = r; $('#right').style.scrollBehavior = ''; }
+  scrollTo(0, y);
+}
+
+function link(i, from) {
+  document.querySelectorAll('.lit').forEach(e => e.classList.remove('lit'));
+  const card = document.querySelector(`#right [data-i="${i}"]`), mark = document.querySelector(`#left [data-i="${i}"]`);
+  card?.classList.add('lit'); mark?.classList.add('lit');
+  const other = from === 'left' ? card : mark, pane = from === 'left' ? $('#right') : $('#left');
+  if (!other || !pane) return;
+  const d = other.closest('details'); if (d && !d.open) d.open = true;
+  const r = other.getBoundingClientRect(), pr = pane.getBoundingClientRect();
+  if (r.top < pr.top + 20 || r.bottom > pr.bottom - 20) pane.scrollTop += r.top - pr.top - 60;
+}
+
+function renderShot(it, cur, ops) {
+  const s = st(it);
+  const blocks = Object.fromEntries((cur.blocks || []).map(b => [b.id, b]));
+  const wrap = h('div', { class: 'shot' + (it.locked ? ' locked' : '') }, h('img', { src: base + cur._dir + cur.screenshot, alt: `Screenshot of ${cur.title || 'the live page'}` }));
+  let lastRef = null;
+  ops.forEach((op, i) => {
+    if (op.ref && blocks[op.ref]) {
+      const b = blocks[op.ref];
+      wrap.append(h('div', {
+        class: `ov ${op.op}`, 'data-i': i, title: `${op.op === 'keep' ? 'Unchanged' : op.op}: ${b.type}`,
+        style: `top:${b.top}%;height:${b.height}%;left:${b.left ?? 0}%;width:${b.width ?? 100}%`,
+        onclick: e => { e.stopPropagation(); link(i, 'left'); }, onmouseenter: () => link(i, 'hover')
+      }, op.num && h('span', { class: 'n' }, String(op.num))));
+      lastRef = b;
+    } else if (op.op === 'add') {
+      // An added block goes under the last current block above it in ops.
+      const firstRef = ops.find(o => o.ref && blocks[o.ref]);
+      const y = lastRef ? lastRef.top + lastRef.height : (firstRef ? blocks[firstRef.ref].top : 0);
+      const l = lastRef?.left ?? 0, w = lastRef?.width ?? 100;
+      wrap.append(h('div', { class: 'ins-bar', 'data-i': i, style: `top:${y}%;left:${l}%;width:${w}%`, title: `Add ${op.block}`,
+        onclick: e => { e.stopPropagation(); link(i, 'left'); }, onmouseenter: () => link(i, 'hover') },
+        h('span', { class: 'n' }, `+${op.num}`), h('span', { class: 'lbl' }, `+ ${op.block}`)));
+    }
+  });
+  if (it.locked) return h('div', {}, wrap, h('p', { class: 'hint' }, 'Numbers match the cards on the right. This ticket is built, so there is nothing to comment on.'));
+  s.comments.forEach((c, k) => { if (c.type === 'pin') wrap.append(h('span', { class: 'pin', style: `left:${c.x}%;top:${c.y}%` }, String.fromCharCode(65 + k))); });
+  wrap.addEventListener('click', e => {
+    const r = wrap.getBoundingClientRect();
+    const x = Math.round((e.clientX - r.left) / r.width * 1000) / 10, y = Math.round((e.clientY - r.top) / r.height * 1000) / 10;
+    const near = (cur.blocks || []).find(b => y >= b.top && y <= b.top + b.height && x >= (b.left ?? 0) && x <= (b.left ?? 0) + (b.width ?? 100));
+    s.comments.push({ type: 'pin', x, y, near: near?.id || null, note: '', focus: true }); save(); rerender();
+  });
+  return h('div', {}, wrap, h('p', { class: 'hint' }, 'Numbers match the cards on the right. Click a numbered box to jump to its card. Click anywhere else on the page to pin a comment.'));
+}
+
+function renderFile(it, cur, ops) {
+  const out = h('div', {});
+  const byRef = Object.fromEntries(ops.map((o, i) => [o.ref, [o, i]]).filter(([r]) => r));
+  for (const b of cur.blocks) {
+    const [op, i] = byRef[b.id] || [{ op: 'keep' }, -1];
+    out.append(h('div', { class: `file-sec ${op.op}`, 'data-i': i, onclick: () => link(i, 'left'), onmouseenter: () => link(i, 'hover') },
+      op.num && h('div', { class: 'op-head' }, h('span', { class: 'n', style: `background:var(--${op.op === 'remove' ? 'del' : 'edit'})` }, String(op.num))),
+      h('div', { class: 'doc', html: md(b.markdown) })));
+  }
+  return out;
+}
+
+function renderPlacement(it) {
+  const t = it.target || {};
+  const rows = it.kind === 'internal'
+    ? [['Repo', t.repo], ['File', t.file], ['Branch', t.branch], ['Opens a PR', t.pr === false ? 'No' : 'Yes, after you approve and say so']]
+    : [['URL alias', t.path], ['Page title', t.label], ['Parent / nav', t.parent], ['Menu link', t.menu]];
+  return h('div', { class: 'placement' },
+    h('div', { class: 'empty-note' }, it.kind === 'internal'
+      ? 'This file does not exist yet. Everything on the right is new.'
+      : 'There is no page to compare against yet, so there is no screenshot. Everything on the right is new. Check where it will sit in the site.'),
+    h('dl', {}, rows.filter(([, v]) => v).flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])),
+    t.siblings?.length && h('div', {}, h('h3', { class: 'section', style: 'margin-top:0' }, 'Pages it will sit beside'),
+      h('ul', {}, t.siblings.map(sb => h('li', {}, h('a', { href: 'https://yalesites.yale.edu' + sb.path, target: '_blank', rel: 'noopener' }, sb.title), ' ', h('span', { class: 'hint' }, sb.path))))),
+    t.overlap?.length && h('div', {}, h('h3', { class: 'section' }, 'Close matches already on the site'),
+      h('ul', {}, t.overlap.map(sb => h('li', {}, h('a', { href: 'https://yalesites.yale.edu' + sb.path, target: '_blank', rel: 'noopener' }, sb.title), sb.why ? ` (${sb.why})` : '')))));
+}
+
+function renderProposal(it, cur, ops, right) {
+  const s = st(it);
+  const blocks = Object.fromEntries((cur?.blocks || []).map(b => [b.id, b]));
+  const quotesFor = i => it.locked ? [] : s.comments.filter(c => c.type === 'quote' && c.op === i).map(c => c.quote);
+  let keeps = null;
+  const flushKeeps = () => {
+    if (!keeps) return;
+    if (keeps.children.length > 1) right.append(keeps); else right.append(...[...keeps.children].filter(c => c.tagName !== 'SUMMARY'));
+    keeps = null;
+  };
+  ops.forEach((op, i) => {
+    const b = op.ref ? blocks[op.ref] : null;
+    const type = op.block || b?.type || 'Block';
+    const where = b && b.section >= 0 && cur?.sections?.[b.section] ? `section ${b.section} · ${cur.sections[b.section].layout}${b.region && b.region !== 'content' ? ' · ' + b.region : ''}` : '';
+    if (op.op === 'keep') {
+      if (!keeps) { keeps = h('details', { class: 'keeps' }, h('summary', {})); }
+      keeps.append(h('article', { class: 'op keep', 'data-i': i, onmouseenter: () => link(i, 'hover') },
+        h('div', { class: 'op-head' }, h('span', { class: 'btype' }, type), h('span', {}, 'Unchanged'), h('span', { class: 'where' }, where)),
+        h('div', { class: 'doc', html: md(b?.markdown || '', quotesFor(i)) })));
+      const n = keeps.querySelectorAll('article').length;
+      keeps.firstChild.textContent = `${n} unchanged ${n === 1 ? 'block' : 'blocks'}`;
+      return;
+    }
+    flushKeeps();
+    const html = op.op === 'edit' ? diffMarkdown(b?.markdown, op.markdown, quotesFor(i)) : md(op.op === 'remove' ? b?.markdown : op.markdown, quotesFor(i));
+    const settings = Object.entries(op.settings || {});
+    right.append(h('article', { class: `op ${op.op}`, 'data-i': i, onmouseenter: () => link(i, 'hover'), onclick: e => { if (!e.target.closest('a') && !getSelection().toString()) link(i, 'right'); } },
+      h('div', { class: 'op-head' },
+        h('span', { class: 'n' }, op.op === 'add' ? `+${op.num}` : String(op.num)),
+        h('span', { class: 'badge' }, { edit: 'Edit', add: 'New block', remove: 'Remove' }[op.op]),
+        h('span', { class: 'btype' }, type), h('span', { class: 'where' }, where || (op.place || ''))),
+      h('div', { class: 'doc', html }),
+      settings.length > 0 && h('div', { class: 'chips' }, settings.map(([k, v]) => h('span', { class: 'chip' }, `${k}: ${v}`))),
+      (op.why || op.blockWhy) && h('p', { class: 'why' },
+        op.why && h('span', {}, h('b', {}, 'Why: '), op.why, ' '),
+        op.blockWhy && h('span', {}, h('b', {}, `Why ${type}: `), op.blockWhy))));
+  });
+  flushKeeps();
+  if (it.locked) return;
+  // Select text in any card to comment on it.
+  let btn = null;
+  const clear = () => { btn?.remove(); btn = null; };
+  right.addEventListener('mouseup', () => setTimeout(() => {
+    clear();
+    const sel = getSelection(), text = selectedText(sel);
+    const card = sel.anchorNode && (sel.anchorNode.nodeType === 1 ? sel.anchorNode : sel.anchorNode.parentElement)?.closest('article.op');
+    if (!text || !card || !right.contains(card)) return;
+    const r = sel.getRangeAt(0).getBoundingClientRect(), pr = right.getBoundingClientRect();
+    btn = h('button', { class: 'sel-btn', style: `left:${r.left - pr.left}px;top:${r.bottom - pr.top + right.scrollTop + 6}px`, onmousedown: e => e.preventDefault(), onclick: () => {
+      s.comments.push({ type: 'quote', op: Number(card.dataset.i), quote: text, note: '', focus: true }); save(); clear(); rerender();
+    } }, '+ Comment on selection');
+    right.append(btn);
+  }, 0));
+  right.addEventListener('mousedown', e => { if (e.target !== btn) clear(); });
+}
+
+const OPTIONS = {
+  site: [
+    { value: 'approve', label: 'Approve and build', detail: 'Claude builds this as an unpublished draft on yalesites.yale.edu, block by block as shown. Nothing is published.' },
+    { value: 'changes', label: 'Request changes', detail: 'Say what to change below, or select text and comment on it. Claude revises and puts it back on the board.' },
+    { value: 'skip', label: 'Skip for now', detail: 'Leave this ticket out of this batch. Nothing is built.' },
+  ],
+  internal: [
+    { value: 'approve', label: 'Approve and write', detail: 'Claude writes the file on a branch in the local checkout and commits it. A PR waits for your go-ahead.' },
+    { value: 'changes', label: 'Request changes', detail: 'Say what to change below, or select text and comment on it. Claude revises and puts it back on the board.' },
+    { value: 'skip', label: 'Skip for now', detail: 'Leave this ticket out of this batch.' },
+  ],
+};
+
+function renderDecision(main, it, s) {
+  const idx = packet.items.indexOf(it);
+  main.append(h('h3', { class: 'section' }, 'Your call'));
+  const err = h('div', { class: 'err', hidden: true });
+  const opts = h('div', { class: 'options', role: 'group', 'aria-label': 'Decision' });
+  for (const o of OPTIONS[it.kind === 'internal' ? 'internal' : 'site']) {
+    opts.append(h('button', { class: 'opt', type: 'button', 'aria-pressed': s.decision === o.value ? 'true' : 'false', onclick: () => {
+      s.decision = o.value; err.hidden = true; save(); rerender();
+      if (o.value === 'changes') setTimeout(() => $('#notes')?.focus(), 0);
+    } }, h('span', { class: 'o-label' }, o.label), h('span', { class: 'o-detail' }, o.detail)));
+  }
+  main.append(opts);
+
+  if (s.comments.length) {
+    const list = h('ul', { class: 'comments' });
+    const ops = numbered(it);
+    s.comments.forEach((c, k) => {
+      const input = h('input', { type: 'text', placeholder: c.type === 'pin' ? 'What should change here?' : 'What about this part?', value: c.note });
+      input.addEventListener('input', () => { c.note = input.value; save(); });
+      if (c.focus) { setTimeout(() => input.focus(), 0); delete c.focus; }
+      const op = c.type === 'quote' ? ops[c.op] : null;
+      const on = c.type === 'pin' ? `Pin on the live page${c.near ? `, block ${c.near}` : ''}` : op ? `${op.op === 'keep' ? 'Unchanged' : op.op} ${op.num ? '#' + op.num : ''} (${op.block || 'block ' + op.ref})` : '';
+      list.append(h('li', {}, h('span', { class: 'n' }, c.type === 'pin' ? String.fromCharCode(65 + k) : '❝'),
+        h('span', {}, h('div', { class: 'on' }, on), c.type === 'quote' && h('blockquote', {}, c.quote), input),
+        h('button', { class: 'icon-btn', title: 'Remove', 'aria-label': 'Remove comment', onclick: () => { s.comments.splice(k, 1); save(); rerender(); } }, '×')));
+    });
+    main.append(h('h3', { class: 'section' }, 'Your comments'), list);
+  }
+
+  main.append(h('h3', { class: 'section' }, s.decision === 'changes' ? 'What should change?' : 'Notes (optional)'));
+  const notes = h('textarea', { id: 'notes', placeholder: s.decision === 'changes' ? 'Say what to change: wording, a different block, where it goes, what to leave out' : 'Anything for the build: timing, screenshots to take, who to tell' });
+  notes.value = s.notes;
+  notes.addEventListener('input', () => { s.notes = notes.value; err.hidden = true; save(); renderNav(); $('#h-progress').textContent = progress(); });
+  main.append(notes, err);
+
+  main.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => go(idx - 1), style: idx === 0 ? 'visibility:hidden' : '' }, '← Back'),
+    h('button', { class: 'btn primary', onclick: () => {
+      if (!s.decision) { err.textContent = 'Pick approve, request changes, or skip first.'; err.hidden = false; return; }
+      if (!isDecided(it)) { err.textContent = 'Say what should change, or comment on the text, before moving on.'; err.hidden = false; $('#notes').focus(); return; }
+      go(idx + 1);
+    } }, idx === packet.items.length - 1 ? 'Next: send →' : 'Next ticket →')));
+}
+
+// ---------- send ----------
+
+function renderSend(main) {
+  const missing = packet.items.filter(it => !isDecided(it));
+  const label = { approve: 'Approve', changes: 'Changes', skip: 'Skip', built: 'Built' };
+  main.append(h('h2', { class: 'i-title' }, 'Send your decisions'),
+    h('p', { class: 'i-summary' }, 'Claude builds the approved tickets, revises the ones with changes and puts them back on this board, and leaves the skipped ones alone.'),
+    h('table', { class: 'summary' },
+      h('thead', {}, h('tr', {}, h('th', {}, 'Ticket'), h('th', {}, 'Type'), h('th', {}, 'Decision'), h('th', {}, 'Notes'))),
+      h('tbody', {}, packet.items.map((it, i) => {
+        const s = st(it), d = it.locked ? 'built' : isDecided(it) ? s.decision : null;
+        return h('tr', {},
+          h('td', {}, h('a', { href: '#', onclick: e => { e.preventDefault(); go(i); } }, it.ticket.title)),
+          h('td', {}, KIND[it.kind]),
+          h('td', { class: d ? `d-${d}` : '' }, d ? label[d] : 'Not decided'),
+          h('td', {}, it.locked ? 'Built on an earlier round, not sent' : [s.notes.trim(), s.comments.length ? `${s.comments.length} comment${s.comments.length > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ')));
+      }))));
+  const err = h('div', { class: 'err', hidden: !missing.length }, missing.length ? `${missing.length} ${missing.length === 1 ? 'ticket needs' : 'tickets need'} a decision first.` : '');
+  const send = h('button', { class: 'btn primary', disabled: missing.length ? true : null, onclick: async () => {
+    send.disabled = true; send.textContent = 'Sending…';
+    try {
+      const res = await fetch(`api/decisions?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildDecisions()) });
+      if (!res.ok) throw new Error(res.status);
+      submitted = true; render();
+    } catch {
+      err.textContent = "Couldn't reach the board server. Your decisions are saved in this browser, so try again in a moment.";
+      err.hidden = false; send.disabled = false; send.textContent = 'Send to Claude';
+    }
+  } }, 'Send to Claude');
+  main.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.items.length - 1) }, '← Back'), send));
+}
+
+function buildDecisions() {
+  return {
+    packet: packetId, title: packet.title, submittedAt: new Date().toISOString(),
+    // A locked item is left out altogether, so a stale approve from the round
+    // that built it is never sent again.
+    decisions: packet.items.filter(it => !it.locked).map(it => {
+      const s = st(it), ops = numbered(it), cur = currents[it.id];
+      return {
+        id: it.id, ticket: it.ticket.ref, kind: it.kind, revision: it.revision || 1,
+        decision: s.decision, notes: s.notes.trim() || null,
+        comments: s.comments.map(c => c.type === 'pin'
+          ? { type: 'pin', on: 'live page screenshot', x: c.x, y: c.y, nearBlock: c.near, nearType: cur?.blocks?.find(b => b.id === c.near)?.type || null, note: c.note.trim() }
+          : { type: 'quote', on: ops[c.op] ? { index: c.op, op: ops[c.op].op, num: ops[c.op].num, ref: ops[c.op].ref || null, block: ops[c.op].block || null } : null, quote: c.quote, note: c.note.trim() }),
+      };
+    }),
+  };
+}
+
+function renderDone(main) {
+  const n = k => packet.items.filter(it => !it.locked && st(it).decision === k).length;
+  main.append(h('div', { class: 'done-card' },
+    h('h2', {}, 'Sent to Claude'),
+    h('p', {}, `${n('approve')} to build, ${n('changes')} to revise, ${n('skip')} skipped. Head back to the chat. Revised tickets come back to this board.`),
+    h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
+  $('#h-progress').textContent = 'Sent';
+}
+
+init();
+</script>
+</body>
+</html>

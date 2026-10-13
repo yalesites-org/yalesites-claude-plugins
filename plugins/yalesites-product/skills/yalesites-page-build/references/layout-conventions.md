@@ -43,3 +43,7 @@ On an existing page, read the blocks around the insertion point before adding an
 ## Placement order
 
 A new block lands at the end of its region. Move it into place in the same pass, before saving the layout, so the saved draft never has a block stranded under the page's closing block.
+
+## Screenshots on the page
+
+Follow the screenshot rules in `yalesites-web-content` (Step 4, Screenshots). List placeholder shots and shots not yet taken under "screenshots still owed" in the handoff, as an RC task (Step 7, item 4), so they are taken on the RC multidev during the QA period rather than on release day.
