@@ -59,8 +59,8 @@ Then ask the user to log in with CAS in that window, and wait for them to say so
 |---|---|
 | The page does not exist yet | New node: `/node/add/page`, saved with **Create New Draft** |
 | The page exists and is published, and the change is for a future release | Forward draft through the **Tasks** sidebar (Step 4b). The live revision stays up. Release day is one Publish. |
-| The page exists and the Tasks sidebar says `Status: Draft` | **Stop and ask.** Someone already has unpublished work on it. Building on top would mix their draft with ours. |
-| The page exists and `Status: Draft` is **our own staged draft**: its node is in a run folder's `.created`, or its latest revision carries our `DRAFT for <release> release:` log message (Step 4b) | Edit it in place on `/node/<nid>/latest`. No new draft, no new node. This is the case when a later pass adds screenshots or copy to a page we staged earlier. |
+| The page exists and `Status: Draft` is **our own staged draft**: its node is in the `.created` of any earlier page-build run folder, or `/node/<nid>/revisions` lists a revision carrying our `DRAFT for <release> release:` log message (Step 4b). Check the whole revision list: Layout Builder saves add revisions with no message, so the latest one is usually blank | Edit it in place on `/node/<nid>/latest`. No new draft, no new node. This is the case when a later pass adds screenshots or copy to a page we staged earlier. |
+| The page exists and the Tasks sidebar says `Status: Draft`, and it is not ours by the test above | **Stop and ask.** Someone already has unpublished work on it. Building on top would mix their draft with ours. |
 | The draft replaces a published page with a new URL | Build it as a new node. The swap (publish, redirect, unpublish the old one) is a release-day task. List it in the handoff. |
 
 Before creating a new node, check `/admin/content?title=<title>` for a node you (or a failed earlier attempt) already made. A save that looks like it did nothing may still have created a node.
