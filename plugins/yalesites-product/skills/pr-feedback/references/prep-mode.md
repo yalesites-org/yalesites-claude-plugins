@@ -38,18 +38,21 @@ ticket number from the PR's title and list the open PRs in the other three repos
 carries the same number. Those PRs are the unit, and that list is what `start` records in
 Step P2.
 
-**With no PR named,** sweep every open PR in the four repos where the reviewer is a requested
-reviewer:
+**With no PR named,** list every open PR in the four repos, with no reviewer filter, so sibling
+grouping sees a sibling the reviewer was never requested on:
 
 ```bash
-gh pr list --repo yalesites-org/REPO --state open --search "review-requested:@me" \
-  --json number,title,isDraft,labels,author,headRefOid,updatedAt,url
+gh pr list --repo yalesites-org/REPO --state open \
+  --json number,title,isDraft,labels,author,headRefOid,updatedAt,url,reviewRequests
 ```
 
-Then apply `batch-mode.md` Step B1: its readiness rules (carries `needs review`, not a draft, no
-`work in progress`, `don't merge`, `review in progress`, or `ready to close`, no `MULTIDEV ONLY`,
-`DEMO ONLY`, or `DO NOT MERGE` title), its sibling grouping into units, and its skip for `needs
-work`. A PR that is mid-fix will move again, so prepping it wastes a run.
+Then apply `batch-mode.md` Step B1 to that full list: its readiness rules (carries `needs review`,
+not a draft, no `work in progress`, `don't merge`, `review in progress`, or `ready to close`, no
+`MULTIDEV ONLY`, `DEMO ONLY`, or `DO NOT MERGE` title), its sibling grouping into units, and its
+skip for `needs work`. Only then pick which units to start: the ones where at least one PR
+lists the reviewer in `reviewRequests`. The grouping uses every PR; the reviewer filter chooses
+units, never members, so a unit is never marked failed for a sibling the sweep did not see. A PR
+that is mid-fix will move again, so prepping it wastes a run.
 
 **Order the units with one sort key:** `yalesites-project` units first, because they are the ones
 with a browser run to save, then newest `updatedAt` first within each group (a unit's `updatedAt`

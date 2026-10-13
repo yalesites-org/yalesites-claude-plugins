@@ -528,6 +528,22 @@ class PrepStatusTest(unittest.TestCase):
         # A differently scoped reviewer can claim the same head.
         self.assertEqual(self.start(f"yalesites-project#1608={SHA}", scope="code")[0], 0)
 
+    def test_fail_keeps_the_packet_id(self):
+        self.start(f"yalesites-project#1608={SHA}", packet="ysp-1605")
+        code, _ = self.run_cmd("fail", "--pr", f"yalesites-project#1608={SHA}", "--reason", "no multidev",
+                               "--claim", self.claim)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.status()["prs"]["yalesites-project#1608"]["packetId"], "ysp-1605")
+
+    def test_a_naive_updated_at_is_read_as_utc(self):
+        self.start(f"yalesites-project#1608={SHA}")
+        data = self.status()
+        data["prs"]["yalesites-project#1608"]["updatedAt"] = "2026-10-04T13:05:00"
+        prep_status.save(self.root, data)
+        code, out = self.get("yalesites-project#1608", head=SHA, scope=SCOPE)
+        self.assertEqual(code, 0)
+        self.assertEqual(out["state"], "failed")  # long past the TTL, so interrupted, not a crash
+
     def test_heartbeat_under_another_runs_claim_fails(self):
         _, a = self.start(f"yalesites-project#1608={SHA}")
         self.age("yalesites-project#1608", prep_status.RUNNING_TTL + timedelta(minutes=1))

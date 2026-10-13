@@ -85,9 +85,12 @@ def now():
 
 def parse_time(value):
     try:
-        return datetime.fromisoformat(value)
+        stamp = datetime.fromisoformat(value)
     except (TypeError, ValueError):
         return None
+    # A hand-edited or dashboard-written stamp with no offset is read as UTC, so
+    # effective() can still subtract it from an aware now().
+    return stamp if stamp.tzinfo else stamp.replace(tzinfo=timezone.utc)
 
 
 def iso_basic(stamp):
@@ -285,11 +288,11 @@ def under_claim(data, prs, token):
 
 
 def carried(data, prs):
-    """`packetDir`, `runDir` and `scope` as the claim recorded them, for ready and fail to keep."""
+    """`packetDir`, `runDir`, `packetId` and `scope` as the claim recorded them, for ready and fail to keep."""
     fields = {}
     for key, _ in prs:
         stored = data["prs"].get(key) or {}
-        for field in ("packetDir", "runDir", "scope"):
+        for field in ("packetDir", "runDir", "packetId", "scope"):
             if stored.get(field) and field not in fields:
                 fields[field] = stored[field]
     return fields
@@ -439,6 +442,7 @@ def main(argv=None):
                     return EXIT_REFUSED
                 folders = carried(data, prs)
                 claimed_scope = folders.pop("scope", None)
+                claimed_packet = folders.pop("packetId", None)
                 if args.cmd == "fail":
                     scope = claimed_scope
                 if args.cmd == "ready":
@@ -460,6 +464,8 @@ def main(argv=None):
                     entry["scope"] = scope
                 elif scope:
                     entry["scope"] = scope
+                if args.cmd == "fail" and claimed_packet:
+                    entry["packetId"] = claimed_packet
                 if args.cmd == "ready":
                     entry.update(questions=args.questions, driven=args.driven,
                                  results=parse_results(args.results), cleanup=args.cleanup)
