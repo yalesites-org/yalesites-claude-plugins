@@ -74,12 +74,30 @@ and run the same steps in each.
 - Visreg multidevs carry `e2etest`, a `site_admin`. Use it.
 - There is usually no editor or contributor test user. Creating one is a write to the multidev,
   so ask the user once per PR first (the same gate as creating test content). Name them
-  `qa-<role>`, and remove them when testing ends:
+  `qa-<role>`. Which snippet applies depends on where you are:
+
+  On the reviewed PR's own multidev, an existing `qa-<role>` was left by an earlier run on
+  this PR, so check first and create only if it is missing:
+  ```bash
+  terminus drush <site>.<env> -- user:information qa-editor \
+    || { terminus drush <site>.<env> -- user:create qa-editor --mail=qa-editor@example.invalid \
+         && terminus drush <site>.<env> -- user:role:add editor qa-editor; }
+  ```
+  A reused user is recorded as `pr-<N> user qa-editor reused` in `.created` (the environment
+  column first, as every `.created` line has it), and only after `user:information` shows its
+  roles are exactly `editor` plus authenticated; a different role set means it is not ours, so
+  stop and ask rather than reuse.
+
+  Anywhere else (`dev`, a shared multidev, another PR's multidev used as a baseline), an
+  existing `qa-<role>` is not ours. Run `user:information qa-editor` first: if it finds a user,
+  stop and ask before doing anything with it; only if it finds nothing, create:
   ```bash
   terminus drush <site>.<env> -- user:create qa-editor --mail=qa-editor@example.invalid
   terminus drush <site>.<env> -- user:role:add editor qa-editor
-  terminus drush <site>.<env> -- -y user:cancel --delete-content qa-editor
   ```
+  What happens to them afterwards follows Step D5 of `drive-it.md`: on the PR's own
+  multidev they stay, so role checks can be repeated with `uli`; anywhere else the ones this
+  run created are removed when testing ends (`-y user:cancel --delete-content qa-editor`).
 - **Never log in as a real person's account**, even though `uli --name` would allow it. Real
   accounts (NetIDs) exist on these environments; acting as one puts their name on whatever the
   test does.
