@@ -4,6 +4,8 @@
 Nothing here touches the network or a browser. The live paths (fetching the
 sitemap, running Playwright) are thin wrappers around the functions tested.
 """
+import contextlib
+import io
 import json
 import os
 import sys
@@ -72,18 +74,89 @@ class CatalogTest(unittest.TestCase):
         for a, b in (("image", "images"), ("course", "courses"), ("embed", "embedded"), ("export", "exporting"),
                      ("install", "installed"), ("tag", "tagged"), ("block", "blocks"), ("address", "addressed"),
                      ("set", "setting"), ("set", "settings"), ("setting", "settings"), ("head", "heading"),
-                     ("head", "headings"), ("heading", "headings"), ("export", "exports")):
+                     ("head", "headings"), ("heading", "headings"), ("export", "exports"),
+                     ("create", "creating"), ("create", "created"), ("creating", "created"), ("share", "shared"),
+                     ("manage", "managing"), ("image", "imaging"), ("page", "pages"), ("remove", "removed")):
             self.assertEqual(catalog.stem(a), catalog.stem(b), (a, b))
         self.assertEqual(catalog.stem("process"), "process")
+        self.assertEqual(catalog.stem("use"), "use")  # three letters keep their e
+        self.assertEqual(catalog.stem("need"), "need")
         cat = {"pages": [{"path": "/site-settings", "title": "Site Settings", "teaser": "", "headings": []}]}
         self.assertEqual(len(catalog.search(cat, "Docs: site setting")), 1)
         cat = {"pages": [{"path": "/working-with-images", "title": "Working with Images", "teaser": "", "headings": []}]}
         self.assertEqual(len(catalog.search(cat, "Docs: image block alt text")), 1)
 
+    def test_a_bare_verb_in_the_title_matches_its_ing_form_in_the_ticket(self):
+        # "creating" used to stem to "creat" while "create" stayed whole, so
+        # this page lost its title and path points and fell below pages that
+        # only share "section".
+        cat = {"pages": [
+            {"path": "/page-sections-overview", "title": "Page Sections Overview", "teaser": "", "headings": []},
+            {"path": "/create-powerful-page-sections", "title": "Create Powerful Page Sections", "teaser": "", "headings": []},
+            {"path": "/creating-accessible-content", "title": "Creating Accessible Content", "teaser": "", "headings": []},
+        ]}
+        hits = catalog.search(cat, "Docs: creating sections")
+        self.assertEqual(hits[0][1]["path"], "/create-powerful-page-sections")
+        self.assertGreaterEqual(hits[0][0], 10)
+        cat = {"pages": [{"path": "/manage-settings", "title": "Manage Settings", "teaser": "", "headings": []}]}
+        self.assertEqual(len(catalog.search(cat, "Docs: managing a site's settings")), 1)
+
+    def test_stop_words_stay_stopped_in_their_stemmed_forms(self):
+        self.assertEqual(catalog.tokens("Docs: pages guides updates users"), [])
+        self.assertEqual(catalog.tokens("Docs: create a page"), ["creat"])
+
     def test_inventory_merge_reads_bundled_csv(self):
         inv = catalog.load_inventory()
         self.assertIn("/editorial-workflow", inv)
         self.assertIn("User Guide", inv["/editorial-workflow"]["nav"])
+
+    def test_refresh_survives_a_child_sitemap_that_does_not_load(self):
+        index = (INDEX.replace("</sitemapindex>", "<sitemap><loc>https://yalesites.yale.edu/sitemap.xml?page=3</loc></sitemap></sitemapindex>"))
+        calls = []
+
+        def fake_fetch(url, timeout=20):
+            calls.append(url)
+            if url == catalog.SITEMAP:
+                return 200, index
+            if url.endswith("page=2"):
+                raise OSError("timed out")
+            if url.endswith("page=3"):
+                return 200, SITEMAP
+            return 200, PAGE
+
+        real = catalog.fetch
+        catalog.fetch = fake_fetch
+        try:
+            with tempfile.TemporaryDirectory() as d:
+                out = os.path.join(d, "catalog.json")
+                stdout, stderr = io.StringIO(), io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    cat = catalog.refresh(force=True, out=out)
+                self.assertEqual([p["path"] for p in cat["pages"]], ["/", "/a", "/editorial-workflow"])
+                self.assertEqual(read_json(out)["pages"], cat["pages"])
+                self.assertIn("1 of 2 child sitemaps did not load", stdout.getvalue())
+                self.assertIn("page=2", stderr.getvalue())
+        finally:
+            catalog.fetch = real
+        self.assertIn("https://yalesites.yale.edu/sitemap.xml?page=3", calls)
+
+    def test_one_max_age_for_refresh_and_the_staleness_warning(self):
+        ap = catalog.build_parser()
+        self.assertEqual(ap.parse_args(["refresh"]).max_age_hours, catalog.MAX_AGE_HOURS)
+        self.assertEqual(ap.parse_args(["search", "x"]).max_age_hours, catalog.MAX_AGE_HOURS)
+        self.assertEqual(ap.parse_args(["search", "x", "--max-age-hours", "72"]).max_age_hours, 72)
+        self.assertEqual(ap.parse_args(["refresh", "--max-age-hours", "72", "--force"]).max_age_hours, 72)
+        import inspect
+        self.assertEqual(inspect.signature(catalog.refresh).parameters["max_age_hours"].default, catalog.MAX_AGE_HOURS)
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "catalog.json")
+            with open(out, "w") as f:
+                json.dump({"pages": []}, f)
+            os.utime(out, (0, __import__("time").time() - 30 * 3600))
+            self.assertAlmostEqual(catalog.catalog_age(out), 30, delta=0.1)
+            # 30h is fresh when the caller said 72h, so no fetch happens.
+            with contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(catalog.refresh(max_age_hours=72, out=out), {"pages": []})
 
 
 class CaptureTest(unittest.TestCase):
@@ -196,6 +269,13 @@ class PacketValidateTest(unittest.TestCase):
         self.assertTrue(any("owner/repo#N" in e for e in errors), errors)
         self.assertTrue(any("kind must be" in e for e in errors), errors)
 
+    def test_locked_is_accepted_as_a_bool_only(self):
+        ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+        errors, _ = self.check([edit_item(ops, locked=True)])
+        self.assertEqual(errors, [])
+        errors, _ = self.check([edit_item(ops, locked="yes")])
+        self.assertTrue(any("locked must be true or false" in e for e in errors), errors)
+
     def test_ticket_needs_a_title_and_url_for_the_board(self):
         ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
         errors, _ = self.check([edit_item(ops, ticket={"ref": "yalesites-org/YaleSites-Internal#1"})])
@@ -241,7 +321,11 @@ class SplitAndStatusTest(unittest.TestCase):
         self.assertEqual(packet.split_md("   \n\n"), [{"id": "s1", "type": "Section", "markdown": "   \n\n"}])
 
     def test_split_then_render_gives_the_file_back_byte_for_byte(self):
-        for text in (README, "# A\ntext\n# B\nmore", "no headings at all\n\n\n", "# only\n"):
+        # Except at the very end: the output always ends with exactly one
+        # newline, so a file that ended with extra blank lines (or none)
+        # comes back with one.
+        for text in (README, "# A\ntext\n# B\nmore", "no headings at all\n\n\n", "# only\n",
+                     "# Title\n\nIntro.\n\n## Usage\n\nRun it.\n"):
             secs = packet.split_md(text)
             self.assertEqual("".join(s["markdown"] for s in secs), text)
             with tempfile.TemporaryDirectory() as d:
@@ -249,7 +333,17 @@ class SplitAndStatusTest(unittest.TestCase):
                         "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
                         "ops": [{"op": "keep", "ref": s["id"]} for s in secs]}
                 write_packet(d, [item], secs, screenshot=False, kind="file")
-                self.assertEqual(packet.render(d, "1"), text)
+                self.assertEqual(packet.render(d, "1"), text.rstrip("\n") + "\n")
+
+    def test_render_ends_with_one_newline_when_the_last_section_is_removed(self):
+        secs = packet.split_md("# A\ntext\n\n# B\nmore\n")
+        self.assertEqual(secs[0]["markdown"], "# A\ntext\n\n")
+        with tempfile.TemporaryDirectory() as d:
+            item = {"id": "1", "ticket": {"ref": "yalesites-org/x#1", "url": "u", "title": "t"}, "kind": "internal",
+                    "target": {"repo": "yalesites-org/x", "file": "README.md"}, "current": "1/current.json",
+                    "ops": [{"op": "keep", "ref": "s1"}, {"op": "remove", "ref": "s2", "why": "w"}]}
+            write_packet(d, [item], secs, screenshot=False, kind="file")
+            self.assertEqual(packet.render(d, "1"), "# A\ntext\n")
 
     def test_render_separates_edited_and_added_text_with_one_blank_line(self):
         secs = packet.split_md("# A\ntext\n\n# B\nmore\n")
@@ -297,6 +391,55 @@ class SplitAndStatusTest(unittest.TestCase):
                 packet.set_status("1818", "built", path=path)
             with self.assertRaises(SystemExit):
                 packet.set_status("yalesites-org/YaleSites-Internal#1818", "published", path=path)
+
+    def test_status_refuses_to_replace_a_corrupt_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            path = os.path.join(d, "status.json")
+            packet.set_status("yalesites-org/YaleSites-Internal#1", "built", path=path)
+            with open(path, "w") as f:
+                f.write('{"tickets": {"yalesites-org/YaleSites-Internal#1": {"state": "built"')  # half-written
+            with open(path) as f:
+                before = f.read()
+            with self.assertRaises(SystemExit) as cm:
+                packet.set_status("yalesites-org/YaleSites-Internal#2", "building", path=path)
+            self.assertIn("not valid JSON", str(cm.exception))
+            with open(path) as f:
+                self.assertEqual(f.read(), before)
+            # A missing file is still the first run.
+            fresh = os.path.join(d, "fresh", "status.json")
+            with contextlib.redirect_stderr(io.StringIO()):
+                packet.set_status("yalesites-org/YaleSites-Internal#2", "building", path=fresh, packets_dir=d)
+            self.assertEqual(read_json(fresh)["tickets"]["yalesites-org/YaleSites-Internal#2"]["state"], "building")
+
+    def test_built_and_building_lock_the_item_in_its_packet(self):
+        ref = "yalesites-org/YaleSites-Internal#1"
+        with tempfile.TemporaryDirectory() as d:
+            packets = os.path.join(d, "packets")
+            folder = os.path.join(packets, "docs-2026-10-13")
+            ops = [{"op": "keep", "ref": "b1"}, {"op": "edit", "ref": "b2", "markdown": "Two, changed", "why": "w"}]
+            write_packet(folder, [edit_item(ops), edit_item(ops, id="2", ticket={"ref": "yalesites-org/YaleSites-Internal#2", "url": "u", "title": "t"})], BLOCKS)
+            path = os.path.join(d, "status.json")
+            kw = {"path": path, "packets_dir": packets}
+            packet.set_status(ref, "on-board", packet="docs-2026-10-13", **kw)
+            self.assertNotIn("locked", read_json(os.path.join(folder, "packet.json"))["items"][0])
+            # building locks, and finds the packet from the earlier entry.
+            with contextlib.redirect_stderr(io.StringIO()):
+                packet.set_status(ref, "building", **kw)
+            items = read_json(os.path.join(folder, "packet.json"))["items"]
+            self.assertIs(items[0].get("locked"), True)
+            self.assertNotIn("locked", items[1])
+            self.assertEqual(packet.validate(folder)[0], [])
+            # failed unlocks, built locks again.
+            packet.set_status(ref, "failed", note="CAS timed out", **kw)
+            self.assertNotIn("locked", read_json(os.path.join(folder, "packet.json"))["items"][0])
+            packet.set_status(ref, "built", result='{"nid": 5}', **kw)
+            self.assertIs(read_json(os.path.join(folder, "packet.json"))["items"][0]["locked"], True)
+            # No packet known: the status is still recorded, with a note.
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                entry = packet.set_status("yalesites-org/YaleSites-Internal#9", "built", **kw)
+            self.assertEqual(entry["state"], "built")
+            self.assertIn("not locked", err.getvalue())
 
 
 if __name__ == "__main__":

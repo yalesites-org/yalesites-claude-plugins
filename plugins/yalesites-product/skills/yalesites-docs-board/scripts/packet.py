@@ -23,6 +23,10 @@ read-through of the copy, not something to paste.
 
 `status` records where each ticket stands in
 ~/.claude/yalesites/docs-board/status.json, which the work dashboard reads.
+`built` and `building` also lock the ticket's item in its packet.json
+(`"locked": true`): the board shows a locked item read-only with a Built badge
+and leaves it out of decisions.json, so a later round cannot approve it again.
+`failed` takes the lock off, so the ticket can go back on the board.
 """
 import argparse
 import json
@@ -37,6 +41,8 @@ KINDS = ("edit", "new", "internal")
 OPS = ("keep", "edit", "add", "remove")
 STATES = ("drafting", "on-board", "changes", "approved", "building", "built", "skipped", "failed")
 STATUS_FILE = os.path.expanduser("~/.claude/yalesites/docs-board/status.json")
+PACKETS_DIR = os.path.expanduser("~/.claude/yalesites/docs-board/packets")
+LOCKING = {"built": True, "building": True, "failed": False}
 EM_DASH = "\u2014"
 
 
@@ -44,6 +50,16 @@ EM_DASH = "\u2014"
 def read_json(path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
+
+
+def write_json(path, data):
+    """Write through a temp file, so a reader never sees half a file."""
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=1)
+    os.replace(tmp, path)
+
 
 def _texts(item):
     """Every reviewer-facing string in an item, with where it came from."""
@@ -91,6 +107,8 @@ def validate(packet_dir):
         if kind not in KINDS:
             errors.append(f"{where}: kind must be one of {KINDS}")
             continue
+        if "locked" in item and not isinstance(item["locked"], bool):
+            errors.append(f"{where}: locked must be true or false. packet.py status sets it; do not write it by hand")
         target = item.get("target") or {}
         if kind == "new" and not target.get("path"):
             errors.append(f"{where}: a new page needs target.path (the proposed URL alias)")
@@ -232,7 +250,12 @@ def render(packet_dir, item_id):
     # added text follows a kept section that ends without a blank line (the
     # file's last section usually does), the gap is padded to one, or the new
     # paragraph would fuse onto the kept one. Kept followed by kept is left
-    # alone: that is the file as it was.
+    # alone: that is the file as it was. The one exception is the end of the
+    # file: a kept section carries the blank lines that sat between it and
+    # the next heading, and when it ends up last (everything after it was
+    # removed) those would leave the file ending in a blank line, which
+    # markdownlint and end-of-file-fixer reject. So the output always ends
+    # with exactly one newline.
     out = ""
     for n, (p, verbatim) in enumerate(parts):
         if not verbatim:
@@ -242,18 +265,47 @@ def render(packet_dir, item_id):
         authored_next = n + 1 < len(parts) and not parts[n + 1][1]
         if authored_next and not p.endswith("\n\n"):
             out += "\n" if p.endswith("\n") else "\n\n"
+    if out.strip():
+        out = out.rstrip("\r\n") + "\n"
     return out
 
 
-def set_status(ref, state, packet=None, target=None, note=None, result=None, path=STATUS_FILE):
+def lock_item(packet_id, ref, locked, packets_dir=PACKETS_DIR):
+    """Set or clear `locked` on the packet item for `ref`. Returns the item, or None if there is no such packet or item."""
+    if not packet_id or not ITEM_ID.match(str(packet_id)):
+        return None
+    path = os.path.join(packets_dir, packet_id, "packet.json")
+    try:
+        pk = read_json(path)
+    except FileNotFoundError:
+        return None
+    except ValueError as exc:
+        sys.exit(f"status recorded, but {path} is not valid JSON, so the item was not locked: {exc}")
+    item = next((i for i in pk.get("items", []) if (i.get("ticket") or {}).get("ref") == ref), None)
+    if item is None:
+        return None
+    if locked:
+        item["locked"] = True
+    else:
+        item.pop("locked", None)
+    write_json(path, pk)
+    return item
+
+
+def set_status(ref, state, packet=None, target=None, note=None, result=None, path=STATUS_FILE, packets_dir=PACKETS_DIR):
     if not TICKET.match(ref):
         sys.exit(f"ticket must be owner/repo#N, got {ref!r}")
     if state not in STATES:
         sys.exit(f"state must be one of {STATES}")
+    # A missing file is the first run. Anything else that fails to read is a
+    # file someone half-wrote or hand-edited, and replacing it would drop
+    # every other ticket's state, built entries included.
     try:
         data = read_json(path)
-    except (OSError, ValueError):
+    except FileNotFoundError:
         data = {"tickets": {}}
+    except ValueError as exc:
+        sys.exit(f"{path} is not valid JSON: {exc}. Fix or remove it; nothing was written")
     entry = data.setdefault("tickets", {}).get(ref, {})
     entry.update({"state": state, "updatedAt": datetime.now(timezone.utc).isoformat(timespec="seconds")})
     for k, v in (("packet", packet), ("target", target), ("note", note)):
@@ -263,11 +315,15 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
         entry["result"] = json.loads(result) if isinstance(result, str) else result
     data["tickets"][ref] = entry
     data["updatedAt"] = entry["updatedAt"]
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(data, f, indent=1)
-    os.replace(tmp, path)
+    write_json(path, data)
+    # built and building lock the item in its packet, so the board stops
+    # offering it and decisions.json stops carrying a stale approve. failed
+    # unlocks it, so it can be put back on the board.
+    if state in LOCKING:
+        item = lock_item(entry.get("packet"), ref, LOCKING[state], packets_dir)
+        if item is None and LOCKING[state]:
+            print(f"note: no packet item found for {ref} (packet {entry.get('packet')!r}), so it is not locked on the board",
+                  file=sys.stderr)
     return entry
 
 

@@ -45,6 +45,7 @@ the ticket number for each item id.
 | `draft` | no | Path to `draft.md`. The board links it |
 | `revision` | no | Starts at 1. Bump it on every revision so the board resets that item's decision |
 | `previousFeedback` | revisions | One line restating what the reviewer asked for last round. Shown as a banner |
+| `locked` | set by `packet.py status` | `true` once the ticket is `building` or `built`. The board shows the item read-only with a Built badge, counts it as settled, and leaves it out of `decisions.json`. `failed` clears it. Do not write it by hand |
 
 `target` by kind:
 
@@ -155,6 +156,8 @@ Written by the board on Send. One entry per item:
 
 - `decision` is `approve`, `changes`, or `skip`. A `changes` decision always has notes or at
   least one comment.
+- A `locked` item has no entry at all. It was built on an earlier round, and the board does not
+  send it again.
 - A `quote` comment names the op by its position in `ops` (`index`) and by the number the board
   showed (`num`). A `pin` names the live block it landed on (`nearBlock`). Describe both in
   words when you play the decisions back, because the reviewer never saw the ids.

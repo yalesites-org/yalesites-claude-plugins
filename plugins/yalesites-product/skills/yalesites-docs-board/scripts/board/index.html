@@ -48,6 +48,9 @@
   .tag { display: inline-block; text-decoration: none; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); margin-right: 6px; }
   .tag.kind-new { background: var(--add-bg); color: var(--add); }
   .tag.kind-internal { background: var(--edit-bg); color: var(--edit); }
+  .tag.built { background: var(--bg); color: var(--muted); border: 1px solid var(--border-strong); }
+  nav .built .dot { background: var(--bg); border-color: var(--faint); color: var(--faint); }
+  nav .built .lbl { color: var(--muted); }
   h2.i-title { font-size: 24px; font-weight: 500; margin: 8px 0 4px; line-height: 1.3; }
   p.i-summary { font-size: 17px; margin: 0 0 6px; max-width: 90ch; }
   .legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin: 8px 0 12px; align-items: center; }
@@ -62,6 +65,7 @@
   .pane-body { overflow: auto; height: var(--pane-h); position: relative; padding: 12px; scroll-behavior: smooth; }
   .shot { position: relative; line-height: 0; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: crosshair; }
   .shot img { width: 100%; display: block; pointer-events: none; }
+  .shot.locked { cursor: default; }
   .ov { position: absolute; border: 2.5px solid; border-radius: 3px; cursor: pointer; line-height: 1.2; }
   .ov .n, .ins-bar .n { position: absolute; left: 4px; top: 4px; min-width: 24px; height: 24px; padding: 0 6px; border-radius: 99px; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
   .ov.edit { border-color: var(--edit); background: rgba(178,94,9,.08); } .ov.edit .n { background: var(--edit); }
@@ -154,7 +158,9 @@
   table.summary { border-collapse: collapse; width: 100%; max-width: 900px; font-size: 15px; }
   table.summary th, table.summary td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
   table.summary th { font-weight: 500; color: var(--muted); font-size: 13px; }
-  .d-approve { color: var(--ok); font-weight: 500; } .d-changes { color: var(--mine); font-weight: 500; } .d-skip { color: var(--muted); }
+  .d-approve { color: var(--ok); font-weight: 500; } .d-changes { color: var(--mine); font-weight: 500; } .d-skip, .d-built { color: var(--muted); }
+  .locked-note { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 12px 16px; margin: 24px 0 0; color: var(--muted); font-size: 15px; background: var(--surface); }
+  .locked-note strong { color: var(--text); font-weight: 500; }
   .done-card { max-width: 560px; margin: 60px auto; text-align: center; }
   .done-card h2 { font-size: 26px; font-weight: 500; }
   .done-card p { color: var(--muted); font-size: 17px; }
@@ -331,10 +337,11 @@ function lcs(a, b, eq = (x, y) => x === y) {
   return out;
 }
 
-// Links, bold runs, and code spans are single tokens, so a diff marker never
-// lands inside one and the rendered tags stay balanced. Table pipes are their
-// own tokens too, so a change never spans two cells.
-const TOKEN = /\*\*[^*]+\*\*|\[[^\]]*\]\([^)]*\)|`[^`]*`|\s+|\||[^\s|]+/g;
+// Links, bold and italic runs, and code spans are single tokens, so a diff
+// marker never lands inside one and the rendered tags stay balanced (a marker
+// inside *two words* would give crossed <em> and <del> tags). Table pipes are
+// their own tokens too, so a change never spans two cells.
+const TOKEN = /\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]*\]\([^)]*\)|`[^`]*`|\s+|\||[^\s|]+/g;
 function wordDiff(a, b) {
   const ta = a.match(TOKEN) || [], tb = b.match(TOKEN) || [];
   let out = '', run = null, buf = '';
@@ -400,7 +407,14 @@ function save() { localStorage.setItem(storeKey(), JSON.stringify(state)); }
 const st = it => (state.items[itemKey(it)] ||= blank());
 // A request for changes needs an instruction: notes, or at least one comment
 // with a note written in it. A quote or pin with an empty note says nothing.
-const isDecided = it => { const s = st(it); return s.decision && (s.decision !== 'changes' || !!s.notes.trim() || s.comments.some(c => (c.note || '').trim())); };
+// A locked item (built on an earlier round, flagged by packet.py status) is
+// settled: it needs no decision and never blocks Send.
+const isDecided = it => { if (it.locked) return true; const s = st(it); return !!s.decision && (s.decision !== 'changes' || !!s.notes.trim() || s.comments.some(c => (c.note || '').trim())); };
+// Built items are out of the count: they are not up for a decision.
+const progress = () => {
+  const open = packet.items.filter(it => !it.locked), built = packet.items.length - open.length;
+  return `${open.filter(isDecided).length} of ${open.length} decided${built ? `, ${built} built` : ''}`;
+};
 
 async function loadCurrent(it) {
   if (!it.current || currents[it.id]) return;
@@ -452,20 +466,19 @@ function render() {
   if (submitted) return renderDone(main);
   if (current < packet.items.length) renderItem(main, packet.items[current]);
   else renderSend(main);
-  const n = packet.items.filter(isDecided).length;
-  $('#h-progress').textContent = `${n} of ${packet.items.length} decided`;
+  $('#h-progress').textContent = progress();
 }
 
 const KIND = { edit: 'Edit page', new: 'New page', internal: 'Internal doc' };
-const MARK = { approve: '✓', changes: '↺', skip: '–' };
+const MARK = { approve: '✓', changes: '↺', skip: '–', built: '✓' };
 function renderNav() {
   const nav = $('#nav');
   nav.replaceChildren(...packet.items.map((it, i) => {
-    const s = st(it), d = isDecided(it) ? s.decision : '';
+    const s = st(it), d = it.locked ? 'built' : isDecided(it) ? s.decision : '';
     return h('button', { class: d, 'aria-current': i === current && !submitted ? 'true' : 'false', onclick: () => go(i) },
       h('span', { class: 'dot', 'aria-label': d || 'not decided' }, MARK[d] || String(i + 1)),
       h('span', { class: 'lbl' }, it.ticket.title.replace(/^Docs:\s*/i, ''),
-        h('small', {}, [it.ticket.ref.replace(/^yalesites-org\//, ''), KIND[it.kind], it.revision > 1 ? `rev ${it.revision}` : null].filter(Boolean).join(' · '))));
+        h('small', {}, [it.ticket.ref.replace(/^yalesites-org\//, ''), KIND[it.kind], it.revision > 1 ? `rev ${it.revision}` : null, it.locked ? 'built' : null].filter(Boolean).join(' · '))));
   }), h('button', { 'aria-current': current === packet.items.length && !submitted ? 'true' : 'false', onclick: () => go(packet.items.length) },
     h('span', { class: 'dot' }, '➜'), h('span', { class: 'lbl' }, 'Send to Claude', h('small', {}, 'Check and send every decision'))));
 }
@@ -488,7 +501,8 @@ function renderItem(main, it) {
     : it.kind === 'internal' ? h(target.url ? 'a' : 'span', { class: 'tag', href: target.url, target: '_blank', rel: 'noopener' }, `${target.repo}: ${target.file}`)
     : h('span', { class: 'tag' }, target.path);
   add(main,
-    h('div', {}, h('a', { class: 'tag', href: it.ticket.url, target: '_blank', rel: 'noopener' }, it.ticket.ref), h('span', { class: `tag kind-${it.kind}` }, KIND[it.kind]), targetLink),
+    h('div', {}, h('a', { class: 'tag', href: it.ticket.url, target: '_blank', rel: 'noopener' }, it.ticket.ref), h('span', { class: `tag kind-${it.kind}` }, KIND[it.kind]), targetLink,
+      it.locked && h('span', { class: 'tag built' }, 'Built')),
     h('h2', { class: 'i-title' }, it.ticket.title),
     it.summary && h('p', { class: 'i-summary' }, it.summary),
     it.previousFeedback && h('div', { class: 'feedback-banner' }, h('strong', {}, `Revision ${it.revision}. `), 'You asked for: ', it.previousFeedback));
@@ -530,7 +544,19 @@ function renderItem(main, it) {
       it.draft && h('p', { class: 'hint' }, 'Full draft: ', h('a', { href: base + it.draft, target: '_blank', rel: 'noopener' }, it.draft))));
   }
 
-  renderDecision(main, it, s);
+  if (it.locked) renderLocked(main, it); else renderDecision(main, it, s);
+}
+
+// A built item is read-only: it was built on an earlier round, and nothing
+// here is sent again. The pager still walks past it.
+function renderLocked(main, it) {
+  const idx = packet.items.indexOf(it);
+  main.append(h('div', { class: 'locked-note' }, h('strong', {}, 'Built. '),
+    it.kind === 'internal' ? 'This file was written and committed on an earlier round.' : 'This page was built as an unpublished draft on an earlier round.',
+    ' It is shown for reference and left out of what you send.'));
+  main.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => go(idx - 1), style: idx === 0 ? 'visibility:hidden' : '' }, '← Back'),
+    h('button', { class: 'btn primary', onclick: () => go(idx + 1) }, idx === packet.items.length - 1 ? 'Next: send →' : 'Next ticket →')));
 }
 
 function rerender() {
@@ -555,7 +581,7 @@ function link(i, from) {
 function renderShot(it, cur, ops) {
   const s = st(it);
   const blocks = Object.fromEntries((cur.blocks || []).map(b => [b.id, b]));
-  const wrap = h('div', { class: 'shot' }, h('img', { src: base + cur._dir + cur.screenshot, alt: `Screenshot of ${cur.title || 'the live page'}` }));
+  const wrap = h('div', { class: 'shot' + (it.locked ? ' locked' : '') }, h('img', { src: base + cur._dir + cur.screenshot, alt: `Screenshot of ${cur.title || 'the live page'}` }));
   let lastRef = null;
   ops.forEach((op, i) => {
     if (op.ref && blocks[op.ref]) {
@@ -576,6 +602,7 @@ function renderShot(it, cur, ops) {
         h('span', { class: 'n' }, `+${op.num}`), h('span', { class: 'lbl' }, `+ ${op.block}`)));
     }
   });
+  if (it.locked) return h('div', {}, wrap, h('p', { class: 'hint' }, 'Numbers match the cards on the right. This ticket is built, so there is nothing to comment on.'));
   s.comments.forEach((c, k) => { if (c.type === 'pin') wrap.append(h('span', { class: 'pin', style: `left:${c.x}%;top:${c.y}%` }, String.fromCharCode(65 + k))); });
   wrap.addEventListener('click', e => {
     const r = wrap.getBoundingClientRect();
@@ -617,7 +644,7 @@ function renderPlacement(it) {
 function renderProposal(it, cur, ops, right) {
   const s = st(it);
   const blocks = Object.fromEntries((cur?.blocks || []).map(b => [b.id, b]));
-  const quotesFor = i => s.comments.filter(c => c.type === 'quote' && c.op === i).map(c => c.quote);
+  const quotesFor = i => it.locked ? [] : s.comments.filter(c => c.type === 'quote' && c.op === i).map(c => c.quote);
   let keeps = null;
   const flushKeeps = () => {
     if (!keeps) return;
@@ -652,6 +679,7 @@ function renderProposal(it, cur, ops, right) {
         op.blockWhy && h('span', {}, h('b', {}, `Why ${type}: `), op.blockWhy))));
   });
   flushKeeps();
+  if (it.locked) return;
   // Select text in any card to comment on it.
   let btn = null;
   const clear = () => { btn?.remove(); btn = null; };
@@ -714,7 +742,7 @@ function renderDecision(main, it, s) {
   main.append(h('h3', { class: 'section' }, s.decision === 'changes' ? 'What should change?' : 'Notes (optional)'));
   const notes = h('textarea', { id: 'notes', placeholder: s.decision === 'changes' ? 'Say what to change: wording, a different block, where it goes, what to leave out' : 'Anything for the build: timing, screenshots to take, who to tell' });
   notes.value = s.notes;
-  notes.addEventListener('input', () => { s.notes = notes.value; err.hidden = true; save(); renderNav(); $('#h-progress').textContent = `${packet.items.filter(isDecided).length} of ${packet.items.length} decided`; });
+  notes.addEventListener('input', () => { s.notes = notes.value; err.hidden = true; save(); renderNav(); $('#h-progress').textContent = progress(); });
   main.append(notes, err);
 
   main.append(h('div', { class: 'pager' },
@@ -730,18 +758,18 @@ function renderDecision(main, it, s) {
 
 function renderSend(main) {
   const missing = packet.items.filter(it => !isDecided(it));
-  const label = { approve: 'Approve', changes: 'Changes', skip: 'Skip' };
+  const label = { approve: 'Approve', changes: 'Changes', skip: 'Skip', built: 'Built' };
   main.append(h('h2', { class: 'i-title' }, 'Send your decisions'),
     h('p', { class: 'i-summary' }, 'Claude builds the approved tickets, revises the ones with changes and puts them back on this board, and leaves the skipped ones alone.'),
     h('table', { class: 'summary' },
       h('thead', {}, h('tr', {}, h('th', {}, 'Ticket'), h('th', {}, 'Type'), h('th', {}, 'Decision'), h('th', {}, 'Notes'))),
       h('tbody', {}, packet.items.map((it, i) => {
-        const s = st(it), d = isDecided(it) ? s.decision : null;
+        const s = st(it), d = it.locked ? 'built' : isDecided(it) ? s.decision : null;
         return h('tr', {},
           h('td', {}, h('a', { href: '#', onclick: e => { e.preventDefault(); go(i); } }, it.ticket.title)),
           h('td', {}, KIND[it.kind]),
           h('td', { class: d ? `d-${d}` : '' }, d ? label[d] : 'Not decided'),
-          h('td', {}, [s.notes.trim(), s.comments.length ? `${s.comments.length} comment${s.comments.length > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ')));
+          h('td', {}, it.locked ? 'Built on an earlier round, not sent' : [s.notes.trim(), s.comments.length ? `${s.comments.length} comment${s.comments.length > 1 ? 's' : ''}` : ''].filter(Boolean).join(' · ')));
       }))));
   const err = h('div', { class: 'err', hidden: !missing.length }, missing.length ? `${missing.length} ${missing.length === 1 ? 'ticket needs' : 'tickets need'} a decision first.` : '');
   const send = h('button', { class: 'btn primary', disabled: missing.length ? true : null, onclick: async () => {
@@ -761,7 +789,9 @@ function renderSend(main) {
 function buildDecisions() {
   return {
     packet: packetId, title: packet.title, submittedAt: new Date().toISOString(),
-    decisions: packet.items.map(it => {
+    // A locked item is left out altogether, so a stale approve from the round
+    // that built it is never sent again.
+    decisions: packet.items.filter(it => !it.locked).map(it => {
       const s = st(it), ops = numbered(it), cur = currents[it.id];
       return {
         id: it.id, ticket: it.ticket.ref, kind: it.kind, revision: it.revision || 1,
@@ -775,7 +805,7 @@ function buildDecisions() {
 }
 
 function renderDone(main) {
-  const n = k => packet.items.filter(it => st(it).decision === k).length;
+  const n = k => packet.items.filter(it => !it.locked && st(it).decision === k).length;
   main.append(h('div', { class: 'done-card' },
     h('h2', {}, 'Sent to Claude'),
     h('p', {}, `${n('approve')} to build, ${n('changes')} to revise, ${n('skip')} skipped. Head back to the chat. Revised tickets come back to this board.`),

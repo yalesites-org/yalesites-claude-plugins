@@ -2,14 +2,16 @@
 """Catalog of every page on yalesites.yale.edu, built from the live sitemap.
 
   python3 catalog.py refresh [--force] [--max-age-hours 24]
-  python3 catalog.py search <words...> [--limit 8] [--json]
+  python3 catalog.py search <words...> [--limit 8] [--json] [--max-age-hours 24]
   python3 catalog.py show <path>
   python3 catalog.py section <name>
 
 `refresh` reads sitemap.xml, fetches each page once (logged out, 8 at a time)
 for its title, teaser, and headings, and merges in the nav location and content
 cluster from the web-content skill's inventory snapshot. The result is cached at
-~/.claude/yalesites/docs-board/catalog.json and reused until it is a day old.
+~/.claude/yalesites/docs-board/catalog.json and reused until it is a day old
+(MAX_AGE_HOURS). The other commands warn past the same age, and every command
+takes --max-age-hours, so a refresh kept for 72 hours is not nagged about at 30.
 
 `search` ranks pages against a ticket's words, so "is there already a page for
 this" is one command instead of a round of fetches. Title matches weigh most,
@@ -38,6 +40,9 @@ SITEMAP = SITE + "/sitemap.xml"
 CACHE = os.path.expanduser("~/.claude/yalesites/docs-board/catalog.json")
 INVENTORY = os.path.join(HERE, "..", "..", "yalesites-web-content", "references", "content-inventory.csv")
 UA = "yalesites-docs-board/1.0 (+https://github.com/yalesites-org/yalesites-claude-plugins)"
+# One number for "the catalog is old": refresh reuses a cache younger than
+# this, and search, show, and section warn about one older than this.
+MAX_AGE_HOURS = 24
 
 # Event instances are dated copies of one training. They are real pages, but
 # no docs ticket targets them and they drown out search results.
@@ -115,16 +120,26 @@ def fetch(url, timeout=20):
         return r.status, r.read().decode("utf-8", "replace")
 
 
-def refresh(force=False, max_age_hours=24, out=CACHE):
+def catalog_age(path=CACHE):
+    """Hours since the catalog was written."""
+    return (time.time() - os.path.getmtime(path)) / 3600
+
+
+def refresh(force=False, max_age_hours=MAX_AGE_HOURS, out=CACHE):
     if not force and os.path.exists(out):
-        age = (time.time() - os.path.getmtime(out)) / 3600
+        age = catalog_age(out)
         if age < max_age_hours:
             print(f"Catalog is {age:.1f}h old, reusing {out}. Pass --force to rebuild.")
             return read_json(out)
     _, xml = fetch(SITEMAP)
     entries, children = parse_sitemap(xml)
+    bad_children = 0
     for child in children:
-        entries += parse_sitemap(fetch(child)[1])[0]
+        try:
+            entries += parse_sitemap(fetch(child)[1])[0]
+        except Exception as exc:  # one child down must not take the whole refresh with it
+            bad_children += 1
+            print(f"child sitemap {child} did not load: {exc}", file=sys.stderr)
     seen, pages = set(), []
     for e in entries:
         if e["path"] in seen or e["path"].startswith(SKIP_PREFIXES):
@@ -155,7 +170,8 @@ def refresh(force=False, max_age_hours=24, out=CACHE):
         json.dump(catalog, f, indent=1)
     os.replace(tmp, out)
     failed = sum(1 for p in pages if p["status"] != 200)
-    print(f"Catalog built: {len(pages)} pages ({failed} did not load) -> {out}")
+    kids = f", {bad_children} of {len(children)} child sitemaps did not load" if bad_children else ""
+    print(f"Catalog built: {len(pages)} pages ({failed} did not load{kids}) -> {out}")
     return catalog
 
 
@@ -168,7 +184,11 @@ def stem(t):
     to land on "image", and "courses" on "course". After "ed" or "ing", a
     doubled consonant is collapsed so "embedded" lands on "embed" and "tagged"
     on "tag". Letters that commonly end a word doubled (ll, ss, ff, zz) are
-    left alone, so "installed" still lands on "install".
+    left alone, so "installed" still lands on "install". Last, a final "e"
+    comes off a stem longer than three letters, so "create", "creating", and
+    "created" all land on "creat", "share" meets "shared", and "manage" meets
+    "managing". Without that, "creating" would stem to "creat" and never
+    match the page titled "Create Powerful Page Sections".
     """
     if len(t) > 4 and t.endswith("s") and not t.endswith("ss"):
         t = t[:-1]  # "address", "access", "process" are not plurals
@@ -178,12 +198,19 @@ def stem(t):
             if len(t) >= 4 and t[-1] == t[-2] and t[-1] not in "aeioulsfz":
                 t = t[:-1]
             break
+    if len(t) > 3 and t.endswith("e"):
+        t = t[:-1]
     return t
+
+
+# Stop words in stemmed form too, so "pages" (stemmed to "pag") is dropped
+# the same way "page" is.
+STOP_STEMS = STOP | {stem(w) for w in STOP}
 
 
 def tokens(s):
     out = (stem(t) for t in re.findall(r"[a-z0-9]+", s.lower()) if t not in STOP)
-    return [t for t in out if t not in STOP and len(t) > 1]
+    return [t for t in out if t not in STOP_STEMS and len(t) > 1]
 
 
 def score(page, words):
@@ -214,28 +241,36 @@ def load(path=CACHE):
     return read_json(path)
 
 
-def main():
+def build_parser():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    # Every command takes --max-age-hours, so the staleness warning and the
+    # refresh agree on what old means.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument("--max-age-hours", type=float, default=MAX_AGE_HOURS,
+                        help=f"hours before the catalog counts as old (default {MAX_AGE_HOURS})")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    r = sub.add_parser("refresh")
+    r = sub.add_parser("refresh", parents=[common])
     r.add_argument("--force", action="store_true")
-    r.add_argument("--max-age-hours", type=float, default=24)
-    s = sub.add_parser("search")
+    s = sub.add_parser("search", parents=[common])
     s.add_argument("words", nargs="+")
     s.add_argument("--limit", type=int, default=8)
     s.add_argument("--json", action="store_true")
-    sh = sub.add_parser("show")
+    sh = sub.add_parser("show", parents=[common])
     sh.add_argument("path")
-    se = sub.add_parser("section")
+    se = sub.add_parser("section", parents=[common])
     se.add_argument("name", nargs="+")
-    a = ap.parse_args()
+    return ap
+
+
+def main():
+    a = build_parser().parse_args()
 
     if a.cmd == "refresh":
         refresh(a.force, a.max_age_hours)
         return
     cat = load()
-    age_h = (time.time() - os.path.getmtime(CACHE)) / 3600
-    if age_h > 24:
+    age_h = catalog_age()
+    if age_h > a.max_age_hours:
         print(f"(catalog is {age_h:.0f}h old; run refresh for current titles)", file=sys.stderr)
     if a.cmd == "search":
         hits = search(cat, " ".join(a.words), a.limit)
