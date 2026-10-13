@@ -272,7 +272,7 @@ function renderQuestion(main, qi) {
     } }, qi === packet.questions.length - 1 ? 'Next: your own read →' : 'Next question →')));
 }
 
-function openLink(url) { return url ? h('a', { href: url, target: '_blank', rel: 'noopener' }, 'Open ↗') : null; }
+function openLink(url) { return /^https?:/i.test(url || '') ? h('a', { href: url, target: '_blank', rel: 'noopener' }, 'Open ↗') : null; }
 
 function renderContext(qi, ctx, ci) {
   const sec = h('section', { class: 'block' });
@@ -351,7 +351,7 @@ function renderLightbox() {
   const lb = h('div', { id: 'lb', class: 'lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Enlarged: ${img.caption || ctx.label || 'screenshot'}` },
     h('div', { class: 'lb-bar' },
       h('span', { class: 'lb-title' }, ctx.label || img.caption || ''),
-      openLink(img.url || ctx.url),
+      openLink(ctx.type === 'compare' ? img.url : ctx.url),
       flip,
       h('button', { class: 'btn', 'aria-pressed': zoom.actual ? 'true' : 'false', onclick: () => { zoom.actual = !zoom.actual; rerenderCurrent(); } }, 'Actual size'),
       close),
