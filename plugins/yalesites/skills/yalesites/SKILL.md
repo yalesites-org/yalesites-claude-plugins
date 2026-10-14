@@ -20,6 +20,7 @@ This skill gives you deep platform context. For most questions, the information 
 | Views (filters, displays, modules) | `references/views-reference.md` |
 | Sitewide settings (Manage Settings page) | `references/settings-reference.md` |
 | User roles and editorial workflow | `references/user-roles-reference.md` |
+| ADRs: where they live, naming, PR shape | `references/adr-conventions.md` |
 
 For *measured* usage across the live portfolio: block adoption percentages, config trends, exemplar sites ("who uses X best"), and real page-building patterns: use the `yalesites-portfolio` skill instead of estimating.
 

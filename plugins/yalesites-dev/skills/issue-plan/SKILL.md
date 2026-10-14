@@ -60,6 +60,10 @@ Apply YaleSites conventions throughout:
 - WCAG 2.1 AA compliance in all UI-facing changes
 - Export config after any config changes (`npm run confex`)
 
+## ADRs go to YaleSites-Internal
+
+If the issue is a spike or ADR (architecture decision record), or the plan calls for writing one, the ADR file goes in `yalesites-org/YaleSites-Internal` as `docs/adr/{issue-number}-{short-description}.md`, never in a product repo. Say so in the plan even if the research agent suggested otherwise. The PR shape and how the ADR is linked from the issue are in the `yalesites` skill's `references/adr-conventions.md` when that plugin is installed. Code changes for the same issue still go in the product repos as usual.
+
 ## Cross-repo workflow
 
 If the research agent determines the changes live in `component-library-twig` or `atomic`, read `references/cross-repo-workflow.md` and include those steps in the plan (multidev companion PR + Netlify deploy preview links).

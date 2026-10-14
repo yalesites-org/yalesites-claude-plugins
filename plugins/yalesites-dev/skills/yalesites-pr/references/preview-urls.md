@@ -24,7 +24,7 @@ PR's environment.
 
 **An atomic PR should be cross-linked to a yalesites-project PR, and that PR's multidev is
 the one to target.** This is not a special case to work around — Step 3 already detects the
-matching-name branch and Step 6 already writes the `Other work completed in:
+matching-name branch and Step 7 already writes the `Other work completed in:
 yalesites-org/yalesites-project#NNN` line, so the number needed for the URL is the number
 that line carries. yalesites-project's `build_frontend` requires `dev-<branch>` of atomic
 when that branch exists, which is what puts the theme change into the multidev. If an atomic
@@ -52,12 +52,12 @@ DB source for local work, not the CI deploy target.
 You cannot write a real URL into a body you have not created yet. Handle it in the step
 that already rewrites bodies:
 
-1. **Step 5** — draft and create the PRs, companions first, yalesites-project last.
-2. **Step 6** — you are already editing each body to add the cross-repo links. Substitute
+1. **Step 6** — draft and create the PRs, companions first, yalesites-project last.
+2. **Step 7** — you are already editing each body to add the cross-repo links. Substitute
    the real PR numbers into the testing-step URLs in the same `gh pr edit`.
 
 Never publish a body still containing `<N>`, `XX`, or `<PR_NUMBER>`. If you show the user
-a draft with placeholders in Step 5, say that Step 6 fills them in.
+a draft with placeholders in Step 6, say that Step 7 fills them in.
 
 ## Component Library Twig: finding the right story
 
