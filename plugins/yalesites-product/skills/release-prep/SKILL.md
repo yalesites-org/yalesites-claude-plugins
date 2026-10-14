@@ -248,7 +248,7 @@ Save as `current-issues-fixes-v[version]-draft.md` in the workspace folder. This
 
 This phase prepares GitHub issues for QA testing by adding a **Release Testing Steps** section to any issue that lacks clear, actionable testing instructions. Testers use the issues in `yalesites-org/YaleSites-Internal` as their checklist — this phase makes sure every issue is ready for them.
 
-Only open issues on this release's milestone with a GitHub Project status of **"Done"** should be updated. `Done` means merged to `develop` (or a hotfix merged to `master`), and the ticket stays open until Phase 7 closes it after the release ships. The "Ready for Release (in dev)" status was retired on 2026-09-23 (YaleSites-Internal#1778).
+Only open issues on this release's milestone with a GitHub Project status of **"Done"** should be updated. `Done` means review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. The ticket stays open until Phase 7 closes it after the release ships. The "Ready for Release (in dev)" status was retired on 2026-09-23 (YaleSites-Internal#1778).
 
 **Important — the status isn't in the REST API.** GitHub Project status fields (including "Done") live on the Project board and are only reachable via GraphQL, so the GitHub MCP tools (`get_issue`, `search_issues`, `list_issues`) can't see or filter on them.
 
@@ -400,7 +400,7 @@ Every other phase points forward at a release. This one runs **after** the RC is
 2. Which of those tickets can close?
 3. What got left behind in `In progress` / `In review` / `Blocked` that should have moved?
 
-**Why this phase exists.** `Done` means merged, not released. A ticket moves to `Done` when its work merges to `develop`, and it stays open on purpose: the board's "Auto-close issue" workflow is off, and the Board view shows only open tickets. So the open `Done` column is the list of work waiting on a release. This phase is the only thing that closes those tickets, once the release is out. The `Ready for Release (in dev)` status did this job before 2026-09-23 and is retired (YaleSites-Internal#1778). Milestones now say which release a ticket ships in.
+**Why this phase exists.** `Done` means merged, not released. A ticket moves to `Done` when its work merges, to `develop`, the release staging branch, or an epic branch, and it stays open on purpose: the board's "Auto-close issue" workflow is off, and the Board view shows only open tickets. So the open `Done` column is the list of work waiting on a release. This phase is the only thing that closes those tickets, once the release is out. The `Ready for Release (in dev)` status did this job before 2026-09-23 and is retired (YaleSites-Internal#1778). Milestones now say which release a ticket ships in.
 
 **Hard rule: never close a ticket on the strength of its board status alone.** `Done` is set by hand today, so it can run ahead of the code. Every close must be backed by a merge commit verified to be an ancestor of `master`.
 
@@ -557,7 +557,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | Bucket | Condition | Action |
 |---|---|---|
 | **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
-| **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open. If the PR only reached an epic or feature branch, `Done` is premature: propose moving it back to `In review` |
+| **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open in `Done`. Merged work stays `Done` while its branch makes its way to `master`; do not move it back to `In review`. It closes in the run for the release that ships it |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
 | **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess |
 
