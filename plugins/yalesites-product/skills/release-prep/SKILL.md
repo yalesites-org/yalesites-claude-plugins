@@ -560,7 +560,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
 | **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open. If the PR only reached an epic or feature branch, `Done` is premature: propose moving it back to `In review` |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
-| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof, so it joins bucket A |
+| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (nothing in docs-board, page-build, or Phase 8 moves a docs ticket to `Done`, so most land in C and get the status write before closing) |
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
@@ -763,7 +763,7 @@ d = json.load(open(os.path.expanduser('~/.claude/yalesites/docs-board/status.jso
 for ref, e in sorted(d.items()):
     if e.get('state') != 'built': continue
     repo, n = ref.split('#')
-    ms = subprocess.run(['gh','issue','view',n,'-R',repo,'--json','milestone,state','--jq','"\(.milestone.title // "none") \(.state)"'], capture_output=True, text=True).stdout.strip()
+    ms = subprocess.run(['gh','issue','view',n,'-R',repo,'--json','milestone,state','--jq',r'"\(.milestone.title // "none") \(.state)"'], capture_output=True, text=True).stdout.strip()
     print(f"{ref}\t{ms}\t{e.get('packet')}\t{e.get('target')}\t{e.get('result')}\t{e.get('note','')}")
 EOF
 ```
@@ -786,7 +786,7 @@ The drafts were written from code that was merged at the time. Between then and 
 
 For each ticket:
 
-1. Confirm the implementing PR(s) are in the release branch. `git merge-base --is-ancestor <mergeCommit> origin/<release-branch>`, with the three exit codes read the way Phase 7 Step 4 reads them. A PR that did not make the release means the draft documents something the release does not ship: hold that ticket, say so, and do not publish it in Step 5.
+1. Confirm the implementing PR(s) are in the release branch. For a `yalesites-project` PR, `git merge-base --is-ancestor <mergeCommit> origin/<release-branch>`, with the three exit codes read the way Phase 7 Step 4 reads them. Many docs tickets (a new block, a block option) are implemented only in `component-library-twig` or `atomic`, whose merge commits never appear in a `yalesites-project` clone, so ancestry returns `128` and the `yalesites-project` compare API cannot resolve them either. For those, walk Phase 7 Step 4's version-pin chain instead, reading hop 1 from `origin/<release-branch>` rather than `origin/master`, and compare the merge commit against the atomic or CLT tag that chain lands on. A PR that did not make the release means the draft documents something the release does not ship: hold that ticket, say so, and do not publish it in Step 5.
 2. Re-check every quoted label and option against the release branch, the same way `yalesites-web-content` Step 2 did the first time (`git show origin/<release-branch>:<path>` for the form class, template, or config). Open the staged draft logged in (`/node/<nid>/latest` for a forward draft, `/node/<nid>` for a new node) and read the rendered text, so what you compare is what is actually staged, not `draft.md`'s memory of it.
 3. Open the RC multidev (named after the release branch on the `yalesites-yale-edu` Pantheon site, listed in the release PR's "Environments ready for review" comment, see `yalesites-web-content`, Step 4, Screenshots) and walk the control the copy describes. A sentence that says where a setting lives, or what a choice is called, gets checked by looking, not by reading code.
 4. Fix drift in the staged draft with `yalesites-page-build`'s exact-replace recipe, logged in to yalesites.yale.edu, and Save as Draft. Run the new sentences through `python3 ../ticket/scripts/check-github-text.py <draft.md> --surface page-draft` first, and update `draft.md` so it keeps matching the node. A change bigger than a sentence or two is a `yalesites-docs-board` round, not a quiet fix: put it back on a board.
@@ -818,14 +818,14 @@ Build the right-hand column as forward drafts during the RC period wherever prod
 
 **The gate.** Open yalesites.yale.edu logged in and read the Gin toolbar's "Live Site - <version>" bar. It must show the release's `yalesites_profile` version (the `chore: bump yalesites_profile to X` commit on the release PR). The release PR merged to `master` is not enough: Pantheon deploys after the merge, and a draft published into the old code shows a page that describes controls visitors cannot find. If the bar shows the old version, stop and wait.
 
-**The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat. Nothing publishes without it, and a held ticket stays unpublished even if the rest are approved.
+**The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat. Nothing publishes without it, and a held ticket stays unpublished even if the rest are approved. Mark any held ticket that shares a node with approved ones, and say whether its sections come out first or the whole node waits (sub-step 4 below).
 
 **The publish.** In one logged-in browser (the `pw` wrapper from `yalesites-page-build`, Step 2, with the user doing CAS), per node:
 
 1. Do the publish-time pieces from Step 4 on the staged draft, Save as Draft, and verify them on `/node/<nid>/latest` (or `/node/<nid>` for a new node).
 2. Open the **Tasks** sidebar. It must read `Status: Draft` and offer **Publish**. Check **Use custom log message** and write `PUBLISH for <release>: <what> (<owner/repo#N>)`, then select **Publish**. The moderation control at the top of a draft page (**Change to: Published**, **Apply**) does the same thing without a log message, so prefer the sidebar.
 3. Confirm: `/node/<nid>/revisions` shows the published revision as **Current revision**, the alias returns `200` logged out (`curl -s -o /dev/null -w "%{http_code}"`), and a phrase from the new copy appears in the logged-out fetch. For a forward draft, a phrase from the old copy that the draft removed must be gone.
-4. A node shared by several tickets is published once; every ticket on it gets the status write.
+4. A node shared by several tickets is published once; every ticket on it gets the status write. Publishing a node puts every ticket staged on it live, so a held ticket on a shared node needs handling first. If its sections stand apart from the others (its own blocks, its own heading), remove them from the staged draft in sub-step 1 with `yalesites-page-build`'s recipes, Save as Draft, and confirm on `/node/<nid>/latest` that none of its copy remains before publishing. Keep the removed copy in its `draft.md` so it can be restaged for the release it moves to, and leave that ticket in `built` with a note saying so. If its copy is woven into the other tickets' sections and cannot come out cleanly, hold the whole node, and list every ticket on it as held in the batch approval.
 5. Publish the index-card, cross-link, and redirect drafts from Step 4 in the same pass, after the pages they point at.
 
 Then record it, per ticket:
@@ -841,7 +841,7 @@ Pace the publishes one at a time with the verify between them. A failure stops t
 - Per ticket: node(s), published URL, what Step 2 changed, screenshots placed and still owed, Step 4 pieces done and left
 - Tickets held and why (PR pulled from the release, copy drift too big for a quiet fix, a shot that could not be taken)
 - Anything found on a page that was out of scope (a stale neighbor section, a pre-existing Editoria11y alert), offered as follow-ups, not fixed in passing
-- Hand Phase 7 the list of published tickets, so bucket D does not ask about them
+- Hand Phase 7 the list of published tickets with each one's board status, so bucket D does not ask about them and the ones not in `Done` go through bucket C's status write
 
 ---
 

@@ -23,7 +23,7 @@ read-through of the copy, not something to paste.
 
 `status` records where each ticket stands in
 ~/.claude/yalesites/docs-board/status.json, which the work dashboard reads.
-`built` and `building` also lock the ticket's item in its packet.json
+`built`, `building`, and `published` also lock the ticket's item in its packet.json
 (`"locked": true`): the board shows a locked item read-only with a Built badge
 and leaves it out of decisions.json, so a later round cannot approve it again.
 `failed` takes the lock off and bumps the item's `revision`, so the board
@@ -51,7 +51,7 @@ OPS = ("keep", "edit", "add", "remove")
 STATES = ("drafting", "on-board", "changes", "approved", "building", "built", "published", "skipped", "failed")
 STATUS_FILE = os.path.expanduser("~/.claude/yalesites/docs-board/status.json")
 PACKETS_DIR = os.path.expanduser("~/.claude/yalesites/docs-board/packets")
-LOCKING = {"built": True, "building": True, "failed": False}
+LOCKING = {"built": True, "building": True, "published": True, "failed": False}
 EM_DASH = "\u2014"
 
 
@@ -359,7 +359,7 @@ def set_status(ref, state, packet=None, target=None, note=None, result=None, pat
     data["tickets"][ref] = entry
     data["updatedAt"] = entry["updatedAt"]
     write_json(path, data)
-    # built and building lock the item in its packet, so the board stops
+    # built, building, and published lock the item in its packet, so the board stops
     # offering it and decisions.json stops carrying a stale approve. failed
     # unlocks it and bumps its revision, so it can go back on the board for
     # a fresh approve. The item is the one named by --item (remembered in the

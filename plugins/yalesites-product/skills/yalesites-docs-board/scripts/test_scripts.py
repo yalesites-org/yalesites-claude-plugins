@@ -543,6 +543,9 @@ class SplitAndStatusTest(unittest.TestCase):
             self.assertEqual(item["revision"], 2)
             # The status entry remembers which item it acted on.
             self.assertEqual(read_json(path)["tickets"][ref]["item"], "1")
+            # published keeps the lock, so a shipped ticket never goes back on a board.
+            packet.set_status(ref, "published", note="live", **kw)
+            self.assertIs(read_json(os.path.join(folder, "packet.json"))["items"][0]["locked"], True)
             # No packet known: the status is still recorded, with a note.
             err = io.StringIO()
             with contextlib.redirect_stderr(err):

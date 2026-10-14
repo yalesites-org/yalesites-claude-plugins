@@ -369,12 +369,12 @@ was proposed and approved, and the dashboard reads its status.
 `packet.py status`. States: `drafting`, `on-board`, `changes`, `approved`, `building`, `built`,
 `published`, `skipped`, `failed`. `published` is written by `release-prep` Phase 8, the only thing that
 publishes a staged draft. The work dashboard joins it onto its Docs & web tab, the same way it joins
-`pr-feedback`'s prep status onto the review queue. `building` and `built` also set `locked` on
-the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the item's
-`revision` (see Step 8); `published` leaves the lock in place. One ticket touching two pages is
-two items with the ref suffixed (`#1818-a`, `#1818-b`), each with its own status entry. If the
-file is not valid JSON, `packet.py status` stops and says so rather than replacing it: fix or
-remove the file by hand, because replacing it would drop every other ticket's state.
+`pr-feedback`'s prep status onto the review queue. `building`, `built`, and `published` also set
+`locked` on the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the
+item's `revision` (see Step 8). One ticket touching two pages is two items with the ref suffixed
+(`#1818-a`, `#1818-b`), each with its own status entry. If the file is not valid JSON,
+`packet.py status` stops and says so rather than replacing it: fix or remove the file by hand,
+because replacing it would drop every other ticket's state.
 
 ## Related skills
 
