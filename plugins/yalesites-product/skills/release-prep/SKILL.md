@@ -15,7 +15,7 @@ This skill runs the full release workflow. Each phase produces a distinct delive
 |---|---|
 | At the first RC cut | 1 (first draft), then 5 immediately |
 | During the QA period | 2, 3, 4, 6, and 8 (verify and screenshots). Phase 2 includes taking the doc screenshots on the RC multidev once it is up |
-| Right before the release goes out | 1 again (refresh), then publish 2, 3, 4 |
+| Right before the release goes out | 1 again (refresh), then hand 2, 3, 4 to the team to post and send. Staged docs drafts on yalesites.yale.edu wait for Phase 8 |
 | After the release ships | 8 (publish), then 7 |
 
 Phase 5 in particular is **not** a late-stage phase. Testers need their steps the moment the RC is cut, so it runs right after the first pass of Phase 1. Running it in numeric order means the steps land after QA has already started.
@@ -795,9 +795,9 @@ Record what changed per ticket. "Verified, no drift" is a result too, and the re
 
 ### Step 3: Take the screenshots
 
-Every marker from Step 1 gets taken on the RC multidev now, following the rules in `yalesites-web-content`, Step 4, Screenshots: block forms through `/node/<nid>/layout`, **Add block**, and the off-canvas modal on a page you created there; the control the text calls out circled and arrowed with the `run-code` snippet; rendered output at 1280 wide; a shot only where the words cannot carry it. A placeholder taken earlier on a PR multidev is retaken, not reused, because the PR multidev wears the visual regression banner and the RC does not.
+Every marker from Step 1 gets taken on the RC multidev now, following the rules in `yalesites-web-content`, Step 4, Screenshots: block forms through `/node/<nid>/layout`, **Add block**, and the off-canvas modal on a page you created there; the control the text calls out circled and arrowed with the `run-code` snippet; rendered output at 1280 wide; a shot only where the words cannot carry it. A placeholder taken earlier on a PR multidev is retaken, not reused, because the PR multidev wears the visual regression banner and the RC does not. Phase 2's Screenshots step covers the same ground for the featured feature's doc: a shot it already took on this RC is not taken again, it goes in the manifest below.
 
-Save them in a run folder, `~/.claude/yalesites/release-prep/<release>/screenshots/<ticket>-<n>.png`, with a `manifest.md` beside them: one row per shot with the file, the ticket, the page and node, the marker text it replaces, and the alt text from the marker. That manifest is the hand-off. The user places the images in the staged drafts (page-build's Step 3 covers editing our own staged draft in place), and the markers come out of the copy at the same time.
+Save them in a run folder, `~/.claude/yalesites/release-prep/<release>/screenshots/<ticket>-<n>.png`, with a `manifest.md` beside them: one row per shot with the file, the ticket, the page and node, the marker text it replaces, and the alt text from the marker. That manifest is the hand-off. The user places the images in the staged drafts (page-build's Step 3 covers editing our own staged draft in place), and the markers come out of the copy at the same time. Carry Phase 2's reminder into the manifest: set the moderation state to **Draft** before **Save layout**, since on a published node the Layout Builder save can default to Published and would put the unreleased doc live.
 
 A shot that cannot be taken yet (the RC lacks the feature, or it depends on a release-only piece from Step 4) stays on the list as owed, with the reason.
 
@@ -860,10 +860,10 @@ All draft files saved to the workspace folder.
 
 ## Notes
 
-- Order by event, not by number: Phase 1 then Phase 5 at the RC cut; Phases 2, 3, 4 and 6 through the QA period; Phase 1 again right before the release; Phase 7 after it ships
+- Order by event, not by number: Phase 1 then Phase 5 at the RC cut; Phases 2, 3, 4 and 6 through the QA period; Phase 1 again right before the release; Phase 8 straddles both (verify and screenshots through the QA period, publish after the release ships); Phase 7 last
 - Phase 1 runs twice. The pre-release refresh is what catches fixes made during QA
 - Phase 7 runs after the release is out, not with the rest — it needs the RC merged to `master` before it can verify anything
-- Phase 8 straddles both events: its verify and screenshot steps run through the RC period, and its publish step waits for production to show the new version. It is the only phase that publishes on yalesites.yale.edu, and it never publishes without the user approving the batch
+- Phase 8 straddles both events: its verify and screenshot steps run through the RC period, and its publish step waits for production to show the new version. It is the only phase where the agent publishes on yalesites.yale.edu (Phases 2 and 4 hand over drafts the team posts), and it never publishes without the user approving the batch
 - If a release has no major new feature (e.g., a hotfix release), skip Phase 2
 - The Current Issues & Fixes update (Phase 4) is not always needed every release — confirm before starting
 - For collaboration releases, the partner name should appear in the release notes title, intro, and featured feature section — but doesn't need to be repeated in the email subject or docs page
