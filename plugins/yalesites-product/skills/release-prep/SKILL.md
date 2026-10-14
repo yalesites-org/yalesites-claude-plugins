@@ -828,7 +828,7 @@ Expect the whole run to take well over an hour of wall clock, most of it waiting
 
 ### Step 1: Inventory the staged drafts
 
-The source is `yalesites-docs-board`'s status file, `~/.claude/yalesites/docs-board/status.json`, keyed by ticket ref. Take every entry in state `built` and keep the ones whose ticket sits on this release's milestone:
+The source is `yalesites-docs-board`'s status file, `~/.claude/yalesites/docs-board/status.json`, keyed by ticket ref. Take every entry in state `built` and keep the ones whose ticket sits on this release's milestone. A ticket that touches two pages has one entry per page, keyed with a suffix (`#1818-a`, `#1818-b`): the milestone lookup uses the bare issue number, and everything after it (the table, the Step 5 status write) keeps the full suffixed ref:
 
 ```bash
 python3 - <<'EOF'
@@ -837,6 +837,7 @@ d = json.load(open(os.path.expanduser('~/.claude/yalesites/docs-board/status.jso
 for ref, e in sorted(d.items()):
     if e.get('state') != 'built': continue
     repo, n = ref.split('#')
+    n = n.split('-')[0]  # a ticket that touches two pages is keyed #1818-a, #1818-b
     ms = subprocess.run(['gh','issue','view',n,'-R',repo,'--json','milestone,state','--jq',r'"\(.milestone.title // "none") \(.state)"'], capture_output=True, text=True).stdout.strip()
     print(f"{ref}\t{ms}\t{e.get('packet')}\t{e.get('target')}\t{e.get('result')}\t{e.get('note','')}")
 EOF
@@ -902,7 +903,7 @@ Build the right-hand column as forward drafts during the RC period wherever prod
 4. A node shared by several tickets is published once; every ticket on it gets the status write. Publishing a node puts every ticket staged on it live, so a held ticket on a shared node needs handling first. If its sections stand apart from the others (its own blocks, its own heading), remove them from the staged draft in sub-step 1 with `yalesites-page-build`'s recipes, Save as Draft, and confirm on `/node/<nid>/latest` that none of its copy remains before publishing. Keep the removed copy in its `draft.md` so it can be restaged for the release it moves to, and leave that ticket in `built` with a note saying so. If its copy is woven into the other tickets' sections and cannot come out cleanly, hold the whole node, and list every ticket on it as held in the batch approval.
 5. Publish the index-card, cross-link, and redirect drafts from Step 4 in the same pass, after the pages they point at.
 
-Then record it, per ticket:
+Then record it, per ticket, using the full status-file ref (suffix included, so `#1818-a` and `#1818-b` each get their own `published`):
 
 ```bash
 python3 <docs-board>/scripts/packet.py status <owner/repo#N> published --note "<what was published, what is still owed>"
