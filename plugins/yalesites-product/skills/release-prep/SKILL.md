@@ -62,7 +62,7 @@ What it cannot read lives in one small state file per milestone, which this skil
 {
   "milestone": "12-01-26 Feature Release",
   "phases": {
-    "5": { "state": "done", "note": "steps on all 41 open Done tickets", "at": "2026-10-20T15:02:00Z", "by": "skill" }
+    "4": { "state": "done", "note": "Current Issues & Fixes page updated", "at": "2026-10-20T15:02:00Z", "by": "skill" }
   },
   "decisions": {
     "featuredFeature": { "value": "Office Hours block (YaleSites-Internal#1901)", "at": "2026-10-20T14:40:00Z", "by": "skill" },
@@ -89,10 +89,14 @@ state = {"milestone": "12-01-26 Feature Release", "phases": {}, "decisions": {}}
 if os.path.exists(path):
     state = json.load(open(path))
 now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-state.setdefault("phases", {})["5"] = {"state": "done", "note": "steps on all open Done tickets", "at": now, "by": "skill"}
+state.setdefault("phases", {})["4"] = {"state": "done", "note": "Current Issues & Fixes page updated", "at": now, "by": "skill"}
 state["updatedAt"] = now
 os.makedirs(os.path.dirname(path), exist_ok=True)
-json.dump(state, open(path, "w"), indent=2)
+# write a temp file and rename it, so a crash mid-write never leaves an empty file
+tmp = f"{path}.tmp"
+with open(tmp, "w") as f:
+    json.dump(state, f, indent=2)
+os.replace(tmp, path)
 EOF
 ```
 
@@ -112,7 +116,7 @@ state.setdefault("decisions", {})["currentIssuesNeeded"] = {"value": True, "at":
 
 Each release has one comms ticket on its milestone in `yalesites-org/YaleSites-Internal`, titled `Web: Release notes, webpage, and email communication for YaleSites vX.Y.Z`, type Communications, with acceptance criteria in three checkbox groups: **Release notes draft**, **Release Notes webpage on yalesites.yale.edu**, and **Release email**. YaleSites-Internal#1485 is the model. Post each pass of the notes as a comment on that ticket, with the `<!-- yalesites:agent -->` block at the bottom, and tick the boxes as they are met. The ticket is where the page and the email are tracked too, and it is what the work dashboard reads to show Phases 1 and 3, so a draft posted anywhere else is a draft the board cannot see.
 
-If the milestone has no comms ticket yet, create it first with the `ticket` skill, modelled on #1485, and milestone it to the release.
+If the milestone has no comms ticket yet, create it first with the `ticket` skill, modelled on YaleSites-Internal#1485, and milestone it to the release.
 
 ### Finding what's in the release
 
