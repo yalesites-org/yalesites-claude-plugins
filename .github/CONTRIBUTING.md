@@ -49,6 +49,26 @@ To change a rule, edit `/standards/github-writing.md` or
 `/standards/github-communication-format.md` and re-sync. A rule change is a `MINOR` bump
 for every plugin that carries a copy, so commit it as `feat:`.
 
+## Before you open a skill PR
+
+Run the skill-authoring checklist against your branch first. It lives at
+`/standards/skill-authoring-checklist.md` and groups the defects that came back in three
+rounds of review on six skill PRs: cross-plugin pointers with no fallback, rules copied into
+several files, commands that are not in `allowed-tools` or do not run on macOS, regexes that
+match the wrong thing, numbers that disagree with their source, state files with no plan for a
+second run, and PR titles that get the wrong version bump.
+
+The fastest way through it is the `skill-review` skill in `yalesites-dev`: it diffs the branch
+against `main`, walks every item, runs the commands your skill tells agents to run, and reports
+in the shape the reviewer uses. Or go through the file by hand. Either way, also run:
+
+```bash
+bash scripts/validate-plugins.sh
+```
+
+Fix what the checklist finds before opening the PR. The review will find it otherwise, and a
+round of review costs more than the check.
+
 ## Versioning
 
 Do not edit `version` in `plugin.json` by hand. [release-please](https://github.com/googleapis/release-please)

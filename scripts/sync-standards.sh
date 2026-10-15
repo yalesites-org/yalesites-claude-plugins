@@ -32,6 +32,16 @@ SCRIPTS=(
   "check-github-text.py"
 )
 
+# The skill-authoring checklist is only read by the skill-review skill, so it has
+# its own target list. Same rule: generated copy, edit standards/ and re-sync.
+CHECKLIST_TARGETS=(
+  "plugins/yalesites-dev/skills/skill-review"
+)
+
+CHECKLIST_DOCS=(
+  "skill-authoring-checklist.md"
+)
+
 DRIFT=0
 
 sync_one() {
@@ -64,6 +74,15 @@ for target in "${TARGETS[@]}"; do
   done
 done
 
+for target in "${CHECKLIST_TARGETS[@]}"; do
+  if [[ $CHECK -eq 0 ]]; then
+    echo "$target"
+  fi
+  for doc in "${CHECKLIST_DOCS[@]}"; do
+    sync_one "standards/$doc" "$target/references/$doc"
+  done
+done
+
 if [[ $CHECK -eq 1 ]]; then
   if [[ $DRIFT -gt 0 ]]; then
     echo ""
@@ -74,5 +93,5 @@ if [[ $CHECK -eq 1 ]]; then
   echo "Standards in sync."
 else
   echo ""
-  echo "Synced $(( ${#TARGETS[@]} * (${#DOCS[@]} + ${#SCRIPTS[@]}) )) file(s) from standards/."
+  echo "Synced $(( ${#TARGETS[@]} * (${#DOCS[@]} + ${#SCRIPTS[@]}) + ${#CHECKLIST_TARGETS[@]} * ${#CHECKLIST_DOCS[@]} )) file(s) from standards/."
 fi
