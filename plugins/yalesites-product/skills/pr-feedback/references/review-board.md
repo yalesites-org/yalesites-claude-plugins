@@ -91,6 +91,19 @@ delete it.
   "pr": { "ref": "yalesites-org/yalesites-project#1598", "url": "https://github.com/yalesites-org/yalesites-project/pull/1598" },
   "issue": { "ref": "yalesites-org/YaleSites-Internal#1824", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1824" },
   "ownReadPrompt": "Optional. Overrides the default 'What did you notice?' text.",
+  "units": [
+    {
+      "issue": { "ref": "yalesites-org/YaleSites-Internal#1824", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1824", "title": "Bug: Configure section logs a PHP warning on every open" },
+      "ask": "Opening **Configure section** in Layout Builder logs a PHP warning each time. The ticket asks for the warning to stop, with no change to how the dialog looks or works.",
+      "pr": { "ref": "yalesites-org/yalesites-project#1598", "url": "https://github.com/yalesites-org/yalesites-project/pull/1598", "title": "fix(ys_layouts): guard the missing theme setting" },
+      "change": "Checks for the section theme setting before reading it. One file, no config or UI change.",
+      "status": "6 pass, 1 fail, 1 ask",
+      "test": { "label": "Multidev pr-1598", "url": "https://pr-1598-yalesites-platform.pantheonsite.io/" },
+      "related": [
+        { "ref": "yalesites-org/YaleSites-Internal#1790", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1790", "note": "Where the swatch clipping was first reported" }
+      ]
+    }
+  ],
   "questions": [
     {
       "id": "swatch-clipping",
@@ -167,6 +180,29 @@ link, and the subtitle with ` · `, so a legend using the same mark reads as mor
 Use the same labels everywhere in the packet: captions, block labels, mark notes, question
 text, and option details. Put the same side on the left in every pair, the baseline first.
 
+### The About panel: `units`
+
+The board shows an **About this review** panel on the right of every question, so the reviewer
+knows what ticket and PR a question comes from without opening GitHub. A ref on its own
+(`component-library-twig#792`) means nothing to someone who is judging one question at a time;
+the panel says, in plain words, what the ticket asked for and what the PR does. Write one unit
+per PR. Every packet gets `units`, a single-PR one included.
+
+| Field | What goes in it |
+|---|---|
+| `issue` | `ref`, `url`, and `title` of the ticket the PR closes. Leave it off if there is none, and say so in `change` |
+| `ask` | One to three sentences: what the ticket asks for and why, in the reviewer's terms. Not the acceptance criteria list (a `text` block carries that), the point of the ticket |
+| `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly |
+| `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised |
+| `status` | Optional. The drive-it result in one line (`8 pass, 2 fail, 1 ask`), or why there was no run |
+| `test` | Optional. `label` and `url` of where to check it: the multidev, the Storybook deploy preview |
+| `related` | Optional. `ref`, `url`, `note` for each ticket or PR a question mentions that the reviewer would otherwise have to look up: a closed earlier attempt, a parent epic, a follow-up |
+
+Take `ask` and `change` from the brief, rewritten for someone who has not read it. `ask`, `change`,
+and `status` take the same light markdown as a `text` block. A question with no matching unit
+shows no panel. A packet with one unit shows it on every question, and the own-read page shows
+every unit.
+
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
 and `h` is a box, and one without is a pin. Look at the screenshot before placing marks, and put
 each one on the thing its note describes. A pin in the wrong place is worse than no pin.
@@ -193,7 +229,7 @@ than none, the same as a misplaced pin.
 ```
 
 `pr` on a question overrides the packet's `pr`. Batch packets set it on every question, which
-tags each page with its PR. Keep a unit's questions next to each other.
+tags each page with its PR and picks its unit for the About panel, and carry one unit per PR. Keep a unit's questions next to each other.
 
 ### Writing the questions
 
