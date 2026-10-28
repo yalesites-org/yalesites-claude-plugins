@@ -29,7 +29,7 @@ Rules:
 - **Blocked by skips missing phases.** If there is no Design child, Development is blocked by UX. If there is no UX or Design child, Development starts first.
 - **QA, Visreg, and Docs run in parallel** once Development is done.
 - **Product calls are not a phase.** They come up inside any phase and go through `needs-decision` (below). The decider is `miketullo95` unless the block names someone else.
-- **Gates.** A phase with a handle in the Gate column needs that person's go before it starts. When its blockers finish, the router does not move it. It lists it under "Waiting on your go" instead. `auto` means the router moves it on its own. Gates are set per phase here, so adding or removing one is a one-cell edit.
+- **Gates.** A phase with a handle in the Gate column needs that person's go before it starts. When its blockers finish, the router does not move it. It lists it under "Waiting on a go" instead. `auto` means the router moves it on its own. Gates are set per phase here, so adding or removing one is a one-cell edit.
 - **Defaults, not rules.** Reassign any child when the work calls for it. The router only assigns the default owner when a child it promotes has no assignee.
 - April (UX) and Michael (QA) are first guesses as of 2026-10-27. Confirm or change them here.
 
@@ -117,7 +117,7 @@ The label is the switch. The router treats a block with no label as closed.
 ## Approving or sending back a gated phase
 
 - **Approve:** move the phase child to `To Do` (on the board, or with the dashboard's Approve button, which also assigns the default owner if nobody is assigned and comments on the parent). The router never sees it as waiting again.
-- **Send back:** post a `## Follow-up needed` block on the gated child naming who owes the fix (usually the owner of the phase before it), and add `follow-up`. The child stays in `Backlog`, drops out of "Waiting on your go," and shows under that person in the brief. When they finish and remove the label, it comes back to the gate.
+- **Send back:** post a `## Follow-up needed` block on the gated child naming who owes the fix (usually the owner of the phase before it), and add `follow-up`. The child stays in `Backlog`, drops out of "Waiting on a go," and shows under that person in the brief. When they finish and remove the label, it comes back to the gate.
 
 A gated child with an open `needs-decision` is held the same way until the decision is made.
 

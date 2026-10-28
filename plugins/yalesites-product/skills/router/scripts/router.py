@@ -114,6 +114,14 @@ def link(node):
     return f"[{ref(node)}]({node['url']})"
 
 
+MENTION = re.compile(r"@(?=[A-Za-z0-9-])")
+
+
+def quiet(text):
+    """Break @mentions in text we copy into the brief, so reposting it never pings anyone."""
+    return MENTION.sub("@\u200b", text or "")
+
+
 def board_status(node):
     for it in (node.get("projectItems") or {}).get("nodes", []):
         if it["project"]["number"] == PROJECT:
@@ -444,13 +452,13 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         for p in promos:
             ok = applied.get(p["issue"]["number"])
             mark = "" if dry else (" (read back OK)" if ok else " (**write did not stick, check by hand**)")
-            lines.append(f"- {link(p['issue'])} {p['issue']['title']} → To Do, `{p['owner']}`{mark}")
+            lines.append(f"- {link(p['issue'])} {quiet(p['issue']['title'])} → To Do, `{p['owner']}`{mark}")
         lines.append("")
 
     if gated:
         lines += ["### Waiting on a go", ""]
         for g in sorted(gated, key=lambda g: g["gate"]):
-            lines.append(f"- `{g['gate']}`: {link(g['issue'])} {g['issue']['title']} "
+            lines.append(f"- `{g['gate']}`: {link(g['issue'])} {quiet(g['issue']['title'])} "
                          f"({phases[g['phase']]['name']}, part of {ref(g['issue']['parent'])}). Approve by moving it to To Do")
         lines.append("")
 
@@ -461,10 +469,10 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         lines += ["<details>", "<summary><b>Intake list</b></summary>", ""]
         for n in intake:
             who = (n.get("author") or {}).get("login", "?")
-            lines.append(f"- {link(n)} {n['title']}, filed by `{who}` {parse_date(n['createdAt']):%b %-d}")
+            lines.append(f"- {link(n)} {quiet(n['title'])}, filed by `{who}` {parse_date(n['createdAt']):%b %-d}")
         for n in no_priority:
             who = (n.get("author") or {}).get("login", "?")
-            lines.append(f"- {link(n)} {n['title']}, filed by `{who}`: needs a priority")
+            lines.append(f"- {link(n)} {quiet(n['title'])}, filed by `{who}`: needs a priority")
         lines += ["", "</details>", ""]
 
     lines += ["### Owed, by person", ""]
@@ -484,7 +492,7 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             kind = "Decision" if o["kind"] == "needs-decision" else "Follow-up"
             if o["legacy"]:
                 kind += " (`question`)"
-            what = (o["what"] or o["node"]["title"]).replace("|", "/")[:90]
+            what = quiet(o["what"] or o["node"]["title"]).replace("|", "/")[:90]
             if not o["has_block"]:
                 what += " _(no block)_"
             by = f"**{o['by']:%b %-d}**" if o["by"] < TODAY else f"{o['by']:%b %-d}"
@@ -496,21 +504,21 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         lines += ["<details>", f"<summary><b>Stuck: In progress with no activity for {STALE_WORKING_DAYS}+ working days, 20+ for Communications ({len(stuck)})</b></summary>", ""]
         for s in sorted(stuck, key=lambda s: -s["idle"]):
             pr = "" if s["has_pr"] else ", no PR"
-            lines.append(f"- {link(s['node'])} {s['node']['title']}, `{s['who']}`, {s['idle']}d idle{pr}")
+            lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
         lines += ["", "</details>", ""]
 
     if features:
         lines += ["<details>", f"<summary><b>Features in flight ({len(features)})</b></summary>", "",
                   "| Feature | Milestone | Done |", "|---|---|---|"]
         for f in features:
-            lines.append(f"| {link(f['node'])} {f['node']['title'].replace('|', '/')} | {f['milestone']} | "
+            lines.append(f"| {link(f['node'])} {quiet(f['node']['title']).replace('|', '/')} | {f['milestone']} | "
                          f"{f['done']} of {f['total']} |")
         lines += ["", "</details>", ""]
 
     if waiting:
         lines += ["<details>", f"<summary><b>Phase children the router did not move ({len(waiting)})</b></summary>", ""]
         for n, why in waiting:
-            lines.append(f"- {link(n)} {n['title']}: {why}")
+            lines.append(f"- {link(n)} {quiet(n['title'])}: {why}")
         lines += ["", "</details>", ""]
 
     lines += ["Routing rules: `yalesites-product` plugin, `skills/ticket/references/routing.md`.", "", MARKER]
@@ -556,7 +564,7 @@ def main():
         }, indent=2))
         return
 
-    applied = {}
+    applied, post_failed = {}, False
     if a.apply:
         try:
             added, removed = sync_gate_labels(gated)
@@ -588,11 +596,15 @@ def main():
         if BRIEF_ISSUE is None:
             print("\nBRIEF_ISSUE is not set; brief printed only.", file=sys.stderr)
         else:
-            gh("issue", "comment", str(BRIEF_ISSUE), "-R", f"{ORG}/{ISSUES_REPO}", "--body-file", "-", input_text=brief)
-            print(f"\nPosted to {ORG}/{ISSUES_REPO}#{BRIEF_ISSUE}", file=sys.stderr)
+            try:
+                gh("issue", "comment", str(BRIEF_ISSUE), "-R", f"{ORG}/{ISSUES_REPO}", "--body-file", "-", input_text=brief)
+                print(f"\nPosted to {ORG}/{ISSUES_REPO}#{BRIEF_ISSUE}", file=sys.stderr)
+            except RuntimeError as e:
+                print(f"\nPosting the brief failed: {e}", file=sys.stderr)
+                post_failed = True
 
     failed = [n for n, ok in applied.items() if not ok]
-    sys.exit(1 if failed else 0)
+    sys.exit(1 if failed or post_failed else 0)
 
 
 if __name__ == "__main__":
