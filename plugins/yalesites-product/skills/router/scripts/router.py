@@ -37,6 +37,10 @@ DEFAULT_BY_WORKING_DAYS = 5
 NEEDS_PRIORITY_DAYS = 30
 ROUTING_MD = Path(__file__).resolve().parents[2] / "ticket" / "references" / "routing.md"
 MARKER = "<!-- yalesites:router -->"
+GATE_LABEL = "awaiting-go"
+BOARD_VIEWS = f"https://github.com/orgs/{ORG}/projects/{PROJECT}/views/"
+# Monday meeting views on the YaleSites Board, in agenda order.
+MONDAY_VIEWS = [("Decisions & follow-ups", 23), ("Stuck", 24), ("Intake", 25), ("Features", 26), ("Gates", 27)]
 
 TODAY = dt.date.today()
 
@@ -289,6 +293,18 @@ def find_owed():
 
 # --- 3. stuck --------------------------------------------------------------
 
+def sync_gate_labels(gated):
+    """Keep GATE_LABEL on exactly the gated children waiting on a go. Returns (added, removed)."""
+    want = {g["issue"]["number"] for g in gated}
+    have = {n["number"] for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:"{GATE_LABEL}"',
+                                            "number", include_prs=False)}
+    for n in want - have:
+        gh("issue", "edit", str(n), "-R", f"{ORG}/{ISSUES_REPO}", "--add-label", GATE_LABEL)
+    for n in have - want:
+        gh("issue", "edit", str(n), "-R", f"{ORG}/{ISSUES_REPO}", "--remove-label", GATE_LABEL)
+    return sorted(want - have), sorted(have - want)
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -341,6 +357,23 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
             f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck.")
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
+
+    if TODAY.weekday() == 0:
+        decisions = sum(o["kind"] == "needs-decision" for o in owed)
+        late_follow = sum(o["kind"] == "follow-up" and o["by"] < TODAY for o in owed)
+        pl = lambda n, w: f"{n} {w}{'' if n == 1 else 's'}"
+        counts = {"Decisions & follow-ups": f"{pl(decisions, 'decision')}, {pl(late_follow, 'overdue follow-up')}",
+                  "Stuck": f"{len(stuck)} stuck",
+                  "Intake": f"{len(intake)} to groom, {len(no_priority)} need a priority",
+                  "Features": "bets, release-planning weeks only",
+                  "Gates": f"{len(gated)} waiting on a go"}
+        empty = decisions == 0 and late_follow == 0 and not stuck and not intake and not no_priority and not gated
+        lines += ["### Monday agenda", "",
+                  "Nothing needs the room this week. Skip the meeting." if empty else
+                  "30 minutes, top to bottom. Skip any empty section.", ""]
+        for i, (name, view) in enumerate(MONDAY_VIEWS, 1):
+            lines.append(f"{i}. [{name}]({BOARD_VIEWS}{view}): {counts[name]}")
+        lines.append("")
 
     if promos:
         lines += ["### Handed off", ""]
@@ -453,6 +486,12 @@ def main():
 
     applied = {}
     if a.apply:
+        try:
+            added, removed = sync_gate_labels(gated)
+            if added or removed:
+                print(f"{GATE_LABEL}: added {added}, removed {removed}", file=sys.stderr)
+        except RuntimeError as e:
+            print(f"{GATE_LABEL} sync failed: {e}", file=sys.stderr)
         for p in promos:
             try:
                 applied[p["issue"]["number"]] = apply_promotion(p, phases)

@@ -130,9 +130,24 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 | Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the parent is open, the child has no open `needs-decision` or `follow-up`, and its phase's Gate is `auto` |
 | Assign the phase's default owner | Only on a child it just promoted, and only if that child has no assignee |
 | Comment on the parent | One comment per promotion, naming the child and its owner |
+| Add or remove `awaiting-go` | Kept on exactly the gated children waiting on a go, so the board's Gates view can find them. Removed once a child moves on or is held |
 | Comment on the brief issue | Once per run |
 
 The router never closes, relabels, or reassigns anything else, never touches a PR, never starts an agent, and never @-mentions anyone in the brief (it writes handles in backticks so nobody gets a notification storm). Nudges happen in person or in the Monday meeting.
+
+## Monday meeting
+
+Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, which opens with an agenda and a count per section. Skip empty sections, and skip the meeting when every section is empty. Each section has a view on the YaleSites Board, numbered in meeting order:
+
+| # | View | What we do |
+|---|---|---|
+| 1 | Mon 1: Decisions & follow-ups | Decisions that need the room. Each leaves decided or with a new date |
+| 2 | Mon 2: Stuck | In progress with no update in a week. Each leaves with an owner and a date |
+| 3 | Mon 3: Intake | New `forming` tickets: groom now, park, or decline |
+| 4 | Mon 4: Features | Release-planning weeks only: feature parents by progress, and which we take on next |
+| 5 | Mon 5: Gates | Phases waiting on a gatekeeper's go (`awaiting-go`) |
+
+The views group by assignee, not by who owes the call, because board filters can't read the blocks. The brief and the work dashboard are the exact lists.
 
 ## Brief
 

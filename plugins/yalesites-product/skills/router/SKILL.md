@@ -17,14 +17,14 @@ It does three things each run:
 3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
 4. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 
-Then it posts a brief to the pinned Router brief issue.
+Then it posts a brief to the pinned Router brief issue. On Mondays the brief opens with the meeting agenda: a count per section, linked to the Monday views on the YaleSites Board (see "Monday meeting" in `routing.md`).
 
 The rules (phases, owners, labels, block formats, and the exact list of what the router may write) live in `../ticket/references/routing.md`. Read it before changing anything here. This is v0 of the router in yalesites-org/YaleSites-Internal#1915, run as a Claude routine for now instead of a GitHub Action.
 
 ## Hard rules
 
 - **The script decides, not you.** All routing comes from `scripts/router.py`. Don't promote, assign, relabel, or comment on anything by hand during a router run, even when it looks obviously right. If the script missed something, report it in your summary so the rules get fixed.
-- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child, the default assignee on a child it just promoted, one parent comment per promotion, one brief comment per run. Nothing else, ever: no closing, no PRs, no agent runs.
+- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child, the default assignee on a child it just promoted, one parent comment per promotion, the `awaiting-go` label on gated children waiting on a go, one brief comment per run. Nothing else, ever: no closing, no PRs, no agent runs.
 - **No @-mentions.** The brief writes handles in backticks. Nudging people is a human call.
 
 ## Running it
