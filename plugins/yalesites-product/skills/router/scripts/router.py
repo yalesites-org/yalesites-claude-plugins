@@ -121,15 +121,17 @@ def labels(node):
 # --- routing rules ---------------------------------------------------------
 
 def load_phases():
-    """Parse the phase table in routing.md: key -> {name, owner, blocked_by}."""
+    """Parse the phase table in routing.md: key -> {name, owner, gate}."""
     text = ROUTING_MD.read_text()
     phases = {}
     for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 5 or not re.fullmatch(r"`[a-z]+`", cells[1] or ""):
+        if len(cells) < 6 or not re.fullmatch(r"`[a-z]+`", cells[1] or ""):
             continue
         owner = re.search(r"`([A-Za-z0-9-]+)`", cells[2])
-        phases[cells[1].strip("`")] = {"name": cells[0], "owner": owner.group(1) if owner else None}
+        gate = re.search(r"`([A-Za-z0-9-]+)`", cells[4])
+        phases[cells[1].strip("`")] = {"name": cells[0], "owner": owner.group(1) if owner else None,
+                                       "gate": gate.group(1) if gate else None}
     if not phases:
         sys.exit(f"Could not read the phase table from {ROUTING_MD}")
     return phases
@@ -158,7 +160,7 @@ def find_promotions(phases):
       blockedBy(first:20){{nodes{{number title url state repository{{nameWithOwner}} {STATUS_FRAGMENT}}}}}
       {STATUS_FRAGMENT}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open in:body "phase:"', fields, include_prs=False)
-    promos, waiting = [], []
+    promos, gated, waiting = [], [], []
     for n in nodes:
         phase = agent_field(n["body"], "phase")
         if not phase:
@@ -177,16 +179,21 @@ def find_promotions(phases):
         if not n["parent"] or n["parent"]["state"] == "CLOSED":
             waiting.append((n, "blockers done, but the parent is closed or missing"))
             continue
-        if "needs-decision" in labels(n):
-            waiting.append((n, "blockers done, held by an open `needs-decision`"))
+        held = labels(n) & {"needs-decision", "follow-up"}
+        if held:
+            waiting.append((n, f"blockers done, held by an open `{sorted(held)[0]}`"))
             continue
         assignees = [a["login"] for a in n["assignees"]["nodes"]]
+        if phases[phase]["gate"]:
+            gated.append({"issue": n, "phase": phase, "blockers": blockers, "gate": phases[phase]["gate"],
+                          "owner": assignees[0] if assignees else phases[phase]["owner"]})
+            continue
         promos.append({
             "issue": n, "phase": phase, "blockers": blockers,
             "assign": None if assignees else phases[phase]["owner"],
             "owner": assignees[0] if assignees else phases[phase]["owner"],
         })
-    return promos, waiting
+    return promos, gated, waiting
 
 
 def apply_promotion(p, phases):
@@ -303,10 +310,10 @@ def find_stuck():
 
 # --- 4. brief --------------------------------------------------------------
 
-def build_brief(promos, applied, waiting, owed, stuck, phases, dry):
+def build_brief(promos, gated, applied, waiting, owed, stuck, phases, dry):
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
-    head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, "
+    head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
             f"{len(stuck)} stuck.")
@@ -318,6 +325,13 @@ def build_brief(promos, applied, waiting, owed, stuck, phases, dry):
             ok = applied.get(p["issue"]["number"])
             mark = "" if dry else (" (read back OK)" if ok else " (**write did not stick, check by hand**)")
             lines.append(f"- {link(p['issue'])} {p['issue']['title']} → To Do, `{p['owner']}`{mark}")
+        lines.append("")
+
+    if gated:
+        lines += ["### Waiting on a go", ""]
+        for g in sorted(gated, key=lambda g: g["gate"]):
+            lines.append(f"- `{g['gate']}`: {link(g['issue'])} {g['issue']['title']} "
+                         f"({phases[g['phase']]['name']}, part of {ref(g['issue']['parent'])}). Approve by moving it to To Do")
         lines.append("")
 
     lines += ["### Owed, by person", ""]
@@ -369,12 +383,32 @@ def main():
     ap.add_argument("--apply", action="store_true", help="perform writes and post the brief")
     ap.add_argument("--no-brief", action="store_true", help="do not post the brief")
     ap.add_argument("--brief-file", help="also write the brief to this path")
+    ap.add_argument("--json", action="store_true", help="print machine-readable results instead of the brief; makes no writes")
     a = ap.parse_args()
 
     phases = load_phases()
-    promos, waiting = find_promotions(phases)
+    promos, gated, waiting = find_promotions(phases)
     owed = find_owed()
     stuck = find_stuck()
+
+    if a.json:
+        item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
+        print(json.dumps({
+            "date": TODAY.isoformat(),
+            "handoffs": [{**item(p["issue"]), "phase": p["phase"], "owner": p["owner"],
+                          "parent": ref(p["issue"]["parent"])} for p in promos],
+            "gated": [{**item(g["issue"]), "number": g["issue"]["number"], "phase": g["phase"], "gate": g["gate"],
+                       "owner": g["owner"], "parent": ref(g["issue"]["parent"]),
+                       "parent_number": g["issue"]["parent"]["number"],
+                       "blockers": [ref(b) for b in g["blockers"]]} for g in gated],
+            "owed": [{**item(o["node"]), "kind": o["kind"], "legacy": o["legacy"], "who": o["who"],
+                      "what": o["what"], "has_block": o["has_block"], "since": o["since"].isoformat(),
+                      "by": o["by"].isoformat(), "overdue": o["by"] < TODAY} for o in owed],
+            "stuck": [{**item(s["node"]), "who": s["who"], "idle_working_days": s["idle"], "has_pr": s["has_pr"]}
+                      for s in stuck],
+            "held": [{**item(n), "reason": why} for n, why in waiting],
+        }, indent=2))
+        return
 
     applied = {}
     if a.apply:
@@ -385,7 +419,7 @@ def main():
                 applied[p["issue"]["number"]] = False
                 print(f"promotion failed for {ref(p['issue'])}: {e}", file=sys.stderr)
 
-    brief = build_brief(promos, applied, waiting, owed, stuck, phases, dry=not a.apply)
+    brief = build_brief(promos, gated, applied, waiting, owed, stuck, phases, dry=not a.apply)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

@@ -455,7 +455,7 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
 3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
 4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
 5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. Ask once for the whole set ("use the default owners?") rather than per child.
-6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish.
+6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
 7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
    ```bash
