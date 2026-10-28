@@ -85,9 +85,9 @@ Milestone and Priority answer different questions. Don't make one stand in for t
 Priority is also how every agent orders its work, whoever runs it. When an agent picks its own next ticket, nobody hands it one: it picks from its pool in this order. A person can still point an agent at a specific ticket, and that skips the order.
 
 1. **Rework.** Its own PRs that came back with `needs work`.
-2. **`Hotfix`**, whatever the milestone, even none. Grooming still gives a Hotfix its `MM-DD-YY Hotfix` milestone (see "Milestone" in the ticket skill), but a missing one never holds a Hotfix back.
-3. **The current milestone** (the open one with the soonest due date), `High` then `Medium` then `Low`. A ticket with no Priority goes last, after `Low`, since nobody has groomed it yet.
-4. **The next milestone**, in the same order, only once the current one has nothing left it can take: every ticket still open in it is assigned to someone else, blocked, waiting on a `needs-decision`, or already has an open PR. During an RC window, next-release work doesn't merge to `develop`.
+2. **`Hotfix`**: any ticket with `Hotfix` Priority, whatever the milestone, even none, plus any ticket in an open `MM-DD-YY Hotfix` milestone. Grooming still gives a Hotfix its `MM-DD-YY Hotfix` milestone (see "Milestone" in the ticket skill), but a missing one never holds a Hotfix back.
+3. **The current milestone**: the open dated release milestone (the `MM-DD-YY ... Release` shape in the ticket skill's "Milestone") with the soonest due date. Hotfix milestones never count here, since they are due a week after the hotfix and would sort ahead of the release; step 2 already covers them. Order it `High` then `Medium` then `Low`. A ticket with no Priority goes last, after `Low`, since nobody has groomed it yet.
+4. **The next milestone**: the dated release milestone after the current one, in the same order, only once the current one has nothing left it can take: every ticket still open in it is assigned to someone else, blocked, waiting on a `needs-decision`, or already has an open PR. During an RC window, next-release work doesn't merge to `develop`.
 5. **Never a ticket with no milestone, except a `Hotfix`** (step 2). A person schedules it first.
 
 Ties go to lower Risk once the board has a Risk field. Until then, the older ticket wins.
