@@ -655,14 +655,16 @@ computing the label set, check whether the other required approver already appro
 
 ```bash
 gh api repos/yalesites-org/yale-ui-cl/pulls/NUMBER/reviews --paginate \
-  -q '[.[] | select(.user.login == "OTHER_LOGIN") | select(.state != "COMMENTED")] | last | .state'
+  -q '.[] | select(.user.login == "OTHER_LOGIN") | select(.state != "COMMENTED") | .state' | tail -n 1
 ```
 
 `OTHER_LOGIN` is whichever of the two the current `gh` user is not (`gh api user -q .login`).
+With `--paginate`, `gh` runs the `-q` filter once per page, so the filter prints every matching
+state and `tail -n 1` keeps the latest across all pages. Empty output means no review.
 
 - **`APPROVED`:** this review is the second approval. Apply the pass label(s) + `ready to merge`
   as the table says.
-- **Anything else** (no review, `CHANGES_REQUESTED`, `DISMISSED`): this is the first approval.
+- **Anything else** (empty output, `CHANGES_REQUESTED`, `DISMISSED`): this is the first approval.
   Submit the approval and apply the pass label(s), but leave `ready to merge` off and keep
   `needs review` on so the PR stays in the other reviewer's queue. Tell the user the PR is
   waiting on the other approval, by name.
