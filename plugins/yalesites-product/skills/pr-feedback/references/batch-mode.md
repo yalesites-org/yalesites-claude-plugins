@@ -199,6 +199,8 @@ is not, and "open the multidev" is useless when there are four different multide
   **and name that sibling PR**, so it is clear why the number in the URL does not match the PR
   under review.
 - **`tokens`:** same, through the sibling `component-library-twig` preview.
+- **`yale-ui-cl`:** no PR preview. Its GitHub Pages Storybook builds from `main` only, so say
+  the branch is local-only and never link the Pages site as the PR's environment.
 - **No sibling, or a probe that did not answer:** say there is no deployed way to see this and
   that it is local-only. Never print a link that failed its probe.
 
