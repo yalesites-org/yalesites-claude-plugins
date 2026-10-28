@@ -207,9 +207,9 @@ Follow `review-board.md` Step R1, with two differences:
   left half-built needs no name and no tidying. The status entry's `packetDir` is the only
   pointer anyone follows, so an old folder is never mistaken for the current packet, and no old
   `answers.json` can end the next review's wait early.
-- **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The About
-  panel"), a unit with nothing to drive included. The reviewer opens the packet days later with
-  no brief in front of them, so the panel is their only summary of the ticket and the PR.
+- **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The lead-in:
+  `units`"), a unit with nothing to drive included. The reviewer opens the packet days later with
+  no brief in front of them, so the lead-in is their only summary of the ticket and the PR.
 - **Write `prep.json` next to `packet.json`.** It holds what the review session needs and the
   board does not show:
 

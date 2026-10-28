@@ -262,7 +262,7 @@ the board would show one unit's screenshot on the other's question. Prefix each 
 the packet id (`ysp-1608-01-fail-editor-overflow-360.png`) and rewrite every `src` to the new
 name, including a `compare` block's `images[].src` and a `video` block's `src` and `poster`.
 Copy each prepped packet's `units` entry into the batch packet's `units`, and write one for every
-unit that was not prepped, so the About panel names the ticket and PR on every page.
+unit that was not prepped, so every PR gets a lead-in page naming its ticket and PR.
 Set `pr` on each question so its page is tagged with the PR, keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.
