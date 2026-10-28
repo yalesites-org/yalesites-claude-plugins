@@ -100,21 +100,13 @@ gh api graphql -f query='query { repository(owner:"yalesites-org", name:"YaleSit
 
 Two steps. Both are safe to repeat.
 
-**1. Make sure the issue is on the board.** No-op if it's already there.
+**1 and 2. Put the issue on the board and set the fields in one go.** Safe to repeat.
 
 ```bash
-gh project item-add 6 --owner yalesites-org --url <issue-url>
+scripts/set-board-fields.sh <issue-number> Status="In review" Priority=High Risk=Medium
 ```
 
-**2. Set the field by name.** No field or option ID lookup needed.
-
-```bash
-gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "In review"
-gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
-gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Risk" --value "Medium"
-```
-
-Only one field per invocation for non-draft issues. Run the command once per field.
+It adds the issue if needed, sets every field in one call, and prints what the board now says. Prefer it to `gh project item-edit --url`, which looks the item up again on every call. On this board that's expensive, and a batch of tickets hits GitHub's per-minute limit partway through (2026-10-28: a 4-phase feature stopped twice).
 
 **Read before you write when the transition is conditional.** If the rule is "move to X only if it isn't already X," check current status first rather than writing unconditionally, so the board's updated timestamp and activity feed stay meaningful.
 
@@ -164,7 +156,7 @@ Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for t
 
 ## No `gh`: hand the fields to the user
 
-Skills write Status, Priority, and Risk **only** with `gh project item-edit`. There is no label fallback.
+Skills write Status, Priority, and Risk **only** through the board's own fields (`scripts/set-board-fields.sh`, or `gh project item-edit` for a one-off). There is no label fallback.
 
 When `gh` is missing, unauthenticated, or lacks the `project` scope:
 

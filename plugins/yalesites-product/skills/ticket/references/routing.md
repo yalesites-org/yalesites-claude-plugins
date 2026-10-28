@@ -32,6 +32,7 @@ Rules:
 - **Gates.** A phase with a handle in the Gate column needs that person's go before it starts. When its blockers finish, the router does not move it. It lists it under "Waiting on a go" instead. `auto` means the router moves it on its own. Gates are set per phase here, so adding or removing one is a one-cell edit.
 - **Defaults, not rules.** Reassign any child when the work calls for it. The router only assigns the default owner when a child it promotes has no assignee.
 - April (UX) and Michael (QA) are first guesses as of 2026-10-27. Confirm or change them here.
+- **April's capacity varies week to week.** The `ticket` skill asks before assigning a UX phase to her and falls back to Michael. The router only assigns default owners to children it promotes, and UX is always a first phase, so it never assigns April on its own.
 
 ### How a phase child is marked
 
