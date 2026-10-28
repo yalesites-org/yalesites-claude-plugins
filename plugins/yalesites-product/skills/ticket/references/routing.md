@@ -92,6 +92,8 @@ Priority is also how every agent orders its work, whoever runs it. Nobody hands 
 
 Ties go to lower Risk (a board field since 2026-10-28). When Risk isn't set, the older ticket wins.
 
+**The team cap.** Every open yalesites-project PR uses one of Pantheon's 25 multidevs, and the whole team shares them. When 25 or more yalesites-project PRs are open, agents stop taking new work and only do rework and `Hotfix` tickets. A person can wave through something that's clearly urgent. It's a soft cap on purpose: it doesn't matter whether those PRs are waiting on review, approved, or in rework. A closed PR's multidev lives until the next deploy, so the open count can run a little low.
+
 This order is the rule for every agent. Change it here, not in one person's agent setup.
 
 ## Waiting on a person: `needs-decision` and `follow-up`
