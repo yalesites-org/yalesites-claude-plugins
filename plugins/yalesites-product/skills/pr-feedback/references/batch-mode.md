@@ -262,7 +262,10 @@ the board would show one unit's screenshot on the other's question. Prefix each 
 the packet id (`ysp-1608-01-fail-editor-overflow-360.png`) and rewrite every `src` to the new
 name, including a `compare` block's `images[].src` and a `video` block's `src` and `poster`.
 Copy each prepped packet's `units` entry into the batch packet's `units`, and write one for every
-unit that was not prepped, so every PR gets a lead-in page naming its ticket and PR.
+unit that was not prepped, so every PR gets a lead-in page naming its ticket and PR. A unit
+whose brief held nothing still gets a `units` entry: it has no questions, so it gets no lead-in,
+but the last page gives it its own ruling row with no inferred default, and Send waits until the
+reviewer picks one.
 Set `pr` on each question so its page is tagged with the PR, keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.
@@ -308,9 +311,11 @@ Walk the units one at a time. For each:
 
 1. Present the assembled feedback per `SKILL.md` Step 4, blocking separated from optional.
 2. **Take the ruling on this unit.** After a board, it is the unit's entry in `verdicts`: post
-   it without asking. On the chat fallback, ask: approve, or request changes, one unit, one
+   it without asking. Every unit has one, including a unit with no questions, which the reviewer
+   ruled on directly on the last page. On the chat fallback, ask: approve, or request changes, one unit, one
    question, in the user's own words back to them. Never roll several units into one ask. If the
-   unit has any before-merge edit and the ruling is approve, flag the mismatch and offer Step 6's
+   unit has any before-merge edit and the ruling is approve, flag the mismatch. After a board,
+   look for it in free-text answers, notes, `ownRead`, and `markups`, not only option choices, and offer Step 6's
    two options before posting. An approval never carries a to-do list.
 3. Post per Steps 6 through 9. Every PR in the unit gets the same outcome.
 4. Only then move to the next unit.

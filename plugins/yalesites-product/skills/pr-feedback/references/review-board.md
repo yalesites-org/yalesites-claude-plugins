@@ -401,7 +401,9 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   upload images or video. For a clip, suggest the MP4.
 - **`verdicts`** holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
   | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer changed
-  it on the last page. That is the Step 6 ruling for that PR. Do not ask for it again.
+  it on the last page. That is the Step 6 ruling for that PR. Do not ask for it again. A unit in
+  `units` with no questions gets an entry too, always with `inferred: false`, because the board
+  makes the reviewer pick it rather than guessing.
 - **Do not wait for a playback confirmation.** The board's last page already showed every ruling
   and what sending would post, so go straight on to Step 4 and post. List the rulings in Step 10's
   report instead, so the transcript still has them.

@@ -270,9 +270,10 @@ async function init() {
   state = saved && saved.answers?.length === packet.questions.length
     ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
   groups = buildGroups();
+  rulingGroups = [...groups, ...quietGroups()];
   const pr = packet.pr || {};
   // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
-  const title = groups.length > 1 ? `${packet.shortTitle || 'PR review'} · ${groups.length} PRs` : (packet.shortTitle || packet.title);
+  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'PR review'} · ${rulingGroups.length} PRs` : (packet.shortTitle || packet.title);
   $('#h-title').textContent = title;
   $('#h-title').title = packet.title;
   // The long subtitle (environments, legends) moves behind Details.
@@ -309,6 +310,13 @@ function buildGroups() {
     g.qs.push(i);
   });
   return out;
+}
+// A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
+// ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
+let rulingGroups = [];
+function quietGroups() {
+  return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
+    .map((u, k) => ({ key: u.pr.ref, unit: u, label: u.short || u.pr.title || '', ref: u.pr.ref, qs: [], quiet: true, color: PR_COLORS[(groups.length + k) % PR_COLORS.length] }));
 }
 const groupOf = qi => groups.find(g => g.qs.includes(qi));
 const answeredCount = () => packet.questions.filter((_, i) => isAnswered(i)).length;
@@ -749,14 +757,16 @@ function renderOwnRead(main, call) {
   // A recap of every ruling, grouped by PR, so a misclick is caught before sending.
   main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Your rulings'),
     h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'));
-  for (const g of groups) {
+  for (const g of rulingGroups) {
     const v = verdictFor(g);
     const seg = h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
       ...Object.entries(VERDICTS).map(([k, label]) => h('button', {
         type: 'button', class: 'btn', 'aria-pressed': v.verdict === k ? 'true' : 'false',
         onclick: () => { (state.verdicts ||= {})[g.key] = k === v.inferred ? undefined : k; save(); rerenderCurrent(); }
       }, label)));
-    const why = v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
+    const why = g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
+      : g.quiet ? 'Your ruling. Nothing was held for you on this PR.'
+      : v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
       : v.overridden ? `You changed this. Your answers pointed to ${VERDICTS[v.inferred]}.`
       : v.verdict === 'approve' ? 'From your answers: nothing needs to change.'
       : `From your answers on question ${v.because.join(', ')}.`;
@@ -764,7 +774,8 @@ function renderOwnRead(main, call) {
     main.append(h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
       h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, shortRef(g.ref)), g.label ? ` ${g.label}` : '')),
       h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
-      h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
+      g.quiet && unitCard(g.unit, false),
+      !g.quiet && h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
         const q = packet.questions[i], a = state.answers[i];
         const label = a.choice === '__other' ? a.other.trim() : (q.options || []).find(o => o.value === a.choice)?.label;
         return h('li', {}, h('button', { class: 'n t', type: 'button', onclick: () => go(i), title: 'Change' }, String(i + 1)),
@@ -776,6 +787,8 @@ function renderOwnRead(main, call) {
   const send = h('button', { class: 'btn primary', onclick: async () => {
     const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
     if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
+    const unruled = rulingGroups.find(g => !verdictFor(g).verdict);
+    if (unruled) { err.textContent = `${shortRef(unruled.ref)} still needs a ruling.`; err.hidden = false; return; }
     send.disabled = true; send.textContent = 'Sending…';
     try {
       const res = await fetch(`api/answers?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildAnswers()) });
@@ -808,7 +821,7 @@ function buildAnswers() {
       };
     }),
     // The per-PR ruling, so the review posts without a second approve/request-changes ask in chat.
-    verdicts: groups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
+    verdicts: rulingGroups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
     ownRead: state.ownRead.trim() || null
   };
 }
