@@ -118,6 +118,8 @@ delete it.
 }
 ```
 
+**Every question ends with a "Decide later" option:** `{ "value": "defer", "label": "Decide later", "detail": "Raise it as needs-decision on the PR so it waits in your queue." }`. A `defer` answer is not a ruling. It becomes a `needs-decision` block on the PR, deciding by the reviewer, per "Open calls go on the record" in `SKILL.md`. Play it back as "Deferred: raising a decision" so the reviewer can still change it.
+
 Context blocks, any number per question, shown in order:
 
 | `type` | Fields | Use it for |
