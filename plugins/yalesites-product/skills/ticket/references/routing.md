@@ -137,17 +137,17 @@ The router never closes, relabels, or reassigns anything else, never touches a P
 
 ## Monday meeting
 
-Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, which opens with an agenda and a count per section. Skip empty sections, and skip the meeting when every section is empty. Each section has a view on the YaleSites Board, numbered in meeting order:
+Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, which opens with an agenda and a count per section. Skip empty sections, and skip the meeting when every section is empty.
 
-| # | View | What we do |
-|---|---|---|
-| 1 | Mon 1: Decisions & follow-ups | Decisions that need the room. Each leaves decided or with a new date |
-| 2 | Mon 2: Stuck | In progress with no update in a week. Each leaves with an owner and a date |
-| 3 | Mon 3: Intake | New `forming` tickets: groom now, park, or decline |
-| 4 | Mon 4: Features | Release-planning weeks only: feature parents by progress, and which we take on next |
-| 5 | Mon 5: Gates | Phases waiting on a gatekeeper's go (`awaiting-go`) |
+| # | Section | Where | What we do |
+|---|---|---|---|
+| 1 | Decisions & follow-ups | **Monday** view | Decisions that need the room. Each leaves decided or with a new date |
+| 2 | Stuck | The brief | In progress with no activity. Each leaves with an owner and a date |
+| 3 | Intake | **Monday** view | New `forming` tickets: groom now, park, or decline |
+| 4 | Features | The brief (Mondays) | Release-planning weeks only: feature parents by milestone and progress, and which we take on next |
+| 5 | Gates | **Monday** view | Phases waiting on a gatekeeper's go (`awaiting-go`) |
 
-The views group by assignee, not by who owes the call, because board filters can't read the blocks. The brief and the work dashboard are the exact lists.
+The **Monday** view on the YaleSites Board shows every open item labeled `needs-decision`, `follow-up`, `forming`, or `awaiting-go`. Stuck and Features can't share it, since a board filter can't combine a status or progress check with those labels. It lists by label and assignee, not by who owes the call, because board filters can't read the blocks. The brief and the work dashboard are the exact lists.
 
 ## Brief
 

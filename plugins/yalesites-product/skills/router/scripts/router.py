@@ -39,8 +39,8 @@ ROUTING_MD = Path(__file__).resolve().parents[2] / "ticket" / "references" / "ro
 MARKER = "<!-- yalesites:router -->"
 GATE_LABEL = "awaiting-go"
 BOARD_VIEWS = f"https://github.com/orgs/{ORG}/projects/{PROJECT}/views/"
-# Monday meeting views on the YaleSites Board, in agenda order.
-MONDAY_VIEWS = [("Decisions & follow-ups", 23), ("Stuck", 24), ("Intake", 25), ("Features", 26), ("Gates", 27)]
+# The one Monday view on the YaleSites Board (decisions, follow-ups, intake, gates).
+MONDAY_VIEW = 28
 
 TODAY = dt.date.today()
 
@@ -305,6 +305,22 @@ def sync_gate_labels(gated):
     return sorted(want - have), sorted(have - want)
 
 
+def find_features():
+    """Open Feature parents with sub-issues, and how many children are Done or closed."""
+    fields = f"""number title url repository{{nameWithOwner}} milestone{{title dueOn}}
+      subIssues(first:50){{nodes{{state {STATUS_FRAGMENT}}}}}"""
+    out = []
+    for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open type:Feature', fields, include_prs=False):
+        kids = n["subIssues"]["nodes"]
+        if not kids:
+            continue
+        done = sum(k["state"] == "CLOSED" or board_status(k) == "Done" for k in kids)
+        out.append({"node": n, "done": done, "total": len(kids),
+                    "milestone": (n.get("milestone") or {}).get("title") or "No milestone",
+                    "due": (n.get("milestone") or {}).get("dueOn") or "9999"})
+    return sorted(out, key=lambda f: (f["due"], f["done"] / f["total"]))
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -349,7 +365,7 @@ def find_stuck(groomers=frozenset()):
 
 # --- 4. brief --------------------------------------------------------------
 
-def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry):
+def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None):
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
@@ -365,14 +381,17 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         counts = {"Decisions & follow-ups": f"{pl(decisions, 'decision')}, {pl(late_follow, 'overdue follow-up')}",
                   "Stuck": f"{len(stuck)} stuck",
                   "Intake": f"{len(intake)} to groom, {len(no_priority)} need a priority",
-                  "Features": "bets, release-planning weeks only",
+                  "Features": f"{len(features or [])} in flight, release-planning weeks only",
                   "Gates": f"{len(gated)} waiting on a go"}
         empty = decisions == 0 and late_follow == 0 and not stuck and not intake and not no_priority and not gated
         lines += ["### Monday agenda", "",
                   "Nothing needs the room this week. Skip the meeting." if empty else
                   "30 minutes, top to bottom. Skip any empty section.", ""]
-        for i, (name, view) in enumerate(MONDAY_VIEWS, 1):
-            lines.append(f"{i}. [{name}]({BOARD_VIEWS}{view}): {counts[name]}")
+        where = {"Decisions & follow-ups": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
+                 "Stuck": "below", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
+                 "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})"}
+        for i, name in enumerate(["Decisions & follow-ups", "Stuck", "Intake", "Features", "Gates"], 1):
+            lines.append(f"{i}. **{name}**: {counts[name]} ({where[name]})")
         lines.append("")
 
     if promos:
@@ -433,6 +452,14 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         for s in sorted(stuck, key=lambda s: -s["idle"]):
             pr = "" if s["has_pr"] else ", no PR"
             lines.append(f"- {link(s['node'])} {s['node']['title']}, `{s['who']}`, {s['idle']}d idle{pr}")
+        lines += ["", "</details>", ""]
+
+    if features:
+        lines += ["<details>", f"<summary><b>Features in flight ({len(features)})</b></summary>", "",
+                  "| Feature | Milestone | Done |", "|---|---|---|"]
+        for f in features:
+            lines.append(f"| {link(f['node'])} {f['node']['title'].replace('|', '/')} | {f['milestone']} | "
+                         f"{f['done']} of {f['total']} |")
         lines += ["", "</details>", ""]
 
     if waiting:
@@ -499,7 +526,9 @@ def main():
                 applied[p["issue"]["number"]] = False
                 print(f"promotion failed for {ref(p['issue'])}: {e}", file=sys.stderr)
 
-    brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry=not a.apply)
+    features = find_features() if TODAY.weekday() == 0 else None
+    brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases,
+                        dry=not a.apply, features=features)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

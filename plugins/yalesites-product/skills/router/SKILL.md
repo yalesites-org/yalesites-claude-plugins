@@ -17,7 +17,7 @@ It does three things each run:
 3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
 4. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 
-Then it posts a brief to the pinned Router brief issue. On Mondays the brief opens with the meeting agenda: a count per section, linked to the Monday views on the YaleSites Board (see "Monday meeting" in `routing.md`).
+Then it posts a brief to the pinned Router brief issue. On Mondays the brief opens with the meeting agenda: a count per section, linked to the Monday view on the YaleSites Board, plus a Features in flight table (see "Monday meeting" in `routing.md`).
 
 The rules (phases, owners, labels, block formats, and the exact list of what the router may write) live in `../ticket/references/routing.md`. Read it before changing anything here. This is v0 of the router in yalesites-org/YaleSites-Internal#1915, run as a Claude routine for now instead of a GitHub Action.
 
