@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as an epic with one child per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -374,9 +374,9 @@ A single bulleted list of everything required to close the issue. Cover all rele
 - Documentation: note if any existing docs need updating or new docs need to be created
 - Spikes and ADRs: when the deliverable is an ADR (architecture decision record), add the criterion that it lands in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, not in a product repo. This applies to a standalone spike ticket as much as to the first child of an epic, so the dev or their agent does not default to the repo the code lives in. The full convention is the `yalesites` skill's `references/adr-conventions.md`.
 
-If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over.
+If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over. Also raise it as a `needs-decision` with its block (see "Raising a Decision or a Follow-up" below), so it shows up in the decider's queue instead of waiting for someone to reread the ticket.
 
-**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships.
+**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Inside a feature epic the Docs phase child is the exception: it starts in `Backlog` and the router moves it to `To Do` when Development finishes (see "Features are epics" below).
 
 ---
 
@@ -433,6 +433,35 @@ Apply all relevant labels: `ai-engine` `feedback` `vendor-build` `accessibility-
 ## Creating an Epic
 
 Use an epic when a request is genuinely too large for one ticket — it touches multiple components or content types, needs several developers, or will clearly span multiple sprints. If you can describe the work in one well-scoped Acceptance Criteria list, it's a ticket, not an epic. A useful gut-check from how epics are usually scoped: if you can't state the outcome in a sentence or two, or the work looks like it's more than about 4–6 weeks, it's epic-shaped.
+
+### Features are epics
+
+**A `Feature` is scoped as an epic by default.** Nearly every feature needs work from more than one person across several phases: UX, design, development, QA, visual regression, docs. Grooming all of those tickets up front is how none of them gets forgotten, and the hand-offs between them are what the `router` skill automates.
+
+The exception is a small enhancement: one developer, one Acceptance Criteria list, no UX or design work, and docs that fit as one AC line. That stays a single ticket. If you aren't sure, ask the user.
+
+For a feature epic, follow the steps below, plus these additions:
+
+1. **Pick the phases.** In Step 1, ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
+2. **One child per phase.** Title each `<Feature short name>: <Phase>`, e.g. `Card Collection Filters: UX`. The epic is `Epic: Card Collection Filters`. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
+3. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `epic: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by that line.
+4. **Assign the phase owner** from `references/routing.md` unless the user names someone else. Ask once for the whole set ("use the default owners?") rather than per child.
+5. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish.
+6. **Wire it natively.** Add each child as a sub-issue of the epic, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
+
+   ```bash
+   # Sub-issue: the child's numeric id, not its number
+   CHILD_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<child> --jq .id)
+   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<epic>/sub_issues -F sub_issue_id=$CHILD_ID
+
+   # <child> is blocked by <blocker>
+   BLOCKER_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<blocker> --jq .id)
+   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by -F issue_id=$BLOCKER_ID
+   ```
+
+   Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the epic as done.
+7. **Milestone.** Every phase child gets the epic's milestone, Docs included.
+8. **`claude`.** Same rule as any child: only on the dev child, only when it is groomed and has no open `needs-decision`. UX, Design, QA, and Docs children never get it.
 
 The reference example is `yalesites-org/YaleSites-Internal#1161` (Views Block Architectural Rework) — the team's lead developer called this one out as working really well. When in doubt about how much detail to include or how to structure something, look at how #1161 handled it.
 
@@ -511,9 +540,27 @@ Before treating an epic as ready:
 - [ ] Scope is explicit — in-scope, and out-of-scope/follow-up if relevant
 - [ ] `epic` label is applied to the parent ticket
 - [ ] Child tickets exist and are checklisted in the parent
+- [ ] For a feature epic: one child per phase that applies, each with its `phase:` machine line, its phase owner, and the epic's milestone; native sub-issues and blocked-by dependencies are wired and read back; only the first phase is in `To Do`
 - [ ] If the technical approach is unsettled, a spike/ADR ticket is first in the child list
 - [ ] Milestone reflects a single release, not an open-ended span
 - [ ] `Scope` and `Child Tickets` reflect current reality — if any child ticket has diverged since the epic was written, run the `ticket-sync` skill before calling the epic ready
+
+---
+
+## Raising a Decision or a Follow-up
+
+When work can't go on until a person does something, mark it so it can't get lost. Two labels cover it, and both are defined in `references/routing.md`:
+
+- **`needs-decision`:** someone has to make a choice. Replaces `question`. Don't apply `question` to anything new.
+- **`follow-up`:** someone owes an action, such as a reply, a test, a review, or a check-in with a requester.
+
+Each label goes with a block, in the issue body or a new comment, that names one handle, what they owe, and a date. Use the block formats in `references/routing.md` exactly, since the `router` skill parses them. Then add the label. Ask the user for the handle and the date if they didn't give them. Offer 5 working days out as the default date.
+
+To close one out, post the resolution comment from `references/routing.md` and remove the label. The label is the switch: a block with no label counts as closed.
+
+This works on PRs in the code repos too. Use `gh pr comment` and `gh pr edit --add-label`, since the GitHub connector is read-only on `yalesites-project`.
+
+An open `needs-decision` also blocks the `claude` label (see "Claude pickup" above) and stops the router from promoting that ticket.
 
 ---
 
