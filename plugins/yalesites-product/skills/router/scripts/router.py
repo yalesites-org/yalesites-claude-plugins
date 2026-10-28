@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """YaleSites router, v0.
 
-Reads the board and the routing rules, promotes feature-epic phase children whose
+Reads the board and the routing rules, promotes feature phase children whose
 blockers are finished, and builds a brief of who owes what. Makes no model calls.
 
 Dry run by default: prints the planned writes and the brief. --apply performs the
@@ -175,7 +175,7 @@ def find_promotions(phases):
         if open_blockers:
             continue
         if not n["parent"] or n["parent"]["state"] == "CLOSED":
-            waiting.append((n, "blockers done, but the epic is closed or missing"))
+            waiting.append((n, "blockers done, but the parent is closed or missing"))
             continue
         if "needs-decision" in labels(n):
             waiting.append((n, "blockers done, held by an open `needs-decision`"))

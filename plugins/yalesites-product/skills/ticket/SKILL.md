@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as an epic with one child per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as a parent issue (not an epic) with one sub-issue per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes, and gathers an in-flight feature's loose tickets under one parent. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -376,7 +376,7 @@ A single bulleted list of everything required to close the issue. Cover all rele
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over. Also raise it as a `needs-decision` with its block (see "Raising a Decision or a Follow-up" below), so it shows up in the decider's queue instead of waiting for someone to reread the ticket.
 
-**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Inside a feature epic the Docs phase child is the exception: it starts in `Backlog` and the router moves it to `To Do` when Development finishes (see "Features are epics" below).
+**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Under a feature parent the Docs phase child is the exception: it starts in `Backlog` and the router moves it to `To Do` when Development finishes (see "Scoping a Feature" below).
 
 ---
 
@@ -430,38 +430,64 @@ Apply all relevant labels: `ai-engine` `feedback` `vendor-build` `accessibility-
 
 ---
 
-## Creating an Epic
+## Scoping a Feature (parent issue)
 
-Use an epic when a request is genuinely too large for one ticket — it touches multiple components or content types, needs several developers, or will clearly span multiple sprints. If you can describe the work in one well-scoped Acceptance Criteria list, it's a ticket, not an epic. A useful gut-check from how epics are usually scoped: if you can't state the outcome in a sentence or two, or the work looks like it's more than about 4–6 weeks, it's epic-shaped.
+**A `Feature` gets a parent issue with one sub-issue per phase.** Nearly every feature needs work from more than one person: UX, design, development, QA, visual regression, docs. Grooming those tickets up front is how none of them gets forgotten, and the hand-offs between them are what the `router` skill automates.
 
-### Features are epics
+**A feature parent is not an epic.** The two work at different sizes:
 
-**A `Feature` is scoped as an epic by default.** Nearly every feature needs work from more than one person across several phases: UX, design, development, QA, visual regression, docs. Grooming all of those tickets up front is how none of them gets forgotten, and the hand-offs between them are what the `router` skill automates.
+| | Feature parent | Epic |
+|---|---|---|
+| What it is | One shippable thing, e.g. the Office Hours block | An initiative made of several features or a large rework, e.g. the Views Block Rework |
+| Title | `Feature: Office Hours block` | `Epic: Views Block Architectural Rework` |
+| Issue Type | `Feature` | `Epic` |
+| `epic` label | No | Yes |
+| Children | Phase tickets | Features, spikes, and tasks |
+
+A feature parent can be a sub-issue of an epic when it is part of a bigger initiative. The reference example is yalesites-org/YaleSites-Internal#1542 (Office Hours block).
 
 The exception is a small enhancement: one developer, one Acceptance Criteria list, no UX or design work, and docs that fit as one AC line. That stays a single ticket. If you aren't sure, ask the user.
 
-For a feature epic, follow the steps below, plus these additions:
+### Steps
 
-1. **Pick the phases.** In Step 1, ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
-2. **One child per phase.** Title each `<Feature short name>: <Phase>`, e.g. `Card Collection Filters: UX`. The epic is `Epic: Card Collection Filters`. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
-3. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `epic: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by that line.
-4. **Assign the phase owner** from `references/routing.md` unless the user names someone else. Ask once for the whole set ("use the default owners?") rather than per child.
-5. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish.
-6. **Wire it natively.** Add each child as a sub-issue of the epic, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
+1. **Pick the phases.** Ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
+2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Size go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
+3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
+4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
+5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. Ask once for the whole set ("use the default owners?") rather than per child.
+6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish.
+7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
    ```bash
    # Sub-issue: the child's numeric id, not its number
    CHILD_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<child> --jq .id)
-   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<epic>/sub_issues -F sub_issue_id=$CHILD_ID
+   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<parent>/sub_issues -F sub_issue_id=$CHILD_ID
 
    # <child> is blocked by <blocker>
    BLOCKER_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<blocker> --jq .id)
    gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by -F issue_id=$BLOCKER_ID
    ```
 
-   Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the epic as done.
-7. **Milestone.** Every phase child gets the epic's milestone, Docs included.
-8. **`claude`.** Same rule as any child: only on the dev child, only when it is groomed and has no open `needs-decision`. UX, Design, QA, and Docs children never get it.
+   A child that already has a different parent must be moved: add `-F replace_parent=true` to the sub-issue call. Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the feature as done.
+8. **Milestone.** Every phase child gets the parent's milestone, Docs included.
+9. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
+
+### Retrofitting a feature already in flight
+
+A feature that grew a pile of loose tickets can be gathered under a parent after the fact. Use the original feature ticket as the parent if it is typed `Feature` (retitle it `Feature: <name>`), otherwise create one. Then, for each related ticket:
+
+- Make it a direct sub-issue of the parent (move it with `replace_parent=true` if it sits under a sibling).
+- Add `phase: <key>` and `parent: ...` to its machine block. **Append** the block to the end of the body if it has none; never rewrite text someone else wrote.
+- Leave Status alone. The router only moves tickets out of `Backlog`, so in-flight work is untouched.
+- Leave out tickets that span many features (e.g. "redo all block picker icons"). Link them from the parent's body instead.
+
+Add blocked-by links only between phases that haven't started yet. Linking finished work is noise.
+
+---
+
+## Creating an Epic
+
+Use an epic when a request is genuinely too large for one ticket — it touches multiple components or content types, needs several developers, or will clearly span multiple sprints. If you can describe the work in one well-scoped Acceptance Criteria list, it's a ticket, not an epic. A useful gut-check from how epics are usually scoped: if you can't state the outcome in a sentence or two, or the work looks like it's more than about 4–6 weeks, it's epic-shaped.
 
 The reference example is `yalesites-org/YaleSites-Internal#1161` (Views Block Architectural Rework) — the team's lead developer called this one out as working really well. When in doubt about how much detail to include or how to structure something, look at how #1161 handled it.
 
@@ -540,7 +566,6 @@ Before treating an epic as ready:
 - [ ] Scope is explicit — in-scope, and out-of-scope/follow-up if relevant
 - [ ] `epic` label is applied to the parent ticket
 - [ ] Child tickets exist and are checklisted in the parent
-- [ ] For a feature epic: one child per phase that applies, each with its `phase:` machine line, its phase owner, and the epic's milestone; native sub-issues and blocked-by dependencies are wired and read back; only the first phase is in `To Do`
 - [ ] If the technical approach is unsettled, a spike/ADR ticket is first in the child list
 - [ ] Milestone reflects a single release, not an open-ended span
 - [ ] `Scope` and `Child Tickets` reflect current reality — if any child ticket has diverged since the epic was written, run the `ticket-sync` skill before calling the epic ready
@@ -608,4 +633,4 @@ Before submitting or updating an issue, check:
 - [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
 
-For epics specifically, also run through the Epic Quality Bar above.
+For epics specifically, also run through the Epic Quality Bar above. For a feature parent, also check: one child per phase that applies, each with its `phase:` machine line, its phase owner, and the parent's milestone; native sub-issues and blocked-by dependencies are wired and read back; only the first phase is in `To Do`; the parent is typed `Feature` with no `epic` label.

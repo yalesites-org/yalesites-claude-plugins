@@ -1,6 +1,6 @@
 # YaleSites routing rules
 
-**Canonical reference for who owns what, and how work waits on a person.** The `ticket` skill reads it when it scopes a feature epic. The `router` skill reads it on every run. If a skill's inline copy disagrees with this file, this file wins.
+**Canonical reference for who owns what, and how work waits on a person.** The `ticket` skill reads it when it scopes a feature. The `router` skill reads it on every run. If a skill's inline copy disagrees with this file, this file wins.
 
 When an owner changes, edit the table here. Nothing else needs to change.
 
@@ -8,9 +8,9 @@ Background: yalesites-org/YaleSites-Internal#1915 (the AI-native process plan). 
 
 ---
 
-## Features are epics, one child per phase
+## Features: a parent issue, one child per phase
 
-A feature almost never fits in one ticket. It needs some mix of UX, design, development, QA, visual regression, and docs, often from different people. So a `Feature` is scoped as an epic up front, with one child ticket per phase that applies. Small enhancements that one developer can build from one AC list stay single tickets. The `ticket` skill decides which with the user.
+A feature almost never fits in one ticket. It needs some mix of UX, design, development, QA, visual regression, and docs, often from different people. So a feature gets a parent issue up front (Issue Type `Feature`, title `Feature: <name>`, no `epic` label), with one child ticket per phase that applies. Epics stay for initiatives that hold several features. A feature parent can sit under an epic. Small enhancements that one developer can build from one AC list stay single tickets. The `ticket` skill decides which with the user.
 
 ### Phases and default owners
 
@@ -36,14 +36,14 @@ Rules:
 
 Each phase child carries the phase in its title and in its machine block:
 
-- **Title:** `<Feature short name>: <Phase>`, e.g. `Card Collection Filters: UX`. The epic is `Epic: Card Collection Filters`.
-- **Machine block:** the closing `<!-- yalesites:agent -->` block includes `phase: ux` (the Key column) and `epic: yalesites-org/YaleSites-Internal#NNNN`.
+- **Title:** `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`. The parent is `Feature: Office Hours block`. A phase may have more than one child.
+- **Machine block:** the closing `<!-- yalesites:agent -->` block includes `phase: ux` (the Key column) and `parent: yalesites-org/YaleSites-Internal#NNNN`.
 
 The router finds phase children through the `phase:` line, not the title, so a renamed ticket still routes.
 
 ### Wiring
 
-- Each child is a native **sub-issue** of the epic.
+- Each child is a direct native **sub-issue** of the feature parent.
 - Order is set with native **"blocked by"** dependencies, per the table above. Not a checklist.
 - The first phase starts in `To Do`, assigned to its owner. Every later phase starts in `Backlog`, assigned to its owner. The router moves each one to `To Do` when all its blockers are Done or closed.
 
@@ -97,9 +97,9 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 
 | Write | When |
 |---|---|
-| Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the epic is open, and the child has no open `needs-decision` |
+| Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the parent is open, and the child has no open `needs-decision` |
 | Assign the phase's default owner | Only on a child it just promoted, and only if that child has no assignee |
-| Comment on the epic | One comment per promotion, naming the child and its owner |
+| Comment on the parent | One comment per promotion, naming the child and its owner |
 | Comment on the brief issue | Once per run |
 
 The router never closes, relabels, or reassigns anything else, never touches a PR, never starts an agent, and never @-mentions anyone in the brief (it writes handles in backticks so nobody gets a notification storm). Nudges happen in person or in the Monday meeting.

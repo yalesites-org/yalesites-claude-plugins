@@ -22,7 +22,7 @@ team with:
 - **Reviewer profile**, a short interview that records what one person
   reviews, so PR feedback asks them the calls that are theirs and labels only
   the checks they performed
-- **Router**: a weekday routine that hands each feature-epic phase (UX,
+- **Router**: a weekday routine that hands each feature phase (UX,
   design, development, QA, visual regression, docs) to its next owner when
   the phase before it finishes, and posts a brief of open decisions and
   follow-ups by person, plus tickets that have gone quiet. Routing rules live

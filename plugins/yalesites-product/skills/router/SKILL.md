@@ -1,6 +1,6 @@
 ---
 name: router
-description: "Run the YaleSites router: hand each feature-epic phase (UX, Design, Development, QA, Visual regression, Docs) to its next owner when the phase before it finishes, and post a brief of who owes what: open `needs-decision` and `follow-up` items grouped by person with their due dates, plus In progress tickets that have gone quiet. Built to run unattended as a weekday scheduled task; also runnable on demand. Use when the user says 'run the router', 'who owes what', 'what's waiting on me', 'what decisions are open', 'what's stuck', 'post the router brief', or asks to dry-run or debug a hand-off that didn't happen. To create the phase children or raise a follow-up in the first place, use the ticket skill."
+description: "Run the YaleSites router: hand each feature phase (UX, Design, Development, QA, Visual regression, Docs) to its next owner when the phase before it finishes, and post a brief of who owes what: open `needs-decision` and `follow-up` items grouped by person with their due dates, plus In progress tickets that have gone quiet. Built to run unattended as a weekday scheduled task; also runnable on demand. Use when the user says 'run the router', 'who owes what', 'what's waiting on me', 'what decisions are open', 'what's stuck', 'post the router brief', or asks to dry-run or debug a hand-off that didn't happen. To create the phase children or raise a follow-up in the first place, use the ticket skill."
 ---
 
 # YaleSites Router
@@ -11,7 +11,7 @@ Work gets lost at hand-offs: a phase finishes and nobody tells the next person, 
 
 It does three things each run:
 
-1. **Hands off phases.** When every blocker of a feature-epic phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the epic.
+1. **Hands off phases.** When every blocker of a feature's phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the feature parent.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
 3. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 
@@ -22,7 +22,7 @@ The rules (phases, owners, labels, block formats, and the exact list of what the
 ## Hard rules
 
 - **The script decides, not you.** All routing comes from `scripts/router.py`. Don't promote, assign, relabel, or comment on anything by hand during a router run, even when it looks obviously right. If the script missed something, report it in your summary so the rules get fixed.
-- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child, the default assignee on a child it just promoted, one epic comment per promotion, one brief comment per run. Nothing else, ever: no closing, no PRs, no agent runs.
+- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child, the default assignee on a child it just promoted, one parent comment per promotion, one brief comment per run. Nothing else, ever: no closing, no PRs, no agent runs.
 - **No @-mentions.** The brief writes handles in backticks. Nudging people is a human call.
 
 ## Running it
@@ -43,7 +43,7 @@ Needs `gh` signed in with the `project` scope (see `../ticket/references/board-s
 
 - Exit code 1 means a promotion did not read back as To Do. Say which one in your final message.
 - If the brief lists more than 3 hand-offs in one run, say so. That usually means a batch of dependencies was wired at once, which is fine, but worth a human glance.
-- Any "Phase children the router did not move" entry means a rule held something back (closed epic, open decision, unknown phase key). Name them.
+- Any "Phase children the router did not move" entry means a rule held something back (closed parent, open decision, unknown phase key). Name them.
 
 Keep your final message to a few lines: hand-offs made, anything that failed, and the overdue count. The brief itself is on GitHub.
 
@@ -69,7 +69,7 @@ Run a dry run and check, in order:
 2. Is the child's board Status exactly `Backlog`? The router never moves anything from another status.
 3. Does it have native blocked-by dependencies? A child with none is treated as parked on purpose.
 4. Is every blocker closed or `Done`?
-5. Is the parent epic open, and is the child free of `needs-decision`?
+5. Is the feature parent open, and is the child free of `needs-decision`?
 
 If all five hold and it still didn't move, it's a bug in the script. Report it rather than moving the ticket by hand.
 
