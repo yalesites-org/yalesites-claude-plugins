@@ -140,6 +140,8 @@ The router never closes, relabels, or reassigns anything else, never touches a P
 
 Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, which opens with an agenda and a count per section. Skip empty sections, and skip the meeting when every section is empty.
 
+Monday is the dev meeting. Communications work (Issue Type `Communications`) goes to the weekly comms meeting with its own board, so the **Monday** view filters to dev Issue Types and the agenda counts leave Communications out. The rest of the brief still lists everything.
+
 | # | Section | Where | What we do |
 |---|---|---|---|
 | 1 | Decisions & follow-ups | **Monday** view, Stage `Decision` and `Follow-up` | Decisions that need the room. Each leaves decided or with a new date |
@@ -150,7 +152,7 @@ Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, wh
 
 ### The Stage field
 
-**Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Stuck, Intake wins.
+**Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, minus Communications, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Stuck, Intake wins.
 
 Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the brief and the work dashboard remain the full lists.
 

@@ -74,6 +74,29 @@ class BriefTest(unittest.TestCase):
         self.assertIsNone(MENTION.search(brief), brief)
         self.assertIn("Ping @​miketullo95", brief)
 
+    def test_monday_counts_skip_communications(self):
+        def typed(number, kind):
+            return {**node(number, f"Item {number}"), "issueType": {"name": kind}}
+        comms, dev = typed(10, "Communications"), typed(11, "Task")
+        stuck = [{"node": comms, "who": "rachel-is-at-yale", "idle": 30, "has_pr": False},
+                 {"node": dev, "who": "dblanken-yale", "idle": 4, "has_pr": False}]
+        owed = [{"node": typed(12, "Communications"), "kind": "needs-decision", "legacy": False, "who": "miketullo95",
+                 "what": "comms call", "has_block": True, "since": router.TODAY, "by": router.TODAY}]
+        intake = [typed(13, "Communications"), typed(14, "Feature")]
+        saved = router.TODAY
+        router.TODAY = dt.date(2026, 11, 2)  # a Monday
+        try:
+            brief = router.build_brief([], [], {}, [], owed, stuck, intake, [], {}, dry=True, features=[])
+        finally:
+            router.TODAY = saved
+        self.assertIn("**Decisions & follow-ups**: 0 decisions", brief)
+        self.assertIn("**Stuck**: 1 stuck", brief)
+        self.assertIn("**Intake**: 1 to groom", brief)
+        # The daily sections still list the comms items.
+        self.assertIn("Item 10", brief)
+        self.assertIn("Item 13", brief)
+        self.assertIn("comms call", brief)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -44,6 +44,8 @@ MONDAY_VIEW = 28
 STAGE_FIELD = "Stage"
 # When an item qualifies for more than one stage, the first one listed wins.
 STAGE_ORDER = ["Gate", "Decision", "Follow-up", "Stuck", "Intake"]
+# The Monday meeting is dev-focused; these Issue Types go to the weekly comms meeting instead.
+MONDAY_SKIP_TYPES = {"Communications"}
 
 TODAY = dt.date.today()
 
@@ -67,11 +69,12 @@ def graphql(query, **variables):
     return data["data"]
 
 
-def search_all(query_string, fields, include_prs=True):
-    """Paginated GraphQL search over issues, and PRs unless include_prs is False."""
+def search_all(query_string, fields, include_prs=True, issue_fields=""):
+    """Paginated GraphQL search over issues, and PRs unless include_prs is False.
+    issue_fields are extra fields only issues have (PRs have no issueType)."""
     pr = f"... on PullRequest{{{fields}}}" if include_prs else ""
     q = """query($q:String!, $after:String){ search(query:$q, type:ISSUE, first:50, after:$after){
-      pageInfo{hasNextPage endCursor} nodes{ __typename ... on Issue{%s} %s } } }""" % (fields, pr)
+      pageInfo{hasNextPage endCursor} nodes{ __typename ... on Issue{%s %s} %s } } }""" % (fields, issue_fields, pr)
     out, after = [], None
     while True:
         vars_ = {"q": query_string}
@@ -272,7 +275,7 @@ def find_owed():
     repos = " ".join(f"repo:{ORG}/{r}" for r in WATCH_REPOS)
     owed, seen = [], set()
     for label in ["needs-decision", "follow-up", "question"]:
-        for n in search_all(f'{repos} is:open label:"{label}"', fields):
+        for n in search_all(f'{repos} is:open label:"{label}"', fields, issue_fields="issueType{name}"):
             kind = LEGACY.get(label, label)
             key = (ref(n), kind)
             if key in seen:
@@ -372,7 +375,7 @@ def find_features():
 
 
 def find_intake():
-    fields = """number title url createdAt repository{nameWithOwner} author{login}"""
+    fields = """number title url createdAt repository{nameWithOwner} author{login} issueType{name}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
     return sorted(nodes, key=lambda n: n["createdAt"], reverse=True)
 
@@ -428,18 +431,24 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
 
     if TODAY.weekday() == 0:
-        decisions = sum(o["kind"] == "needs-decision" for o in owed)
-        late_follow = sum(o["kind"] == "follow-up" and o["by"] < TODAY for o in owed)
+        # Counts for the dev meeting only. Comms items stay in the rest of the brief.
+        dev = lambda n: (n.get("issueType") or {}).get("name") not in MONDAY_SKIP_TYPES
+        d_owed = [o for o in owed if dev(o["node"])]
+        d_stuck = [x for x in stuck if dev(x["node"])]
+        d_intake, d_no_pri = [n for n in intake if dev(n)], [n for n in no_priority if dev(n)]
+        decisions = sum(o["kind"] == "needs-decision" for o in d_owed)
+        late_follow = sum(o["kind"] == "follow-up" and o["by"] < TODAY for o in d_owed)
         pl = lambda n, w: f"{n} {w}{'' if n == 1 else 's'}"
         counts = {"Decisions & follow-ups": f"{pl(decisions, 'decision')}, {pl(late_follow, 'overdue follow-up')}",
-                  "Stuck": f"{len(stuck)} stuck",
-                  "Intake": f"{len(intake)} to groom, {len(no_priority)} need a priority",
+                  "Stuck": f"{len(d_stuck)} stuck",
+                  "Intake": f"{len(d_intake)} to groom, {len(d_no_pri)} need a priority",
                   "Features": f"{len(features or [])} in flight, release-planning weeks only",
                   "Gates": f"{len(gated)} waiting on a go"}
-        empty = decisions == 0 and late_follow == 0 and not stuck and not intake and not no_priority and not gated
+        empty = decisions == 0 and late_follow == 0 and not d_stuck and not d_intake and not d_no_pri and not gated
         lines += ["### Monday agenda", "",
                   "Nothing needs the room this week. Skip the meeting." if empty else
-                  "30 minutes, top to bottom. Skip any empty section.", ""]
+                  "30 minutes, top to bottom. Skip any empty section. "
+                  "Communications items are left out; they go to the weekly comms meeting.", ""]
         where = {"Decisions & follow-ups": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
                  "Stuck": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
                  "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})"}
