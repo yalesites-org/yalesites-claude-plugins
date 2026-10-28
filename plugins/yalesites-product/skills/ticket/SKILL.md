@@ -487,7 +487,7 @@ Use this structure, modeled on #1161. Same GitHub-reading rules as a regular tic
 - [ ] #XXXX -- [Child ticket 2]
 
 ## Follow-up Work (Post-Epic)
-[Explicitly out-of-scope items this epic unblocks or surfaces. Add each as a native sub-issue of this epic so it's easy to find later, and note it shouldn't be pulled into active work until the epic's milestone closes. Don't create a `<epic-name>-followup` label: those were retired on 2026-10-28, and `follow-up` means something else (see `references/routing.md`).]
+[Explicitly out-of-scope items this epic unblocks or surfaces. Add each as a native sub-issue of this epic so it's easy to find later, and note it shouldn't be pulled into active work until the epic's milestone closes. Don't create a `<epic-name>-followup` label: those were retired on 2026-10-28, and the `follow-up` label means something else: an action a named person owes, like a reply or a check-in.]
 ```
 
 Create the child tickets as real GitHub issues first, then reference their numbers in the parent's checklist — GitHub automatically tracks checklist items that reference issue numbers as sub-issues, which is what gives the parent a clean progress view (this is what made #1161 easy to follow).
