@@ -228,8 +228,9 @@ than none, the same as a misplaced pin.
 }
 ```
 
-`pr` on a question overrides the packet's `pr`. Batch packets set it on every question, which
-tags each page with its PR and picks its unit for the About panel, and carry one unit per PR. Keep a unit's questions next to each other.
+`pr` on a question overrides the packet's `pr`. On a batch packet it tags each page with its PR
+and picks that PR's unit for the About panel. Set `pr` on every question, carry one unit per PR,
+and keep a unit's questions next to each other.
 
 ### Writing the questions
 

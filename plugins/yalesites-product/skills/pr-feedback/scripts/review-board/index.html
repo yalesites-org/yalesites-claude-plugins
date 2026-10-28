@@ -230,10 +230,10 @@ function render() {
   renderNav();
   const main = $('#main');
   main.replaceChildren();
-  if (submitted) { renderAbout(); return renderDone(main); }
+  renderAbout();
+  if (submitted) return renderDone(main);
   if (current < packet.questions.length) renderQuestion(main, current);
   else renderOwnRead(main);
-  renderAbout();
   const n = packet.questions.filter((_, i) => isAnswered(i)).length;
   $('#h-progress').textContent = `${n} of ${packet.questions.length} answered`;
   renderLightbox();
@@ -286,7 +286,7 @@ function renderAbout() {
         h('div', { class: 'part-label' }, 'Testing'),
         u.status && h('div', { class: 'doc', html: md(u.status) }),
         u.test && h('div', {}, refLink({ ref: u.test.label || 'Where to test', url: u.test.url }))),
-      u.related?.length && h('div', { class: 'part' },
+      u.related?.length > 0 && h('div', { class: 'part' },
         h('div', { class: 'part-label' }, 'Related'),
         h('ul', { class: 'related' }, ...u.related.map(r => h('li', {}, refLink(r), r.note && h('span', { class: 'note' }, ' ' + r.note)))))))));
 }
