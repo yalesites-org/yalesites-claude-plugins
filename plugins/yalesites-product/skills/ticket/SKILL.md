@@ -424,7 +424,12 @@ Choose one:
 
 ### 6. Labels
 
-Apply all relevant labels: `ai-engine` `feedback` `vendor-build` `accessibility-bug` `opac` (add others as applicable)
+Labels describe the work, not its type: the native Issue Type covers that, so never add a type label (`bug`, `feature`, `task`, `epic`, `communications`). Apply:
+
+- **At most one workstream:** `design-system` (components, Storybook, themes, tokens), `platform` (Drupal features, views, embeds, forms, config), `ai-engine` (Beacon and AI features), `devops`, `documentation`, or `migration`.
+- **Any flags that fit:** `accessibility-bug`, `tech-debt`, `feedback`, `non-testable`.
+
+The old area labels (`component-library`, `color-system`, `views-blocks`, `embeds`, and the rest) and requester tags (`opac`) were retired on 2026-10-28. Don't recreate them.
 
 `claude` is a workflow label, not a descriptive one. It only goes on when the user has explicitly confirmed it and the ticket clears the bar in "Claude pickup" above. Never add it as part of a routine "apply all relevant labels" sweep.
 
@@ -482,7 +487,7 @@ Use this structure, modeled on #1161. Same GitHub-reading rules as a regular tic
 - [ ] #XXXX -- [Child ticket 2]
 
 ## Follow-up Work (Post-Epic)
-[Explicitly out-of-scope items this epic unblocks or surfaces. Tag with a `<epic-name>-followup` label so they're easy to find later, and note they shouldn't be pulled into active work until the epic's milestone closes.]
+[Explicitly out-of-scope items this epic unblocks or surfaces. Add each as a native sub-issue of this epic so it's easy to find later, and note it shouldn't be pulled into active work until the epic's milestone closes. Don't create a `<epic-name>-followup` label: those were retired on 2026-10-28, and `follow-up` means something else (see `references/routing.md`).]
 ```
 
 Create the child tickets as real GitHub issues first, then reference their numbers in the parent's checklist — GitHub automatically tracks checklist items that reference issue numbers as sub-issues, which is what gives the parent a clean progress view (this is what made #1161 easy to follow).
