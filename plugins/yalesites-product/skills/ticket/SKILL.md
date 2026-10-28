@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as a parent issue (not an epic) with one sub-issue per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes, and gathers an in-flight feature's loose tickets under one parent. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as a parent issue (not an epic) with one sub-issue per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes, and gathers an in-flight feature's loose tickets under one parent. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). When someone other than a groomer files a feature request, it writes a short intake stub labeled `forming` for the PM to groom instead of asking them to make product calls. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -49,9 +49,64 @@ Search these when you need implementation context, but always write the issue de
 
 ---
 
+## Who's Filing: Intake or Full Grooming
+
+**Check this first, before any other step.** Grooming means product calls (priority, scope, phases, milestone, who builds it), and those belong to the groomers listed in `references/routing.md` under "Intake." Find out who is running the skill:
+
+```bash
+gh api user --jq .login
+```
+
+- **A groomer** (`miketullo95` for anything; `dblanken-yale` for dev-only work): use the full flow in the rest of this skill.
+- **Anyone else, filing a feature request or enhancement:** write an **intake stub** (below) and stop. Don't ask about phases, Priority, Size, milestone, assignee, or `claude`. Those aren't their calls, and asking makes filing feel like a test.
+- **Anyone else, filing a bug or comms, docs, or training work:** use the full flow, but skip the Priority question and leave Priority unset. Say in your summary that a groomer will set it.
+
+If the request is unclear about which kind it is, ask the filer one plain question ("Is this something broken, or something new you'd like it to do?"), not a field.
+
+### The intake stub
+
+Ask the filer only what they know, in one `AskUserQuestion` call or from what they've already said:
+
+- What was asked for, in the requester's own words if possible
+- Who asked (name and office or site), and where it came from (ServiceNow ticket number, office hours date, email, meeting)
+- Why it matters to them, and how many people it affects if they know
+- Links or screenshots (use `github-screenshots` for images)
+
+Then run the **Platform Fit Check** (Step 1 below only). If the feature already exists, tell the filer right away; they may be able to answer the requester today. Put the finding in the stub.
+
+Write it like this:
+
+```markdown
+**TL;DR:** [Requester] asked for [one plain sentence]. Filed for grooming.
+
+## The request
+[What they asked for, in their words. Why it matters to them.]
+
+## Where it came from
+**Requester:** [name, office or site]   **Source:** [ServiceNow INC/RITM number, office hours YYYY-MM-DD, email]
+**Filed by:** @[filer]
+
+## Platform fit
+[Already exists / extends X / new. One or two lines.]
+
+<!-- yalesites:agent
+surface: ticket
+kind: intake-stub
+source: [servicenow|office-hours|email|meeting|other]
+-->
+```
+
+Create it with title `Feature Request: <what they want>`, Issue Type `Feature`, label `forming`, board Status `Backlog`, and nothing else (no Priority, Size, milestone, assignee, or `claude`). Read back the type, label, and Status. Then tell the filer: "Filed as #N. Michael will groom it; you'll see it move when he does."
+
+### Grooming a `forming` ticket
+
+When a groomer grooms a `forming` ticket, run the full flow on it (see "Grooming Existing Stub Tickets"). Keep the request, source, and filer sections as they are. A feature becomes a feature parent: retitle it `Feature: <name>` and add its phases (see "Scoping a Feature"). Remove `forming` as the last step, once every field is written and read back.
+
+---
+
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
+Before doing any grooming or drafting work on a **single ticket** (as a groomer; see "Who's Filing" above), check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
 
 **Batch them, but mind the caps.** `AskUserQuestion` allows at most **4 questions per call** and at most **4 options per question**. Both are hard validation, so a call asking six questions is rejected outright and the user sees nothing. Six unanswered fields therefore go in two calls:
 

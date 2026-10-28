@@ -52,6 +52,28 @@ A phase is "done" for routing when its ticket is **closed** or its board Status 
 
 ---
 
+## Intake: who grooms, and what everyone else files
+
+Grooming a ticket means making product calls: priority, scope, phases, milestone, who builds it. Those calls belong to the groomers below. Everyone else files what they know and hands it off.
+
+| Groomer | Handle | Grooms |
+|---|---|---|
+| Michael | `miketullo95` | Everything |
+| Dave | `dblanken-yale` | Dev-only work (Issue Type `Task` or `Bug` with no user-facing change) |
+
+When someone who is not a groomer runs the `ticket` skill:
+
+| They're filing | They get | Labels and fields |
+|---|---|---|
+| A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Size, milestone, assignee, or `claude` |
+| A bug, or comms, docs, or training work | A full ticket, as today | Everything except Priority, which a groomer sets |
+
+**`forming` is the intake label.** It means "filed, not yet groomed." Every open `forming` ticket shows in the router brief's Intake section and in the dashboard's Intake queue. Grooming removes it.
+
+Tickets with no Priority filed in the last 30 days by someone who isn't a groomer also show under Intake as "Needs a priority."
+
+---
+
 ## Waiting on a person: `needs-decision` and `follow-up`
 
 Two labels, on issues and PRs, in every YaleSites repo. Each one comes with a block in the body (or in a comment) that names who owes what.

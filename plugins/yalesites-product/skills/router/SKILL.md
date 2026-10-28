@@ -14,7 +14,8 @@ It does three things each run:
 1. **Hands off phases.** When every blocker of a feature's phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the feature parent.
    - **Gated phases wait.** If the phase has a Gate in `routing.md` (today: Development and Docs, both `miketullo95`), the router does not move it. It lists it under "Waiting on a go." The gatekeeper approves by moving it to To Do, or sends it back with a `follow-up`.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
-3. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
+3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
+4. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 
 Then it posts a brief to the pinned Router brief issue.
 

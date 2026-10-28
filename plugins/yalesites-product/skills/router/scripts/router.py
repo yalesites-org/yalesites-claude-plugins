@@ -34,6 +34,7 @@ STALE_WORKING_DAYS = 3
 # Slower lanes get a longer clock before they count as stuck; None = never listed.
 STALE_BY_TYPE = {"Communications": 20, "Epic": None}
 DEFAULT_BY_WORKING_DAYS = 5
+NEEDS_PRIORITY_DAYS = 30
 ROUTING_MD = Path(__file__).resolve().parents[2] / "ticket" / "references" / "routing.md"
 MARKER = "<!-- yalesites:router -->"
 
@@ -119,6 +120,13 @@ def labels(node):
 
 
 # --- routing rules ---------------------------------------------------------
+
+def load_groomers():
+    """Handles in the Groomer table of routing.md."""
+    text = ROUTING_MD.read_text()
+    section = text.split("## Intake", 1)[1].split("\n## ", 1)[0] if "## Intake" in text else ""
+    return set(re.findall(r"^\|[^|]+\|\s*`([A-Za-z0-9-]+)`", section, re.M))
+
 
 def load_phases():
     """Parse the phase table in routing.md: key -> {name, owner, gate}."""
@@ -281,19 +289,34 @@ def find_owed():
 
 # --- 3. stuck --------------------------------------------------------------
 
-def find_stuck():
+def find_intake():
+    fields = """number title url createdAt repository{nameWithOwner} author{login}"""
+    nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
+    return sorted(nodes, key=lambda n: n["createdAt"], reverse=True)
+
+
+def find_stuck(groomers=frozenset()):
     q = """query($after:String){ organization(login:"%s"){ projectV2(number:%d){
       items(first:100, after:$after){ pageInfo{hasNextPage endCursor} nodes{
         fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}
-        content{ ... on Issue{ number title url state updatedAt repository{nameWithOwner} issueType{name}
+        priority: fieldValueByName(name:"Priority"){... on ProjectV2ItemFieldSingleSelectValue{name}}
+        content{ ... on Issue{ number title url state createdAt updatedAt repository{nameWithOwner} issueType{name}
+          author{login} labels(first:20){nodes{name}}
           assignees(first:3){nodes{login}}
           closedByPullRequestsReferences(first:5, includeClosedPrs:false){nodes{number updatedAt}} } } } } } } }""" % (ORG, PROJECT)
-    stuck, after = [], None
+    stuck, no_priority, after = [], [], None
+    cutoff = TODAY - dt.timedelta(days=NEEDS_PRIORITY_DAYS)
     while True:
         vars_ = {"after": after} if after else {}
         items = graphql(q, **vars_)["organization"]["projectV2"]["items"]
         for it in items["nodes"]:
             c, s = it.get("content") or {}, (it.get("fieldValueByName") or {}).get("name")
+            if (c.get("state") == "OPEN" and s != "Done" and not it.get("priority")
+                    and c["repository"]["nameWithOwner"] == f"{ORG}/{ISSUES_REPO}"
+                    and (c.get("author") or {}).get("login") not in groomers
+                    and "forming" not in {l["name"] for l in c["labels"]["nodes"]}
+                    and parse_date(c["createdAt"]) >= cutoff):
+                no_priority.append(c)
             if s != "In progress" or c.get("state") != "OPEN":
                 continue
             prs = c["closedByPullRequestsReferences"]["nodes"]
@@ -304,19 +327,19 @@ def find_stuck():
                 stuck.append({"node": c, "idle": idle, "has_pr": bool(prs),
                               "who": ", ".join(a["login"] for a in c["assignees"]["nodes"]) or "unassigned"})
         if not items["pageInfo"]["hasNextPage"]:
-            return stuck
+            return stuck, no_priority
         after = items["pageInfo"]["endCursor"]
 
 
 # --- 4. brief --------------------------------------------------------------
 
-def build_brief(promos, gated, applied, waiting, owed, stuck, phases, dry):
+def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry):
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
-            f"{len(stuck)} stuck.")
+            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck.")
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
 
     if promos:
@@ -333,6 +356,19 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, phases, dry):
             lines.append(f"- `{g['gate']}`: {link(g['issue'])} {g['issue']['title']} "
                          f"({phases[g['phase']]['name']}, part of {ref(g['issue']['parent'])}). Approve by moving it to To Do")
         lines.append("")
+
+    if intake or no_priority:
+        lines += ["### Intake", "",
+                  f"{len(intake)} `forming` ticket{'s' if len(intake) != 1 else ''} waiting to be groomed"
+                  + (f", {len(no_priority)} new ticket{'s' if len(no_priority) != 1 else ''} with no priority." if no_priority else "."), ""]
+        lines += ["<details>", "<summary><b>Intake list</b></summary>", ""]
+        for n in intake:
+            who = (n.get("author") or {}).get("login", "?")
+            lines.append(f"- {link(n)} {n['title']}, filed by `{who}` {parse_date(n['createdAt']):%b %-d}")
+        for n in no_priority:
+            who = (n.get("author") or {}).get("login", "?")
+            lines.append(f"- {link(n)} {n['title']}, filed by `{who}`: needs a priority")
+        lines += ["", "</details>", ""]
 
     lines += ["### Owed, by person", ""]
     by_person = {}
@@ -389,7 +425,8 @@ def main():
     phases = load_phases()
     promos, gated, waiting = find_promotions(phases)
     owed = find_owed()
-    stuck = find_stuck()
+    intake = find_intake()
+    stuck, no_priority = find_stuck(load_groomers())
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -407,6 +444,10 @@ def main():
             "stuck": [{**item(s["node"]), "who": s["who"], "idle_working_days": s["idle"], "has_pr": s["has_pr"]}
                       for s in stuck],
             "held": [{**item(n), "reason": why} for n, why in waiting],
+            "intake": [{**item(n), "number": n["number"], "author": (n.get("author") or {}).get("login"),
+                        "created": n["createdAt"][:10]} for n in intake],
+            "needs_priority": [{**item(n), "number": n["number"], "author": (n.get("author") or {}).get("login"),
+                                "created": n["createdAt"][:10]} for n in no_priority],
         }, indent=2))
         return
 
@@ -419,7 +460,7 @@ def main():
                 applied[p["issue"]["number"]] = False
                 print(f"promotion failed for {ref(p['issue'])}: {e}", file=sys.stderr)
 
-    brief = build_brief(promos, gated, applied, waiting, owed, stuck, phases, dry=not a.apply)
+    brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry=not a.apply)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)
