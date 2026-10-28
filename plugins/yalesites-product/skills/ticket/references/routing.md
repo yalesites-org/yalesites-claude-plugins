@@ -82,13 +82,13 @@ Milestone and Priority answer different questions. Don't make one stand in for t
 - **Priority = what goes first.** The order inside a milestone, and which unscheduled tickets we pull in first when we plan the next release. `High`, `Medium`, and `Low` are about importance, not timing.
 - **`Hotfix` is the one exception.** It jumps ahead of every milestone and ships on its own.
 
-Priority is also how every agent orders its work, whoever runs it. Nobody hands an agent its next ticket. Each agent picks from its pool in this order:
+Priority is also how every agent orders its work, whoever runs it. When an agent picks its own next ticket, nobody hands it one: it picks from its pool in this order. A person can still point an agent at a specific ticket, and that skips the order.
 
 1. **Rework.** Its own PRs that came back with `needs work`.
-2. **`Hotfix`**, whatever the milestone.
-3. **The current milestone** (the open one with the soonest due date), `High` then `Medium` then `Low`.
-4. **The next milestone**, in the same order, only once the current one has nothing left it can take. During an RC window, next-release work doesn't merge to `develop`.
-5. **Never a ticket with no milestone.** A person schedules it first.
+2. **`Hotfix`**, whatever the milestone, even none. Grooming still gives a Hotfix its `MM-DD-YY Hotfix` milestone (see "Milestone" in the ticket skill), but a missing one never holds a Hotfix back.
+3. **The current milestone** (the open one with the soonest due date), `High` then `Medium` then `Low`. A ticket with no Priority goes last, after `Low`, since nobody has groomed it yet.
+4. **The next milestone**, in the same order, only once the current one has nothing left it can take: every ticket still open in it is assigned to someone else, blocked, waiting on a `needs-decision`, or already has an open PR. During an RC window, next-release work doesn't merge to `develop`.
+5. **Never a ticket with no milestone, except a `Hotfix`** (step 2). A person schedules it first.
 
 Ties go to lower Risk once the board has a Risk field. Until then, the older ticket wins.
 
