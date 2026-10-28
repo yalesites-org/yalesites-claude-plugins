@@ -10,7 +10,7 @@ team with:
 - **Release prep** — drafting release notes, feature documentation, release
   emails, QA testing steps, and knowledge base sync
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
-  existing ones with correct format, acceptance criteria, priority, size,
+  existing ones with correct format, acceptance criteria, priority, risk,
   type, and labels
 - **Backlog hygiene** — a read-only audit of the backlog that reports tickets
   missing acceptance criteria, board fields, or a type, and hands findings off

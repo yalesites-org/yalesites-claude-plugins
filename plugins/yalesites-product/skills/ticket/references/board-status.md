@@ -1,4 +1,4 @@
-# YaleSites Board: Status, Priority, and Size
+# YaleSites Board: Status, Priority, and Risk
 
 **Canonical reference for reading and writing YaleSites Board fields.** If any skill's inline copy of this information disagrees with this file, this file wins.
 
@@ -15,7 +15,7 @@ Used by `ticket` and `release-prep` (yalesites-product) and `yalesites-pr` (yale
 | Project name | YaleSites Board |
 | Issues repo | `yalesites-org/YaleSites-Internal` |
 
-Status, Priority, and Size are **GitHub Projects v2 single-select fields**. They are not issue fields, not labels, and **not reachable through the REST API**, which is why `mcp__github__create_issue`, `update_issue`, `get_issue`, `search_issues`, and `list_issues` can neither read nor write them.
+Status, Priority, and Risk are **GitHub Projects v2 single-select fields**. They are not issue fields, not labels, and **not reachable through the REST API**, which is why `mcp__github__create_issue`, `update_issue`, `get_issue`, `search_issues`, and `list_issues` can neither read nor write them.
 
 Projects v2 is GraphQL-only. The `gh` CLI's `gh project` subcommands wrap that GraphQL, which is the shortest path to both reads and writes.
 
@@ -48,9 +48,11 @@ There is **no `Forming` status.** Older skill text listed one. If you see `formi
 
 Priority is the order within a milestone, not the timing; the milestone is the timing. Agents pick up work in this order. See "Priority and the agent pickup order" in `routing.md`.
 
-### Size
+### Risk
 
-`XS` · `S` · `M` · `L` · `XL`
+`Low` · `Medium` · `High`. What each level means is in the `ticket` skill ("4. Risk").
+
+**Size is retired** (2026-10-28). Don't set it, and don't flag tickets that lack it. Older tickets may still show a Size value until the field is removed from the board.
 
 ---
 
@@ -109,7 +111,7 @@ gh project item-add 6 --owner yalesites-org --url <issue-url>
 ```bash
 gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "In review"
 gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
-gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
+gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Risk" --value "Medium"
 ```
 
 Only one field per invocation for non-draft issues. Run the command once per field.
@@ -134,7 +136,7 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 
 | Transition | Trigger | Owner | State |
 |---|---|---|---|
-| Ticket created or groomed | PM sets Status/Priority/Size | `ticket` skill | Working |
+| Ticket created or groomed | PM sets Status/Priority/Risk | `ticket` skill | Working |
 | Work starts → `In progress` | Dev picks up the ticket | *(nothing)* | **Genuine gap** |
 | PR opened → `In review` | PR(s) created for the issue | `yalesites-pr` skill | Working |
 | PR reviewed | Approve or request changes | `pr-feedback` skill | Labels only, board untouched by design |
@@ -162,12 +164,12 @@ Workflows `03-pr-link-creator` and `04-release-test-extractor` are dormant for t
 
 ## No `gh`: hand the fields to the user
 
-Skills write Status, Priority, and Size **only** with `gh project item-edit`. There is no label fallback.
+Skills write Status, Priority, and Risk **only** with `gh project item-edit`. There is no label fallback.
 
 When `gh` is missing, unauthenticated, or lacks the `project` scope:
 
 1. Create or update the issue itself through whatever path works (the GitHub connector can create issues, set the milestone, assignees, and labels).
-2. Tell the user, in one short block, the exact values to set on the YaleSites Board, with the issue link. For example: `Status: Backlog, Priority: Medium, Size: XS`.
+2. Tell the user, in one short block, the exact values to set on the YaleSites Board, with the issue link. For example: `Status: Backlog, Priority: Medium, Risk: Low`.
 3. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` as the durable fix, once.
 4. Do not report the ticket as complete until the user confirms the fields are set, or says they will do it.
 

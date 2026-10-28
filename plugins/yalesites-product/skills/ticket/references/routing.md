@@ -65,7 +65,7 @@ When someone who is not a groomer runs the `ticket` skill:
 
 | They're filing | They get | Labels and fields |
 |---|---|---|
-| A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Size, milestone, assignee, or `claude` |
+| A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Risk, milestone, assignee, or `claude` |
 | A bug, or comms, docs, or training work | A full ticket, as today | Everything except Priority, which a groomer sets |
 
 **`forming` is the intake label.** It means "filed, not yet groomed." Every open `forming` ticket shows in the router brief's Intake section and in the dashboard's Intake queue. Grooming removes it.
@@ -90,7 +90,7 @@ Priority is also how every agent orders its work, whoever runs it. Nobody hands 
 4. **The next milestone**, in the same order, only once the current one has nothing left it can take. During an RC window, next-release work doesn't merge to `develop`.
 5. **Never a ticket with no milestone.** A person schedules it first.
 
-Ties go to lower Risk once the board has a Risk field. Until then, the older ticket wins.
+Ties go to lower Risk (a board field since 2026-10-28). When Risk isn't set, the older ticket wins.
 
 This order is the rule for every agent. Change it here, not in one person's agent setup.
 
