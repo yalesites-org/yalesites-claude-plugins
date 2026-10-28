@@ -230,7 +230,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 
 Two things have to be true before it goes on:
 
-- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Size, and Type all present, and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Size, Type, and a milestone all present (agents never pick up a ticket with no milestone), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
@@ -437,14 +437,14 @@ If an existing ticket has an unresolved internal debate (e.g., a past comment th
 
 ### 3. Priority
 
-Choose one based on user and platform impact:
+Choose one based on user and platform impact. Priority says what goes first, not when: the milestone says when. Agents pick up work in Priority order within a milestone (see "Priority and the agent pickup order" in `references/routing.md`), so don't raise a ticket's Priority to pull it into a release. Give it the right milestone instead.
 
 | Priority | When to use |
 |----------|-------------|
-| **Hotfix** | Critical issue breaking core functionality or accessibility. Immediate deployment required. Also prepend the `Hotfix:` title prefix (see "Title" above). |
-| **High** | Significantly impacts user experience or blocks key workflows. Soonest milestone priority. |
+| **Hotfix** | Critical issue breaking core functionality or accessibility. Jumps ahead of every milestone and ships on its own. Also prepend the `Hotfix:` title prefix (see "Title" above). |
+| **High** | Significantly impacts user experience or blocks key workflows. First in its milestone. |
 | **Medium** | Improves platform usability or addresses moderate user pain points. |
-| **Low** | Nice-to-have enhancement with minimal user impact. Future consideration. |
+| **Low** | Nice-to-have enhancement with minimal user impact. Last in its milestone. |
 
 ---
 

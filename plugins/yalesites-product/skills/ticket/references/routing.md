@@ -74,6 +74,26 @@ Tickets with no Priority filed in the last 30 days by someone who isn't a groome
 
 ---
 
+## Priority and the agent pickup order
+
+Milestone and Priority answer different questions. Don't make one stand in for the other.
+
+- **Milestone = when.** The release a ticket ships in. No milestone means we haven't committed to it yet.
+- **Priority = what goes first.** The order inside a milestone, and which unscheduled tickets we pull in first when we plan the next release. `High`, `Medium`, and `Low` are about importance, not timing.
+- **`Hotfix` is the one exception.** It jumps ahead of every milestone and ships on its own.
+
+Priority is also how every agent orders its work, whoever runs it. Nobody hands an agent its next ticket. Each agent picks from its pool in this order:
+
+1. **Rework.** Its own PRs that came back with `needs work`.
+2. **`Hotfix`**, whatever the milestone.
+3. **The current milestone** (the open one with the soonest due date), `High` then `Medium` then `Low`.
+4. **The next milestone**, in the same order, only once the current one has nothing left it can take. During an RC window, next-release work doesn't merge to `develop`.
+5. **Never a ticket with no milestone.** A person schedules it first.
+
+Ties go to lower Risk once the board has a Risk field. Until then, the older ticket wins.
+
+This order is the rule for every agent. Change it here, not in one person's agent setup.
+
 ## Waiting on a person: `needs-decision` and `follow-up`
 
 Two labels, on issues and PRs, in every YaleSites repo. Each one comes with a block in the body (or in a comment) that names who owes what.

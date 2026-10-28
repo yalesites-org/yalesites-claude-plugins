@@ -46,6 +46,8 @@ There is **no `Forming` status.** Older skill text listed one. If you see `formi
 
 `Hotfix` · `High` · `Medium` · `Low`
 
+Priority is the order within a milestone, not the timing; the milestone is the timing. Agents pick up work in this order. See "Priority and the agent pickup order" in `routing.md`.
+
 ### Size
 
 `XS` · `S` · `M` · `L` · `XL`
