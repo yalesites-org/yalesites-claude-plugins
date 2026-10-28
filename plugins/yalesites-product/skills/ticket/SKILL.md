@@ -175,6 +175,7 @@ Three kinds of milestone show up in that list, and only the first is ever a vali
 |------|----------|-----------------|
 | **Dated release** | `12-08-26 Feature Release`, `07-07-26 Drupal 10.6 Release` | The normal case. This is what "next upcoming release" means. |
 | **Initiative** | `Views Block Rework`, `Drupal AI Migration` | Only when the ticket is a child of that epic or initiative. Don't pick one just because it happens to be open. |
+| **Hotfix** | `10-14-26 Hotfix` | Only for a `Hotfix`-priority ticket. See "Hotfix tickets" below. |
 | **Catch-all bucket** | `Ready For Work`, `Backlog` | The work is real but genuinely unscheduled. These carry sentinel due dates far in the future (2030), so they'll never win a soonest-due-date sort. Don't let one become the default by accident. |
 
 Two traps when working out which release is "next":
@@ -183,6 +184,18 @@ Two traps when working out which release is "next":
 - **Don't drop new feature work into a release that's already in its RC window.** Once RC testing has started, only fixes for that release belong in it; new feature work goes to the release after. If you can't tell whether a release is locked, ask instead of assuming.
 
 If not specified, ask: *"What milestone should this go in?"* Offer the next upcoming feature release first as the recommendation, with the current in-flight release and "no milestone for now" as the alternatives.
+
+**Hotfix tickets.** A `Hotfix`-priority ticket still gets a milestone: the open `MM-DD-YY Hotfix` milestone for the hotfix it ships in. Agents will pick up a Hotfix with no milestone (see "Priority and the agent pickup order" in `references/routing.md`), but that is a fallback, not the plan. List open milestones whose title ends in `Hotfix`:
+
+- **One or more open:** recommend the soonest, with "no milestone for now" as the alternative.
+- **None open:** ask *"There's no open hotfix milestone. Do you want to create one for the upcoming hotfix?"* If yes, ask the hotfix date, then create `MM-DD-YY Hotfix` with its due date one week after the hotfix date at `T12:00:00Z`, matching the release milestones' hotfix buffer:
+
+  ```bash
+  gh api repos/yalesites-org/YaleSites-Internal/milestones -X POST \
+    -f title="MM-DD-YY Hotfix" -f due_on="YYYY-MM-DDT12:00:00Z"
+  ```
+
+  If no, leave the milestone empty and say the ticket is unscheduled until someone picks a hotfix date.
 
 For an **epic**, the milestone is a scoping decision rather than a routine field, and the epic's own clarifying questions already cover it (Step 1 under "Creating an Epic": YaleSites epics ship as a single unit in one milestone). Don't ask for it twice.
 
@@ -230,7 +243,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 
 Two things have to be true before it goes on:
 
-- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
