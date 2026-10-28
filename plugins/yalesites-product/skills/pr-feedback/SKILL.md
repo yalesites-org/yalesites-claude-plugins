@@ -648,6 +648,31 @@ unlabeled honest approval beats a labeled false one.
 | Approving (demo/multidev-only PR) | the reviewer's pass label(s) for this repo + `ready to close`, but see below |
 | Approving, no pass label matched this repo | `ready to merge` only, and only after asking |
 
+**`yale-ui-cl` (UICL) needs two approvals before `ready to merge`.** Every UICL PR needs both
+Michael's (`miketullo95`) and Dave's (`dblanken-yale`) approval before it can merge. So on a UICL
+approval, `ready to merge` goes on only when this review is the **second** of those two. Before
+computing the label set, check whether the other required approver already approved:
+
+```bash
+gh api repos/yalesites-org/yale-ui-cl/pulls/NUMBER/reviews --paginate \
+  -q '[.[] | select(.user.login == "OTHER_LOGIN") | select(.state != "COMMENTED")] | last | .state'
+```
+
+`OTHER_LOGIN` is whichever of the two the current `gh` user is not (`gh api user -q .login`).
+
+- **`APPROVED`:** this review is the second approval. Apply the pass label(s) + `ready to merge`
+  as the table says.
+- **Anything else** (no review, `CHANGES_REQUESTED`, `DISMISSED`): this is the first approval.
+  Submit the approval and apply the pass label(s), but leave `ready to merge` off and keep
+  `needs review` on so the PR stays in the other reviewer's queue. Tell the user the PR is
+  waiting on the other approval, by name.
+- **The current user is neither of the two:** apply the pass label(s) only and leave
+  `ready to merge` off. Their approval does not count toward the two.
+
+Never apply `ready to merge` on a first approval, even if the PR already carries it from an
+earlier pass: the strip-and-reapply above takes it off, and this check decides whether it comes
+back. This applies to `yale-ui-cl` only; the other repos keep the single-approval table above.
+
 **Open question, not settled here: whether one dimension's approval should still add
 `ready to merge`.** Today it does, for everyone, and the table above keeps that unchanged on
 purpose. But once a `pass design review` label means design and only design was checked, a lone
