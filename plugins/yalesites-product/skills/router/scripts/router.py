@@ -31,6 +31,8 @@ WATCH_REPOS = [
     "component-library-twig", "tokens", "yalesites-claude-plugins",
 ]
 STALE_WORKING_DAYS = 3
+# Slower lanes get a longer clock before they count as stuck; None = never listed.
+STALE_BY_TYPE = {"Communications": 20, "Epic": None}
 DEFAULT_BY_WORKING_DAYS = 5
 ROUTING_MD = Path(__file__).resolve().parents[2] / "ticket" / "references" / "routing.md"
 MARKER = "<!-- yalesites:router -->"
@@ -276,7 +278,7 @@ def find_stuck():
     q = """query($after:String){ organization(login:"%s"){ projectV2(number:%d){
       items(first:100, after:$after){ pageInfo{hasNextPage endCursor} nodes{
         fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}
-        content{ ... on Issue{ number title url state updatedAt repository{nameWithOwner}
+        content{ ... on Issue{ number title url state updatedAt repository{nameWithOwner} issueType{name}
           assignees(first:3){nodes{login}}
           closedByPullRequestsReferences(first:5, includeClosedPrs:false){nodes{number updatedAt}} } } } } } } }""" % (ORG, PROJECT)
     stuck, after = [], None
@@ -290,7 +292,8 @@ def find_stuck():
             prs = c["closedByPullRequestsReferences"]["nodes"]
             last = max([parse_date(c["updatedAt"])] + [parse_date(p["updatedAt"]) for p in prs])
             idle = working_days_between(last, TODAY)
-            if idle >= STALE_WORKING_DAYS:
+            limit = STALE_BY_TYPE.get((c.get("issueType") or {}).get("name"), STALE_WORKING_DAYS)
+            if limit is not None and idle >= limit:
                 stuck.append({"node": c, "idle": idle, "has_pr": bool(prs),
                               "who": ", ".join(a["login"] for a in c["assignees"]["nodes"]) or "unassigned"})
         if not items["pageInfo"]["hasNextPage"]:
@@ -343,7 +346,7 @@ def build_brief(promos, applied, waiting, owed, stuck, phases, dry):
         lines.append("")
 
     if stuck:
-        lines += ["<details>", f"<summary><b>Stuck: In progress with no activity for {STALE_WORKING_DAYS}+ working days ({len(stuck)})</b></summary>", ""]
+        lines += ["<details>", f"<summary><b>Stuck: In progress with no activity for {STALE_WORKING_DAYS}+ working days, 20+ for Communications ({len(stuck)})</b></summary>", ""]
         for s in sorted(stuck, key=lambda s: -s["idle"]):
             pr = "" if s["has_pr"] else ", no PR"
             lines.append(f"- {link(s['node'])} {s['node']['title']}, `{s['who']}`, {s['idle']}d idle{pr}")

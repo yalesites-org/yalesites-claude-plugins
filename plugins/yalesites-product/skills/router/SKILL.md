@@ -13,7 +13,7 @@ It does three things each run:
 
 1. **Hands off phases.** When every blocker of a feature-epic phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the epic.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
-3. **Flags what's stuck.** In progress tickets with no activity for 3+ working days.
+3. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 
 Then it posts a brief to the pinned Router brief issue.
 
@@ -56,6 +56,7 @@ At the top of `scripts/router.py`:
 | `BRIEF_ISSUE` | The pinned Router brief issue in YaleSites-Internal. `None` prints the brief without posting |
 | `WATCH_REPOS` | Repos searched for `needs-decision`, `follow-up`, and `question` |
 | `STALE_WORKING_DAYS` | In progress idle threshold (3) |
+| `STALE_BY_TYPE` | Per Issue Type overrides. Communications gets 20 working days, since comms work moves slower. Epics are never listed; their children carry the activity |
 | `DEFAULT_BY_WORKING_DAYS` | Due date when a block has none (5 working days after the label went on) |
 
 Phase owners are not set here. They come from the table in `routing.md`, so owners change in one place.
