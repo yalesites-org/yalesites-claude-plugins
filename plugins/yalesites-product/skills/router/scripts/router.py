@@ -39,8 +39,11 @@ ROUTING_MD = Path(__file__).resolve().parents[2] / "ticket" / "references" / "ro
 MARKER = "<!-- yalesites:router -->"
 GATE_LABEL = "awaiting-go"
 BOARD_VIEWS = f"https://github.com/orgs/{ORG}/projects/{PROJECT}/views/"
-# The one Monday view on the YaleSites Board (decisions, follow-ups, intake, gates).
+# The one Monday view on the YaleSites Board, grouped by the Stage field.
 MONDAY_VIEW = 28
+STAGE_FIELD = "Stage"
+# When an item qualifies for more than one stage, the first one listed wins.
+STAGE_ORDER = ["Gate", "Decision", "Follow-up", "Stuck", "Intake"]
 
 TODAY = dt.date.today()
 
@@ -305,6 +308,45 @@ def sync_gate_labels(gated):
     return sorted(want - have), sorted(have - want)
 
 
+def desired_stages(gated, owed, stuck, intake, no_priority):
+    """url -> Stage option, highest STAGE_ORDER entry wins."""
+    want = {}
+    def put(url, stage):
+        if url not in want or STAGE_ORDER.index(stage) < STAGE_ORDER.index(want[url]):
+            want[url] = stage
+    for g in gated:
+        put(g["issue"]["url"], "Gate")
+    for o in owed:
+        put(o["node"]["url"], "Decision" if o["kind"] == "needs-decision" else "Follow-up")
+    for x in stuck:
+        put(x["node"]["url"], "Stuck")
+    for n in list(intake) + list(no_priority):
+        put(n["url"], "Intake")
+    return want
+
+
+def sync_stages(want, board):
+    """Set or clear Stage on board items so it matches want. Returns (set, cleared) counts."""
+    d = graphql("""query{ organization(login:"%s"){ projectV2(number:%d){ id
+      field(name:"%s"){ ... on ProjectV2SingleSelectField{ id options{ id name } } } } } }""" % (ORG, PROJECT, STAGE_FIELD))
+    proj = d["organization"]["projectV2"]
+    field = proj["field"]
+    if not field:
+        raise RuntimeError(f"no {STAGE_FIELD} field on project {PROJECT}")
+    opts = {o["name"]: o["id"] for o in field["options"]}
+    n_set = n_clear = 0
+    for url, item in board.items():
+        target = want.get(url)
+        if target == item["stage"]:
+            continue
+        base = ["project", "item-edit", "--id", item["id"], "--project-id", proj["id"], "--field-id", field["id"]]
+        if target:
+            gh(*base, "--single-select-option-id", opts[target]); n_set += 1
+        elif item["stage"] in opts:
+            gh(*base, "--clear"); n_clear += 1
+    return n_set, n_clear
+
+
 def find_features():
     """Open Feature parents with sub-issues, and how many children are Done or closed."""
     fields = f"""number title url repository{{nameWithOwner}} milestone{{title dueOn}}
@@ -329,20 +371,23 @@ def find_intake():
 
 def find_stuck(groomers=frozenset()):
     q = """query($after:String){ organization(login:"%s"){ projectV2(number:%d){
-      items(first:100, after:$after){ pageInfo{hasNextPage endCursor} nodes{
+      items(first:100, after:$after){ pageInfo{hasNextPage endCursor} nodes{ id
         fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}
+        stage: fieldValueByName(name:"%s"){... on ProjectV2ItemFieldSingleSelectValue{name}}
         priority: fieldValueByName(name:"Priority"){... on ProjectV2ItemFieldSingleSelectValue{name}}
         content{ ... on Issue{ number title url state createdAt updatedAt repository{nameWithOwner} issueType{name}
           author{login} labels(first:20){nodes{name}}
           assignees(first:3){nodes{login}}
-          closedByPullRequestsReferences(first:5, includeClosedPrs:false){nodes{number updatedAt}} } } } } } } }""" % (ORG, PROJECT)
-    stuck, no_priority, after = [], [], None
+          closedByPullRequestsReferences(first:5, includeClosedPrs:false){nodes{number updatedAt}} } } } } } } }""" % (ORG, PROJECT, STAGE_FIELD)
+    stuck, no_priority, board, after = [], [], {}, None
     cutoff = TODAY - dt.timedelta(days=NEEDS_PRIORITY_DAYS)
     while True:
         vars_ = {"after": after} if after else {}
         items = graphql(q, **vars_)["organization"]["projectV2"]["items"]
         for it in items["nodes"]:
             c, s = it.get("content") or {}, (it.get("fieldValueByName") or {}).get("name")
+            if c.get("url"):
+                board[c["url"]] = {"id": it["id"], "stage": (it.get("stage") or {}).get("name"), "state": c.get("state")}
             if (c.get("state") == "OPEN" and s != "Done" and not it.get("priority")
                     and c["repository"]["nameWithOwner"] == f"{ORG}/{ISSUES_REPO}"
                     and (c.get("author") or {}).get("login") not in groomers
@@ -359,7 +404,7 @@ def find_stuck(groomers=frozenset()):
                 stuck.append({"node": c, "idle": idle, "has_pr": bool(prs),
                               "who": ", ".join(a["login"] for a in c["assignees"]["nodes"]) or "unassigned"})
         if not items["pageInfo"]["hasNextPage"]:
-            return stuck, no_priority
+            return stuck, no_priority, board
         after = items["pageInfo"]["endCursor"]
 
 
@@ -388,7 +433,7 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
                   "Nothing needs the room this week. Skip the meeting." if empty else
                   "30 minutes, top to bottom. Skip any empty section.", ""]
         where = {"Decisions & follow-ups": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
-                 "Stuck": "below", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
+                 "Stuck": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
                  "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})"}
         for i, name in enumerate(["Decisions & follow-ups", "Stuck", "Intake", "Features", "Gates"], 1):
             lines.append(f"{i}. **{name}**: {counts[name]} ({where[name]})")
@@ -486,7 +531,7 @@ def main():
     promos, gated, waiting = find_promotions(phases)
     owed = find_owed()
     intake = find_intake()
-    stuck, no_priority = find_stuck(load_groomers())
+    stuck, no_priority, board = find_stuck(load_groomers())
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -519,6 +564,12 @@ def main():
                 print(f"{GATE_LABEL}: added {added}, removed {removed}", file=sys.stderr)
         except RuntimeError as e:
             print(f"{GATE_LABEL} sync failed: {e}", file=sys.stderr)
+        try:
+            n_set, n_clear = sync_stages(desired_stages(gated, owed, stuck, intake, no_priority), board)
+            if n_set or n_clear:
+                print(f"{STAGE_FIELD}: set {n_set}, cleared {n_clear}", file=sys.stderr)
+        except RuntimeError as e:
+            print(f"{STAGE_FIELD} sync failed: {e}", file=sys.stderr)
         for p in promos:
             try:
                 applied[p["issue"]["number"]] = apply_promotion(p, phases)

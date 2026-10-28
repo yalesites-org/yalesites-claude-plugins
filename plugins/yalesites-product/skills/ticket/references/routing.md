@@ -130,6 +130,7 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 | Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the parent is open, the child has no open `needs-decision` or `follow-up`, and its phase's Gate is `auto` |
 | Assign the phase's default owner | Only on a child it just promoted, and only if that child has no assignee |
 | Comment on the parent | One comment per promotion, naming the child and its owner |
+| Set or clear the board's **Stage** field | Every run, so each board item shows the stage it is in today (see "The Stage field") |
 | Add or remove `awaiting-go` | Kept on exactly the gated children waiting on a go, so the board's Gates view can find them. Removed once a child moves on or is held |
 | Comment on the brief issue | Once per run |
 
@@ -141,13 +142,17 @@ Monday is "Exceptions and bets": 30 minutes at most, run from Monday's brief, wh
 
 | # | Section | Where | What we do |
 |---|---|---|---|
-| 1 | Decisions & follow-ups | **Monday** view | Decisions that need the room. Each leaves decided or with a new date |
-| 2 | Stuck | The brief | In progress with no activity. Each leaves with an owner and a date |
-| 3 | Intake | **Monday** view | New `forming` tickets: groom now, park, or decline |
+| 1 | Decisions & follow-ups | **Monday** view, Stage `Decision` and `Follow-up` | Decisions that need the room. Each leaves decided or with a new date |
+| 2 | Stuck | **Monday** view, Stage `Stuck` | In progress with no activity. Each leaves with an owner and a date |
+| 3 | Intake | **Monday** view, Stage `Intake` | New `forming` tickets and new tickets with no priority: groom now, park, or decline |
 | 4 | Features | The brief (Mondays) | Release-planning weeks only: feature parents by milestone and progress, and which we take on next |
-| 5 | Gates | **Monday** view | Phases waiting on a gatekeeper's go (`awaiting-go`) |
+| 5 | Gates | **Monday** view, Stage `Gate` | Phases waiting on a gatekeeper's go (`awaiting-go`) |
 
-The **Monday** view on the YaleSites Board shows every open item labeled `needs-decision`, `follow-up`, `forming`, or `awaiting-go`. Stuck and Features can't share it, since a board filter can't combine a status or progress check with those labels. It lists by label and assignee, not by who owes the call, because board filters can't read the blocks. The brief and the work dashboard are the exact lists.
+### The Stage field
+
+**Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Stuck, Intake wins.
+
+Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the brief and the work dashboard remain the full lists.
 
 ## Brief
 
