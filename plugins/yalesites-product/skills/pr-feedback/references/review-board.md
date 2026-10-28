@@ -8,8 +8,20 @@ highlighted, and big option cards. The reviewer can drop their own pins, draw bo
 on selected ticket text. Every screenshot has an Enlarge button that opens it full screen, at fit
 or actual size, and a `compare` block flips between its images in place with the arrow keys, which
 is how a 1px against 2px change becomes visible. A `video` block plays a clip from the run, at
-normal, half, or quarter speed, and the reviewer can leave a note at any moment in it. One click
-sends everything back.
+normal, half, or quarter speed, and the reviewer can leave a note at any moment in it.
+
+The reviewer runs this several times a day, a handful of PRs each time, so the board is built for
+someone arriving cold. Each PR opens with a **lead-in page**: what it is for, what it changes,
+where to test it, and the numbered list of decisions coming up. Each question then shows a few
+context bullets and one plain question beside the answer cards, which stay in a sticky panel
+while the evidence scrolls. A header row of PR chips and a stepper, color-coded per PR, shows
+where they are. Picking an answer moves to the next question (number keys pick, arrows move).
+The last page shows each PR's ruling, worked out from the answers and open to override, and what
+sending will post.
+
+**Finishing the board finishes the review.** Sending it is the reviewer's ruling on every PR in
+it. Nothing on the board is asked again in chat, and nothing new is asked after it, so anything
+the review needs a person to decide goes on the board as a question.
 
 It is a single local page (`scripts/review-board/index.html`) served by a small Python server
 (`scripts/review-board/server.py`) on `127.0.0.1`. Nothing leaves the machine, which matters:
@@ -17,12 +29,16 @@ the held calls come from the brief, and the brief stays local.
 
 ## When to use it, and when not to
 
-| Use the board for | Keep in chat |
+| On the board | Where |
 |---|---|
-| Step 3b Part 1, the held calls in the reviewer's lane | Step D1's ask-once before creating test content |
-| Step 3b Part 2, their own read (always the last page) | Step 6, approve or request changes. Always one explicit chat ruling per PR |
-| Batch mode Step B4, all units in one packet | Out-of-lane calls. Name them in chat, as Step 3b says. They are not questions |
-| | Scope-creep and follow-up ticket offers (Steps 4 and 5) |
+| Step 3b Part 1, the held calls in the reviewer's lane | One question each |
+| Step 5 follow-up ticket offers (visreg gaps, docs), and new scope found in Step 2 | One question each, in that PR's group, with a non-blocking option to skip |
+| A ticket that drifted from what the PR does (`SKILL.md` Step 9b) | One question: update the ticket, comment on it, or leave it |
+| Out-of-lane calls | Named on the PR's lead-in under **Not asked** (`notAsked`). They are not questions |
+| Step 3b Part 2, their own read | The last page |
+| Step 6, approve or request changes | The last page, one ruling per PR, from the answers (`verdict`) |
+
+Test content needs no question at all: running the skill is consent (`drive-it.md` Step D1).
 
 **Skip the board, and ask in chat with `AskUserQuestion`, when:**
 - There are no in-lane held calls. Say the section is empty, then ask for their own read in chat.
@@ -87,12 +103,14 @@ delete it.
 ```json
 {
   "title": "1824: Bug: Configure section logs a PHP warning on every open",
+  "shortTitle": "Section warning fix",
   "subtitle": "Driven run on pr-1598, site_admin",
   "pr": { "ref": "yalesites-org/yalesites-project#1598", "url": "https://github.com/yalesites-org/yalesites-project/pull/1598" },
   "issue": { "ref": "yalesites-org/YaleSites-Internal#1824", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1824" },
   "ownReadPrompt": "Optional. Overrides the default 'What did you notice?' text.",
   "units": [
     {
+      "short": "Section warning",
       "issue": { "ref": "yalesites-org/YaleSites-Internal#1824", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1824", "title": "Bug: Configure section logs a PHP warning on every open" },
       "ask": "Opening **Configure section** in Layout Builder logs a PHP warning each time. The ticket asks for the warning to stop, with no change to how the dialog looks or works.",
       "pr": { "ref": "yalesites-org/yalesites-project#1598", "url": "https://github.com/yalesites-org/yalesites-project/pull/1598", "title": "fix(ys_layouts): guard the missing theme setting" },
@@ -101,7 +119,8 @@ delete it.
       "test": { "label": "Multidev pr-1598", "url": "https://pr-1598-yalesites-platform.pantheonsite.io/" },
       "related": [
         { "ref": "yalesites-org/YaleSites-Internal#1790", "url": "https://github.com/yalesites-org/YaleSites-Internal/issues/1790", "note": "Where the swatch clipping was first reported" }
-      ]
+      ],
+      "notAsked": ["The null check style on line 42 is a **code** call, for our lead developer."]
     }
   ],
   "questions": [
@@ -110,6 +129,8 @@ delete it.
       "title": "Swatch row cuts off",
       "dimension": "design",
       "question": "The last swatch is cut off and a scrollbar shows under the row. This PR did not cause it. How should we handle it?",
+      "brief": ["The last swatch is cut off at the modal edge.", "This PR did not cause it; it shows on `dev` too."],
+      "ask": "Ticket the clipping, or fix it in this PR?",
       "context": [
         {
           "type": "image",
@@ -123,8 +144,8 @@ delete it.
         }
       ],
       "options": [
-        { "value": "followup", "label": "Follow-up ticket", "detail": "Approve this fix as-is and open a design ticket.", "recommended": true },
-        { "value": "fix-here", "label": "Fix it in this PR", "detail": "Ask the developer to wrap the swatches." }
+        { "value": "followup", "label": "Follow-up ticket", "detail": "Approve this fix as-is and open a design ticket.", "recommended": true, "verdict": "approve" },
+        { "value": "fix-here", "label": "Fix it in this PR", "detail": "Ask the developer to wrap the swatches.", "verdict": "changes" }
       ]
     }
   ]
@@ -180,28 +201,32 @@ link, and the subtitle with ` · `, so a legend using the same mark reads as mor
 Use the same labels everywhere in the packet: captions, block labels, mark notes, question
 text, and option details. Put the same side on the left in every pair, the baseline first.
 
-### The About panel: `units`
+### The lead-in: `units`
 
-The board shows an **About this review** panel on the right of every question, so the reviewer
-knows what ticket and PR a question comes from without opening GitHub. A ref on its own
-(`component-library-twig#792`) means nothing to someone who is judging one question at a time;
-the panel says, in plain words, what the ticket asked for and what the PR does. Write one unit
-per PR. Every packet gets `units`, a single-PR one included.
+Each PR opens with a lead-in page, so the reviewer knows what the PR is and what they are about
+to decide before the first question. A ref on its own (`component-library-twig#792`) means
+nothing to someone arriving cold; the lead-in says, in plain words, what the ticket asked for
+and what the PR does, then lists the plain question (`ask`) of every question in its group.
+The same facts fold into an "About" line on each question. Write one unit per PR, or per set of
+PRs reviewed together. Every packet gets `units`, a single-PR one included.
 
 | Field | What goes in it |
 |---|---|
+| `short` | Two to four words for the header chip and the lead-in (`LB resize edge`, `Audio transcript`). The chip shows it next to the short ref |
 | `issue` | `ref`, `url`, and `title` of the ticket the PR closes. Leave it off if there is none, and say so in `change` |
 | `ask` | One to three sentences: what the ticket asks for and why, in the reviewer's terms. Not the acceptance criteria list (a `text` block carries that), the point of the ticket |
 | `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly |
+| `extraPrs` | Optional. Refs of the other PRs in the same unit (`yalesites-org/atomic#545`). A question tagged with one of them joins this unit's group |
 | `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised |
 | `status` | Optional. The drive-it result in one line (`8 pass, 2 fail, 1 ask`), or why there was no run |
 | `test` | Optional. `label` and `url` of where to check it: the multidev, the Storybook deploy preview |
 | `related` | Optional. `ref`, `url`, `note` for each ticket or PR a question mentions that the reviewer would otherwise have to look up: a closed earlier attempt, a parent epic, a follow-up |
+| `notAsked` | Optional. One line per out-of-lane call (`SKILL.md` Step 3b): what it is, its dimension, who owns it. Shown on the lead-in, never asked |
 
 Take `ask` and `change` from the brief, rewritten for someone who has not read it. `ask`, `change`,
-and `status` take the same light markdown as a `text` block. A question with no matching unit
-shows no panel. A packet with one unit shows it on every question, and the own-read page shows
-every unit.
+and `status` take the same light markdown as a `text` block. Keep each to one or two sentences:
+the lead-in is read in seconds. `shortTitle` on the packet is the header title; leave it off and
+the board uses `title`.
 
 `marks` use percentages of the image (0 to 100), so they stay put at any width. A mark with `w`
 and `h` is a box, and one without is a pin. Look at the screenshot before placing marks, and put
@@ -229,11 +254,20 @@ than none, the same as a misplaced pin.
 ```
 
 `pr` on a question overrides the packet's `pr`. On a batch packet it tags each page with its PR
-and picks that PR's unit for the About panel. Set `pr` on every question, carry one unit per PR,
-and keep a unit's questions next to each other.
+and picks that PR's unit for the lead-in. Set `pr` on every question, carry one unit per PR,
+and keep a unit's questions next to each other: the board groups them in packet order.
 
 ### Writing the questions
 
+- **Context first, then one plain question.** `brief` is two to four short bullets, one fact
+  each: what was built, what was measured, what is already settled elsewhere. No PR ref and
+  ticket number preamble, since the lead-in and the tag carry those. `ask` is the decision
+  itself in one sentence a person can answer without rereading the bullets ("Keep the 12px
+  padding, or let the strip overlap a narrower gutter?"). The sticky panel shows `ask` beside
+  the options, so it is the thing the reviewer reads hardest. `question` stays as the full
+  write-up, folded under "Full write-up"; a question with no `brief` shows it in full instead.
+- **`title` is a short label, not the question,** for the stepper tooltip and the recap. Leave
+  the PR out of it.
 - **The brief's own words where they are already clear,** as Step 3b says. The board changes how
   the call is shown, not what is asked.
 - **Answerable from the page.** If the reviewer needs to open another tab to decide, put the
@@ -246,6 +280,12 @@ and keep a unit's questions next to each other.
   recommendation, and that is fine.
 - **`dimension`** is the Step 0 dimension the call belongs to (`product`, `design`, `a11y`,
   `functional`, `code`).
+- **Every option carries a `verdict`:** `approve` if the PR can merge with that answer, `changes`
+  if it means the developer has to change something before merge (Step 6's rule: even one small
+  edit), `comment` if it leaves the PR waiting on someone (decide later, ask April, hold for a
+  site owner). The last page combines them per PR: any `changes` wins, then any `comment`, else
+  approve. Without `verdict` the board guesses from the option's wording, which is a fallback,
+  not a plan.
 
 ## Step R2: Start the server and open the board
 
@@ -300,8 +340,8 @@ Take one `preview_screenshot` (or, outside the app, a quick `curl` of the packet
 the board loaded the packet, and not the "Couldn't load packet" header.
 
 Then tell the reviewer in chat, in one or two lines: the board is open, how many questions it
-holds, and that they can still answer in chat instead. List the out-of-lane calls in the same
-message, per Step 3b.
+holds, and that sending it posts the reviews. The out-of-lane calls are on each PR's lead-in,
+so there is no need to list them here.
 
 ## Step R3: Wait for the answers, then read them back
 
@@ -343,6 +383,9 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
       ]
     }
   ],
+  "verdicts": [
+    { "pr": "yalesites-org/yalesites-project#1598", "verdict": "approve", "inferred": true, "because": [] }
+  ],
   "ownRead": "Looks fine on my laptop."
 }
 ```
@@ -356,8 +399,12 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   Describe it the same way ("right after Escape, about 7 seconds in"). A screenshot or clip
   with markups is one worth suggesting they drag into the review comment, since `gh` cannot
   upload images or video. For a clip, suggest the MP4.
-- **Play the rulings back in chat before Step 4,** one line per question, so the decisions are in
-  the transcript and the reviewer can correct a misclick before anything is drafted.
+- **`verdicts`** holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
+  | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer changed
+  it on the last page. That is the Step 6 ruling for that PR. Do not ask for it again.
+- **Do not wait for a playback confirmation.** The board's last page already showed every ruling
+  and what sending would post, so go straight on to Step 4 and post. List the rulings in Step 10's
+  report instead, so the transcript still has them.
 
 If they press "Edit and resend" later, `answers.json` is overwritten. Re-arm the wait only when
 they say they changed something.

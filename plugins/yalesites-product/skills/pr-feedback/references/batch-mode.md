@@ -25,7 +25,7 @@ confirm before fanning anything out. Do not silently pick a subset.
 | 3, what to test | Becomes **one grouped testing sitting** across the whole batch (Step B3) |
 | 3b, held calls | One review board packet for the whole batch, or rounds of up to four questions on the chat fallback (Step B4) |
 | 4, actionable feedback | Per unit, in the main session, unchanged |
-| 6, approve vs. request changes | **Per unit, explicitly, never batched** |
+| 6, approve vs. request changes | **Per unit, explicitly, never batched.** The board's last page gives one ruling per unit |
 | 7 to 9b, post, mention, label, sync | Per unit, sequentially, in the main session, unchanged |
 
 **The one rule that cannot bend:** every unit of work gets its own explicit approve or
@@ -34,6 +34,11 @@ fine," and no inferring approval from an absence of findings. Batch mode exists 
 the reading and the testing, not the decision. A blanket approval posted under the user's
 account across six PRs is the worst outcome this skill can produce, and it is also the easiest
 one to drift into, so treat any prompt that sounds like one as a request to go unit by unit.
+
+The review board meets this rule on its own: its last page shows one ruling per unit, each
+worked out from the answers the reviewer gave on that unit's questions, and sending the board is
+the reviewer standing behind each one. Never ask for them again after a board. What the rule
+forbids is ruling on a unit the reviewer answered nothing about.
 
 ## Step B0: Resolve the reviewer once
 
@@ -302,10 +307,11 @@ that writes may 403 and that you will confirm each one, rather than six times.
 Walk the units one at a time. For each:
 
 1. Present the assembled feedback per `SKILL.md` Step 4, blocking separated from optional.
-2. **Ask for the ruling on this unit.** Approve, or request changes. One unit, one question, in
-   the user's own words back to them. Never roll several units into one ask. If the unit has
-   any before-merge edit and the user says approve, flag the mismatch and offer Step 6's two
-   options before posting. An approval never carries a to-do list.
+2. **Take the ruling on this unit.** After a board, it is the unit's entry in `verdicts`: post
+   it without asking. On the chat fallback, ask: approve, or request changes, one unit, one
+   question, in the user's own words back to them. Never roll several units into one ask. If the
+   unit has any before-merge edit and the ruling is approve, flag the mismatch and offer Step 6's
+   two options before posting. An approval never carries a to-do list.
 3. Post per Steps 6 through 9. Every PR in the unit gets the same outcome.
 4. Only then move to the next unit.
 

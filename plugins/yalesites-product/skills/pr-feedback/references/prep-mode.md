@@ -121,8 +121,8 @@ it for them.
 Driving applies to `yalesites-project` units, as in `SKILL.md` Step 3. Follow `drive-it.md`,
 with these changes:
 
-**The disposable multidev rule replaces the Step D1 ask.** A PR multidev is a disposable copy of
-the platform, so prep mode has standing consent to create the Step D1 kinds on it (test pages,
+**The disposable multidev rule is Step D1's standing consent, narrowed.** A PR multidev is a disposable copy of
+the platform, so prep mode creates the Step D1 kinds on it without asking (test pages,
 reusable blocks, media and files, `qa-<role>` users, and setting changes) without asking. The
 rule holds only when all of these are true:
 

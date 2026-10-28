@@ -73,7 +73,7 @@ and run the same steps in each.
 
 - Visreg multidevs carry `e2etest`, a `site_admin`. Use it.
 - There is usually no editor or contributor test user. Creating one is a write to the multidev,
-  so ask the user once per PR first (the same gate as creating test content). Name them
+  covered by the same standing consent as test content (`drive-it.md` Step D1). Name them
   `qa-<role>`. Which snippet applies depends on where you are:
 
   On the reviewed PR's own multidev, an existing `qa-<role>` was left by an earlier run on
