@@ -25,7 +25,7 @@ ORG = "yalesites-org"
 ISSUES_REPO = "YaleSites-Internal"
 PROJECT = 6
 # Pinned "Router brief" issue in YaleSites-Internal. None = print only.
-BRIEF_ISSUE = None
+BRIEF_ISSUE = 1987
 WATCH_REPOS = [
     "YaleSites-Internal", "yalesites-project", "atomic",
     "component-library-twig", "tokens", "yalesites-claude-plugins",

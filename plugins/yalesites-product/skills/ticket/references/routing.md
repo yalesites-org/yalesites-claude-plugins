@@ -106,4 +106,4 @@ The router never closes, relabels, or reassigns anything else, never touches a P
 
 ## Brief
 
-The router posts its brief as a comment on the pinned **Router brief** issue in YaleSites-Internal, every weekday morning. The issue number lives in the `router` skill.
+The router posts its brief as a comment on the pinned **Router brief** issue in YaleSites-Internal, every weekday morning. It is yalesites-org/YaleSites-Internal#1987.
