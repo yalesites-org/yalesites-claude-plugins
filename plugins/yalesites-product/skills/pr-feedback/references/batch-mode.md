@@ -314,9 +314,10 @@ Walk the units one at a time. For each:
    it without asking. Every unit has one, including a unit with no questions, which the reviewer
    ruled on directly on the last page. On the chat fallback, ask: approve, or request changes, one unit, one
    question, in the user's own words back to them. Never roll several units into one ask. If the
-   unit has any before-merge edit and the ruling is approve, flag the mismatch. After a board,
-   look for it in free-text answers, notes, `ownRead`, and `markups`, not only option choices, and offer Step 6's
-   two options before posting. An approval never carries a to-do list.
+   unit has any before-merge edit and the ruling is approve or comment, flag the mismatch. After a
+   board, look for it everywhere Step 6 lists: free-text answers, notes, `ownRead`, `markups`, and
+   `changes` option answers under an `inferred: false` ruling. Offer Step 6's two options before
+   posting. An approval never carries a to-do list.
 3. Post per Steps 6 through 9. Every PR in the unit gets the same outcome.
 4. Only then move to the next unit.
 

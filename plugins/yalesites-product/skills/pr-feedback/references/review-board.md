@@ -41,7 +41,7 @@ the held calls come from the brief, and the brief stays local.
 Test content needs no question at all: running the skill is consent (`drive-it.md` Step D1).
 
 **Skip the board, and ask in chat with `AskUserQuestion`, when:**
-- There are no in-lane held calls. Say the section is empty, then ask for their own read in chat.
+- There is nothing to ask: no in-lane held calls, no follow-up offers (Step 5), and no ticket drift. Say so, then ask for their own read in chat. Follow-up offers or ticket drift on their own still get a board, since each one is a question there.
 - `python3` is missing, or the session has no local browser (a cloud or remote session).
 - The reviewer has said they prefer chat questions. Respect that for the rest of the session.
 
@@ -284,8 +284,9 @@ and keep a unit's questions next to each other: the board groups them in packet 
   if it means the developer has to change something before merge (Step 6's rule: even one small
   edit), `comment` if it leaves the PR waiting on someone (decide later, ask April, hold for a
   site owner). The last page combines them per PR: any `changes` wins, then any `comment`, else
-  approve. Without `verdict` the board guesses from the option's wording, which is a fallback,
-  not a plan.
+  approve. An option without `verdict` is not guessed from its wording: unless another answer
+  for that PR is `changes`, the PR gets no inferred ruling and the reviewer has to pick one on
+  the last page before Send works. "Something else" counts as `comment`.
 
 ## Step R2: Start the server and open the board
 
@@ -400,8 +401,10 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   with markups is one worth suggesting they drag into the review comment, since `gh` cannot
   upload images or video. For a clip, suggest the MP4.
 - **`verdicts`** holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
-  | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer changed
-  it on the last page. That is the Step 6 ruling for that PR. Do not ask for it again. A unit in
+  | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer picked
+  it on the last page, either changing the inferred one or ruling where the board had none.
+  Changing any answer for a PR drops a ruling picked that way, so it always reflects the final
+  answers. That is the Step 6 ruling for that PR. Do not ask for it again. A unit in
   `units` with no questions gets an entry too, always with `inferred: false`, because the board
   makes the reviewer pick it rather than guessing.
 - **Do not wait for a playback confirmation.** The board's last page already showed every ruling

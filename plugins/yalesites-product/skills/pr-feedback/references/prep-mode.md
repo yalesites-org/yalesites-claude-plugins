@@ -123,7 +123,7 @@ with these changes:
 
 **The disposable multidev rule is Step D1's standing consent, narrowed.** A PR multidev is a disposable copy of
 the platform, so prep mode creates the Step D1 kinds on it without asking (test pages,
-reusable blocks, media and files, `qa-<role>` users, and setting changes) without asking. The
+reusable blocks, media and files, `qa-<role>` users, and setting changes). The
 rule holds only when all of these are true:
 
 - The environment is `yalesites-platform.pr-<N>`, the PR's own multidev. Never a visreg

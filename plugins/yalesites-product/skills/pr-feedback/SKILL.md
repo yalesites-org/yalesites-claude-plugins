@@ -521,11 +521,16 @@ Claude never saw the edits.
 | Anything the reviewer expects changed before merge, even one small edit | **Request changes** |
 
 When the user says "approve" but the composed body still carries a before-merge edit, stop and
-say so before posting. On a board review it can come from a free-text answer, a note, the
-reviewer's own read (`ownRead`), or a pin, box, or comment they left on the board (`markups`),
-any of which can ask for a change on a PR ruled `approve`, since the inferred ruling reads only
-option choices. Check all four against each PR's ruling; that mismatch is the only reason to ask
-after the board. Offer the two honest options: request changes with those items as the
+say so before posting. On a board review, check every PR ruled `approve` or `comment` (a comment
+is not a changes request either, so an edit in it is lost the same way). The edit can come from:
+
+- a free-text answer ("Something else" always rules `comment`, whatever it says) or a note;
+- the reviewer's own read (`ownRead`), or a pin, box, or comment on the board (`markups`), which
+  the inferred ruling never reads;
+- an option answer whose `verdict` is `changes`, on a PR whose entry has `inferred: false`, since
+  the reviewer's manual ruling replaced what that answer pointed to.
+
+That mismatch is the only reason to ask after the board. Offer the two honest options: request changes with those items as the
 blocking list, or downgrade them to genuinely optional (or to a follow-up ticket) and approve.
 Do not pick for them, and do not soften the wording to make an approval fit.
 

@@ -209,7 +209,7 @@ const params = new URLSearchParams(location.search);
 const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
 const storeKey = `review-board:${packetId}`;
-let packet, state, current = 0, submitted = false, zoom = null;
+let packet, state, current = 0, submitted = false, zoom = null, fromRecap = false;
 const clips = {};
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -250,10 +250,12 @@ function md(src, highlights = [], quotes = []) {
 
 function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
 function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+// test:begin isAnswered
 function isAnswered(i) {
   const a = state.answers[i];
   return a.choice && (a.choice !== '__other' || a.other.trim());
 }
+// test:end
 const totalSteps = () => packet.questions.length + 1;
 
 async function init() {
@@ -314,10 +316,12 @@ function buildGroups() {
 // A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
 // ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
 let rulingGroups = [];
+// test:begin quietGroups
 function quietGroups() {
   return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
     .map((u, k) => ({ key: u.pr.ref, unit: u, label: u.short || u.pr.title || '', ref: u.pr.ref, qs: [], quiet: true, color: PR_COLORS[(groups.length + k) % PR_COLORS.length] }));
 }
+// test:end
 const groupOf = qi => groups.find(g => g.qs.includes(qi));
 const answeredCount = () => packet.questions.filter((_, i) => isAnswered(i)).length;
 
@@ -392,6 +396,8 @@ function prUrl(ref) {
 let intro = null;
 function go(i, opts = {}) {
   const prev = current, g = i < packet.questions.length ? groupOf(i) : null;
+  // A question opened from the recap returns to the recap once it is answered.
+  fromRecap = !!opts.fromRecap;
   current = i; submitted = false; zoom = null;
   intro = !opts.skipIntro && g && g.qs[0] === i && (i === prev + 1 || opts.intro) ? g : null;
   render(); window.scrollTo(0, 0);
@@ -473,9 +479,10 @@ function renderQuestion(main, call, qi) {
   const err = h('div', { class: 'err', hidden: true }, 'Pick an option first, or describe something else.');
   const otherBox = h('textarea', { placeholder: 'Describe what you want instead', hidden: a.choice !== '__other' });
   otherBox.value = a.other;
-  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; save(); renderHeader(); });
+  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; clearOverride(qi); save(); renderHeader(); });
   const choices = [...(q.options || []), { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
   const pick = (o, btn) => {
+    if (a.choice !== o.value) clearOverride(qi);
     a.choice = o.value; err.hidden = true; save();
     opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
     otherBox.hidden = o.value !== '__other';
@@ -483,7 +490,9 @@ function renderQuestion(main, call, qi) {
     renderHeader();
     // Picking a listed option moves on by itself, after a beat so the choice is visible.
     // "Something else" stays, since it needs typing.
-    if (o.value !== '__other') setTimeout(() => { if (current === qi && !zoom) go(qi + 1); }, 350);
+    // Opened from the recap, it goes back to the recap instead.
+    const back = fromRecap;
+    if (o.value !== '__other') setTimeout(() => { if (current === qi && !zoom) go(back ? packet.questions.length : qi + 1); }, 350);
   };
   choices.forEach((o, k) => {
     const btn = h('button', {
@@ -505,10 +514,10 @@ function renderQuestion(main, call, qi) {
 
   const next = () => {
     if (!isAnswered(qi)) { err.hidden = false; return; }
-    go(qi + 1);
+    go(fromRecap ? packet.questions.length : qi + 1);
   };
   keyNext = next;
-  const nextLabel = qi === packet.questions.length - 1 ? 'Last: your own read →'
+  const nextLabel = fromRecap ? 'Back to your rulings →' : qi === packet.questions.length - 1 ? 'Last: your own read →'
     : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next PR: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
   call.append(h('div', { class: 'pager' },
     h('button', { class: 'btn', onclick: () => back(qi) }, '← Back'),
@@ -765,6 +774,7 @@ function renderOwnRead(main, call) {
         onclick: () => { (state.verdicts ||= {})[g.key] = k === v.inferred ? undefined : k; save(); rerenderCurrent(); }
       }, label)));
     const why = g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
+      : !v.verdict && !v.open ? `Pick a ruling. Your answer${v.unread.length > 1 ? 's' : ''} on question ${v.unread.join(', ')} do${v.unread.length > 1 ? '' : 'es'} not say what ${v.unread.length > 1 ? 'they mean' : 'it means'} for the PR.`
       : g.quiet ? 'Your ruling. Nothing was held for you on this PR.'
       : v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
       : v.overridden ? `You changed this. Your answers pointed to ${VERDICTS[v.inferred]}.`
@@ -778,7 +788,7 @@ function renderOwnRead(main, call) {
       !g.quiet && h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
         const q = packet.questions[i], a = state.answers[i];
         const label = a.choice === '__other' ? a.other.trim() : (q.options || []).find(o => o.value === a.choice)?.label;
-        return h('li', {}, h('button', { class: 'n t', type: 'button', onclick: () => go(i), title: 'Change' }, String(i + 1)),
+        return h('li', {}, h('button', { class: 'n t', type: 'button', onclick: () => go(i, { fromRecap: true }), title: 'Change' }, String(i + 1)),
           h('span', {}, q.ask || q.title, h('br'), label ? h('strong', {}, label) : h('span', { class: 'err' }, 'Not answered')), h('span'));
       }))));
   }
@@ -826,35 +836,44 @@ function buildAnswers() {
   };
 }
 
-// Approve / Request changes / Comment per PR, inferred from the answers. An option can say
-// what it means with `verdict`; without one, its label is read. Any "change it" answer wins,
-// then any "hold / ask someone" answer, else approve. The reviewer can override on the page.
+// Approve / Request changes / Comment per PR, inferred from the answers. An option says what it
+// means with `verdict`. Any "changes" answer wins, then "comment", else approve. An option with no
+// `verdict` (an older packet) is not guessed from its label: unless another answer already asks
+// for changes, the PR gets no inferred ruling and the reviewer picks one on the last page.
+// "Something else" counts as comment; Step 6 still reads its text for a before-merge edit.
+// test:begin verdicts
 const VERDICTS = { approve: 'Approve', changes: 'Request changes', comment: 'Comment, no ruling yet' };
 // What Send does for each ruling. Finishing the board finishes the review: nothing is asked again in chat.
 const ON_SEND = { approve: 'Posts an approval and labels it ready to merge.', changes: 'Posts a changes request to the developer and swaps needs review for needs work.', comment: 'Posts your open decision as a comment. Labels stay as they are.' };
 function optionVerdict(q, a) {
-  if (a.choice === '__other') return 'comment';
+  if (a.choice === '__other') return a.other.trim() ? 'comment' : null;
   const o = (q.options || []).find(x => x.value === a.choice);
   if (!o) return null;
-  if (o.verdict) return o.verdict;
-  const t = `${o.value} ${o.label}`;
-  if (/fix it|in this pr|change it here|must |darker|adjust|edit (some|the)|block on|add them|should be searched|ask for a|only fix|should count|hold until/i.test(t)) return 'changes';
-  if (/defer|decide later|keep holding|hold for|ask april|leave it for|talk it through|check with|weighs in|test it live|we run it/i.test(t)) return 'comment';
-  return 'approve';
+  return VERDICTS[o.verdict] ? o.verdict : 'unknown';
 }
 function verdictFor(g) {
   const rank = { changes: 3, comment: 2, approve: 1 };
   let best = null, because = [];
+  const unread = [];
   for (const i of g.qs) {
     const v = optionVerdict(packet.questions[i], state.answers[i]);
     if (!v) continue;
+    if (v === 'unknown') { unread.push(i + 1); continue; }
     if (!best || rank[v] > rank[best]) { best = v; because = []; }
     if (v === best && v !== 'approve') because.push(i);
   }
+  if (unread.length && best !== 'changes') best = null;
   const open = g.qs.filter(i => !isAnswered(i)).length;
   const over = state.verdicts?.[g.key];
-  return { verdict: over || best, inferred: best, overridden: !!over && over !== best, because: because.map(i => i + 1), open };
+  return { verdict: over || best, inferred: best, overridden: !!over && over !== best, because: because.map(i => i + 1), unread, open };
 }
+// A manual ruling was made against the answers as they stood. Changing any answer for that PR
+// drops it, so the ruling goes back to what the answers say.
+function clearOverride(qi) {
+  const g = groupOf(qi);
+  if (g && state.verdicts?.[g.key] !== undefined) delete state.verdicts[g.key];
+}
+// test:end
 
 function renderDone(main) {
   main.append(h('div', { class: 'done-card' },
