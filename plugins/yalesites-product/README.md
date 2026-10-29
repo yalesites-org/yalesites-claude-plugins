@@ -74,7 +74,7 @@ knowledge that the workflow skills reference:
 
 | Skill | Trigger |
 |---|---|
-| `release-prep` | Preparing a YaleSites release, and reconciling the board after it ships |
+| `release-prep` | Preparing a YaleSites release, finishing and publishing the docs drafts staged for it, and reconciling the board after it ships |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |

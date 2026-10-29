@@ -487,8 +487,11 @@ class SplitAndStatusTest(unittest.TestCase):
             self.assertEqual((entry["state"], entry["packet"], entry["result"]), ("built", "p1", {"nid": 5}))
             with self.assertRaises(SystemExit):
                 packet.set_status("1818", "built", path=path)
+            packet.set_status("yalesites-org/YaleSites-Internal#1818", "published", note="live", path=path)
+            entry = json.load(open(path))["tickets"]["yalesites-org/YaleSites-Internal#1818"]
+            self.assertEqual((entry["state"], entry["note"], entry["result"]), ("published", "live", {"nid": 5}))
             with self.assertRaises(SystemExit):
-                packet.set_status("yalesites-org/YaleSites-Internal#1818", "published", path=path)
+                packet.set_status("yalesites-org/YaleSites-Internal#1818", "shipped", path=path)
 
     def test_status_refuses_to_replace_a_corrupt_file(self):
         with tempfile.TemporaryDirectory() as d:
@@ -540,6 +543,9 @@ class SplitAndStatusTest(unittest.TestCase):
             self.assertEqual(item["revision"], 2)
             # The status entry remembers which item it acted on.
             self.assertEqual(read_json(path)["tickets"][ref]["item"], "1")
+            # published keeps the lock, so a shipped ticket never goes back on a board.
+            packet.set_status(ref, "published", note="live", **kw)
+            self.assertIs(read_json(os.path.join(folder, "packet.json"))["items"][0]["locked"], True)
             # No packet known: the status is still recorded, with a note.
             err = io.StringIO()
             with contextlib.redirect_stderr(err):

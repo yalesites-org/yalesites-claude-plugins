@@ -1,6 +1,6 @@
 ---
 name: yalesites-release-prep
-description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, syncing the YaleSites knowledge base with any platform changes introduced in the release, and reconciling the YaleSites Board after the release ships — verifying what actually made it into master, closing confirmed-shipped tickets that sit open in 'Done', and catching tickets left stuck in In progress or In review. Use when it's time to plan or prepare for a release, and again after a release goes out to clean up the board."
+description: "End-to-end release prep workflow for YaleSites. Covers: drafting GitHub release notes, writing supplementary documentation for the featured new feature, drafting the release email communication, updating the Current Issues & Fixes page on yalesites.yale.edu, adding Release Testing Steps to GitHub issues for QA, syncing the YaleSites knowledge base with any platform changes introduced in the release, reconciling the YaleSites Board after the release ships — verifying what actually made it into master, closing confirmed-shipped tickets that sit open in 'Done', and catching tickets left stuck in In progress or In review — and finishing the docs drafts that yalesites-docs-board and yalesites-page-build staged on yalesites.yale.edu: retaking their placeholder screenshots on the RC multidev, re-checking their copy against what actually landed, adding the pieces that only exist once the release is live, and publishing them. Use when it's time to plan or prepare for a release, when the RC multidev is up and the staged docs need their final screenshots, on release day to publish the staged docs, and again after a release goes out to clean up the board."
 ---
 
 # YaleSites Release Prep Skill
@@ -14,9 +14,9 @@ This skill runs the full release workflow. Each phase produces a distinct delive
 | When | Phases |
 |---|---|
 | At the first RC cut | 1 (first draft), then 5 immediately |
-| During the QA period | 2, 3, 4, 6. Phase 2 includes taking the doc screenshots on the RC multidev once it is up |
-| Right before the release goes out | 1 again (refresh), then publish 2, 3, 4 |
-| After the release ships | 7 |
+| During the QA period | 2, 3, 4, 6, and 8 (verify and screenshots). Phase 2 includes taking the doc screenshots on the RC multidev once it is up |
+| Right before the release goes out | 1 again (refresh), then hand 2, 3, 4 to the team to post and send. Staged docs drafts on yalesites.yale.edu wait for Phase 8 |
+| After the release ships | 8 (publish), then 7 |
 
 Phase 5 in particular is **not** a late-stage phase. Testers need their steps the moment the RC is cut, so it runs right after the first pass of Phase 1. Running it in numeric order means the steps land after QA has already started.
 
@@ -29,6 +29,7 @@ Phase 5 in particular is **not** a late-stage phase. Testers need their steps th
 | 5. QA Testing Steps | Release Testing Steps added to GitHub issues |
 | 6. Knowledge Base Sync | Updated yalesites skill reference files reflecting platform changes |
 | 7. Post-Release Reconciliation | Board cleaned up after the release ships: shipped tickets closed, the rest carried over, milestone closed |
+| 8. Staged Docs Finalization and Publish | Every docs draft staged for this release re-verified against the RC, its screenshots taken, its release-only pieces added, and published once the release is live |
 
 ---
 
@@ -631,7 +632,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
 | **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open in `Done`. Merged work stays `Done` while its branch makes its way to `master`; do not move it back to `In review`. It closes in the run for the release that ships it |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
-| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess |
+| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (nothing in docs-board, page-build, or Phase 8 moves a docs ticket to `Done`, so most land in C and get the status write before closing) |
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
@@ -812,6 +813,113 @@ Expect the whole run to take well over an hour of wall clock, most of it waiting
 
 ---
 
+## Phase 8: Staged Docs Finalization and Publish (Runs Through the RC Period, Publishes After the Release Ships)
+
+`yalesites-docs-board` and `yalesites-page-build` leave docs for a release sitting on yalesites.yale.edu as unpublished drafts: new nodes nobody outside the team can see, and forward drafts on pages that are still showing the old revision. They are built from merged code and PR multidevs weeks before the release, so each one carries loose ends on purpose: screenshot markers never taken or taken as placeholders, copy written against a branch that kept moving, and pieces that cannot exist on production until the release is live (a block, a design option, a setting value). This phase closes those loose ends and is the one place that clicks Publish.
+
+**Two halves, two moments.** Steps 1 to 4 run during the QA period, as soon as the RC multidev is up, and can repeat whenever a new RC is cut. Step 5 runs after the release PR has merged to `master` and production reports the new version, and never before. Phase 7 follows it, because a published docs ticket is what Phase 7 closes.
+
+**Hard rules.**
+
+- Nothing is published until Step 5's gate passes and the user approves the batch in chat. The gate is production's own version, read from the Gin toolbar, not the release PR's merge state.
+- Everything before Step 5 edits our own staged drafts only, with `yalesites-page-build`'s rules in full (its Step 3 row for editing our own draft in place, the exact-replace recipe, Save as Draft, the verify pass). Never the live revision, never a reusable block.
+- Screenshots are taken here and handed over for placement. `yalesites-page-build` has no media upload step, and improvising one on production is not an option (Phase 2, Screenshots). If the team wants that automated, it is a page-build change to decide first, not something this phase does.
+- Status changes go through `packet.py status`, so the work dashboard and Phase 7 can read them.
+
+### Step 1: Inventory the staged drafts
+
+The source is `yalesites-docs-board`'s status file, `~/.claude/yalesites/docs-board/status.json`, keyed by ticket ref. Take every entry in state `built` and keep the ones whose ticket sits on this release's milestone. A ticket that touches two pages has one entry per page, keyed with a suffix (`#1818-a`, `#1818-b`): the milestone lookup uses the bare issue number, and everything after it (the table, the Step 5 status write) keeps the full suffixed ref:
+
+```bash
+python3 - <<'EOF'
+import json, os, subprocess
+d = json.load(open(os.path.expanduser('~/.claude/yalesites/docs-board/status.json')))['tickets']
+for ref, e in sorted(d.items()):
+    if e.get('state') != 'built': continue
+    repo, n = ref.split('#')
+    n = n.split('-')[0]  # a ticket that touches two pages is keyed #1818-a, #1818-b
+    ms = subprocess.run(['gh','issue','view',n,'-R',repo,'--json','milestone,state','--jq',r'"\(.milestone.title // "none") \(.state)"'], capture_output=True, text=True).stdout.strip()
+    print(f"{ref}\t{ms}\t{e.get('packet')}\t{e.get('target')}\t{e.get('result')}\t{e.get('note','')}")
+EOF
+```
+
+For each one, read the packet it came from (`~/.claude/yalesites/docs-board/packets/<packet>/<id>/`): `draft.md` (its "Notes for the editor" and "Built" sections), and the item's `notes` in `packet.json`. Build one table per ticket with:
+
+| Column | Where it comes from |
+|---|---|
+| Node(s) and draft URL | `result.nid`, `result.url`. A list means one ticket touched several pages |
+| Screenshots owed | Every `*[SCREENSHOT: ...]*` and `*[SCREENSHOT (placeholder, PR multidev): ...]*` marker still in `draft.md`, plus `notes` entries starting `Placeholder screenshot:` or `Screenshot owed:` |
+| Copy to re-verify | The implementing PR(s) named in the ticket and draft, and every form label, option name, or path the copy quotes |
+| Release-only pieces | Anything the notes defer to release day: "render at 1px until release day", "convert to Wrapped Image when the screenshots exist", a hub card on an index page, a cross-link from another page, a redirect or an unpublish of a replaced page |
+| Shared nodes | Several tickets staged on one node (the sections page regularly holds three). Publish once, record it on every ticket |
+
+A ticket in `built` whose milestone is a later release stays out of this run. Say so in the report rather than silently skipping it.
+
+### Step 2: Re-verify the copy against the RC
+
+The drafts were written from code that was merged at the time. Between then and the RC, a label can be renamed, an option added, a default flipped, or a PR pulled from the release. Phase 1's second pass is the list of what is actually in the release; use it, not the ticket's assumptions.
+
+For each ticket:
+
+1. Confirm the implementing PR(s) are in the release branch. For a `yalesites-project` PR, `git merge-base --is-ancestor <mergeCommit> origin/<release-branch>`, with the three exit codes read the way Phase 7 Step 4 reads them. Many docs tickets (a new block, a block option) are implemented only in `component-library-twig` or `atomic`, whose merge commits never appear in a `yalesites-project` clone, so ancestry returns `128` and the `yalesites-project` compare API cannot resolve them either. For those, walk Phase 7 Step 4's version-pin chain instead, reading hop 1 from `origin/<release-branch>` rather than `origin/master`, and compare the merge commit against the atomic or CLT tag that chain lands on. A PR that did not make the release means the draft documents something the release does not ship: hold that ticket, say so, and do not publish it in Step 5.
+2. Re-check every quoted label and option against the release branch, the same way `yalesites-web-content` Step 2 did the first time (`git show origin/<release-branch>:<path>` for the form class, template, or config). Open the staged draft logged in (`/node/<nid>/latest` for a forward draft, `/node/<nid>` for a new node) and read the rendered text, so what you compare is what is actually staged, not `draft.md`'s memory of it.
+3. Open the RC multidev (named after the release branch on the `yalesites-yale-edu` Pantheon site, listed in the release PR's "Environments ready for review" comment, see `yalesites-web-content`, Step 4, Screenshots) and walk the control the copy describes. A sentence that says where a setting lives, or what a choice is called, gets checked by looking, not by reading code.
+4. Fix drift in the staged draft with `yalesites-page-build`'s exact-replace recipe, logged in to yalesites.yale.edu, and Save as Draft. Run the new sentences through `python3 ../ticket/scripts/check-github-text.py <draft.md> --surface page-draft` first, and update `draft.md` so it keeps matching the node. A change bigger than a sentence or two is a `yalesites-docs-board` round, not a quiet fix: put it back on a board.
+
+Record what changed per ticket. "Verified, no drift" is a result too, and the report needs it.
+
+### Step 3: Take the screenshots
+
+Every marker from Step 1 gets taken on the RC multidev now, following the rules in `yalesites-web-content`, Step 4, Screenshots: block forms through `/node/<nid>/layout`, **Add block**, and the off-canvas modal on a page you created there; the control the text calls out circled and arrowed with the `run-code` snippet; rendered output at 1280 wide; a shot only where the words cannot carry it. A placeholder taken earlier on a PR multidev is retaken, not reused, because the PR multidev wears the visual regression banner and the RC does not. Phase 2's Screenshots step covers the same ground for the featured feature's doc: a shot it already took on this RC is not taken again, it goes in the manifest below.
+
+Save them in a run folder, `~/.claude/yalesites/release-prep/<release>/screenshots/<ticket>-<n>.png`, with a `manifest.md` beside them: one row per shot with the file, the ticket, the page and node, the marker text it replaces, and the alt text from the marker. That manifest is the hand-off. The user places the images in the staged drafts (page-build's Step 3 covers editing our own staged draft in place), and the markers come out of the copy at the same time. Carry Phase 2's reminder into the manifest: set the moderation state to **Draft** before **Save layout**, since on a published node the Layout Builder save can default to Published and would put the unreleased doc live.
+
+A shot that cannot be taken yet (the RC lacks the feature, or it depends on a release-only piece from Step 4) stays on the list as owed, with the reason.
+
+### Step 4: Add the release-only pieces
+
+Some of what a draft needs does not exist on production until the release is live, and some of it only makes sense once the page is public. Split the Step 1 list in two:
+
+| Do before publish, on the staged draft (RC period) | Do at publish time (Step 5) |
+|---|---|
+| Convert a Text block to the block the draft wanted once its image exists (Wrapped Image, Spotlight) | Set a value that production rejects until the release lands (a divider thickness, a design option the picker does not offer yet). Check it on the RC first so the step is one known edit |
+| Any copy fix from Step 2 | A card for a new page on its index or hub page (Building with Blocks for a block page, the User Guide hub for a guide page): a forward draft on that page, published with the rest |
+| | A cross-link from a related page, staged the same way |
+| | Publish, redirect, and unpublish the old node when a draft replaces a page at a new URL (page-build Step 3, last row) |
+
+Build the right-hand column as forward drafts during the RC period wherever production already allows it, so Step 5 is publishing and not building. Anything that truly needs the release on production is done in Step 5 on the staged draft, saved as Draft, verified, and then published with the batch.
+
+### Step 5: Gate, approve, publish
+
+**The gate.** Open yalesites.yale.edu logged in and read the Gin toolbar's "Live Site - <version>" bar. It must show the release's `yalesites_profile` version (the `chore: bump yalesites_profile to X` commit on the release PR). The release PR merged to `master` is not enough: Pantheon deploys after the merge, and a draft published into the old code shows a page that describes controls visitors cannot find. If the bar shows the old version, stop and wait.
+
+**The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat. Nothing publishes without it, and a held ticket stays unpublished even if the rest are approved. Mark any held ticket that shares a node with approved ones, and say whether its sections come out first or the whole node waits (sub-step 4 below).
+
+**The publish.** In one logged-in browser (the `pw` wrapper from `yalesites-page-build`, Step 2, with the user doing CAS), per node:
+
+1. Do the publish-time pieces from Step 4 on the staged draft, Save as Draft, and verify them on `/node/<nid>/latest` (or `/node/<nid>` for a new node).
+2. Open the **Tasks** sidebar. It must read `Status: Draft` and offer **Publish**. Check **Use custom log message** and write `PUBLISH for <release>: <what> (<owner/repo#N>)`, then select **Publish**. The moderation control at the top of a draft page (**Change to: Published**, **Apply**) does the same thing without a log message, so prefer the sidebar.
+3. Confirm: `/node/<nid>/revisions` shows the published revision as **Current revision**, the alias returns `200` logged out (`curl -s -o /dev/null -w "%{http_code}"`), and a phrase from the new copy appears in the logged-out fetch. For a forward draft, a phrase from the old copy that the draft removed must be gone.
+4. A node shared by several tickets is published once; every ticket on it gets the status write. Publishing a node puts every ticket staged on it live, so a held ticket on a shared node needs handling first. If its sections stand apart from the others (its own blocks, its own heading), remove them from the staged draft in sub-step 1 with `yalesites-page-build`'s recipes, Save as Draft, and confirm on `/node/<nid>/latest` that none of its copy remains before publishing. Keep the removed copy in its `draft.md` so it can be restaged for the release it moves to, and leave that ticket in `built` with a note saying so. If its copy is woven into the other tickets' sections and cannot come out cleanly, hold the whole node, and list every ticket on it as held in the batch approval.
+5. Publish the index-card, cross-link, and redirect drafts from Step 4 in the same pass, after the pages they point at.
+
+Then record it, per ticket, using the full status-file ref (suffix included, so `#1818-a` and `#1818-b` each get their own `published`):
+
+```bash
+python3 <docs-board>/scripts/packet.py status <owner/repo#N> published --note "<what was published, what is still owed>"
+```
+
+Pace the publishes one at a time with the verify between them. A failure stops the batch: report what is published, what is not, and the error, and leave the rest in `built`.
+
+### Step 6: Report back
+
+- Per ticket: node(s), published URL, what Step 2 changed, screenshots placed and still owed, Step 4 pieces done and left
+- Tickets held and why (PR pulled from the release, copy drift too big for a quiet fix, a shot that could not be taken)
+- Anything found on a page that was out of scope (a stale neighbor section, a pre-existing Editoria11y alert), offered as follow-ups, not fixed in passing
+- Hand Phase 7 the list of published tickets with each one's board status, so bucket D does not ask about them and the ones not in `Done` go through bucket C's status write
+
+---
+
 ## File Naming Conventions
 
 | Deliverable | Filename |
@@ -827,9 +935,10 @@ All draft files saved to the workspace folder.
 
 ## Notes
 
-- Order by event, not by number: Phase 1 then Phase 5 at the RC cut; Phases 2, 3, 4 and 6 through the QA period; Phase 1 again right before the release; Phase 7 after it ships
+- Order by event, not by number: Phase 1 then Phase 5 at the RC cut; Phases 2, 3, 4 and 6 through the QA period; Phase 1 again right before the release; Phase 8 straddles both (verify and screenshots through the QA period, publish after the release ships); Phase 7 last
 - Phase 1 runs twice. The pre-release refresh is what catches fixes made during QA
 - Phase 7 runs after the release is out, not with the rest — it needs the RC merged to `master` before it can verify anything
+- Phase 8 straddles both events: its verify and screenshot steps run through the RC period, and its publish step waits for production to show the new version. It is the only phase where the agent publishes on yalesites.yale.edu (Phases 2 and 4 hand over drafts the team posts), and it never publishes without the user approving the batch
 - If a release has no major new feature (e.g., a hotfix release), skip Phase 2
 - The Current Issues & Fixes update (Phase 4) is not always needed every release — confirm before starting
 - For collaboration releases, the partner name should appear in the release notes title, intro, and featured feature section — but doesn't need to be repeated in the email subject or docs page
