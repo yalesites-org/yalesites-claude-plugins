@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.17.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.16.0...yalesites-product-v0.17.0) (2026-10-29)
+
+
+### Features
+
+* **onboard:** add a setup skill so non-technical teammates can run /ticket ([421ebec](https://github.com/yalesites-org/yalesites-claude-plugins/commit/421ebec911fc682c6be35b6bc3029a8505ba6db1))
+* **onboard:** continue on a Mac with no admin and no command line tools ([c58a11a](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c58a11a940f87b1b8d82e03ad681681d64672eee))
+
 ## [0.16.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.15.0...yalesites-product-v0.16.0) (2026-10-29)
 
 

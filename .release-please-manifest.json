@@ -1,6 +1,6 @@
 {
   "plugins/yalesites": "0.3.0",
   "plugins/yalesites-dev": "0.8.0",
-  "plugins/yalesites-product": "0.16.0",
+  "plugins/yalesites-product": "0.17.0",
   "plugins/yalesites-security": "0.3.0"
 }
