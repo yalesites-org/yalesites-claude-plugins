@@ -75,9 +75,9 @@ Valid options, exactly as configured on the YaleSites Board, in board order. **M
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
+| `Done` | Merged to `develop`, or a hotfix merged to `master`. For a docs ticket, its draft is approved and staged on yalesites.yale.edu. Stays open until the release ships |
 
-`Done` does not mean closed. A ticket moves to `Done` when its work merges, and stays open until `release-prep` Phase 7 confirms the release shipped and closes it. Milestones, not a board status, say which release the work ships in.
+`Done` does not mean closed. A ticket moves to `Done` when its work merges (for a docs ticket, when its approved draft is staged), and stays open until `release-prep` Phase 7 confirms the release shipped and closes it. Milestones, not a board status, say which release the work ships in.
 
 If not specified, ask: *"What status should this ticket be set to on the project board?"* Six valid values against a 4-option cap, so offer the four that actually fit the ticket's shape, usually `Backlog`, `To Do`, and whichever in-flight state applies. **Other** covers the rest.
 

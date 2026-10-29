@@ -632,7 +632,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
 | **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open. If the PR only reached an epic or feature branch, `Done` is premature: propose moving it back to `In review` |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
-| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (nothing in docs-board, page-build, or Phase 8 moves a docs ticket to `Done`, so most land in C and get the status write before closing) |
+| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (`yalesites-docs-board` moves a docs ticket to `Done` once its approved draft is staged, so most land in A. Tickets staged before that rule, or built by hand, land in C and get the status write before closing) |
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
@@ -855,6 +855,8 @@ For each one, read the packet it came from (`~/.claude/yalesites/docs-board/pack
 
 A ticket in `built` whose milestone is a later release stays out of this run. Say so in the report rather than silently skipping it.
 
+**One publish ticket per release.** The docs tickets themselves sit in `Done` once staged, so the board needs one item that says the release's docs are not live yet. After the table, search the release milestone for an open issue titled `Docs: Publish staged docs for <milestone>`. If none exists, create it through the `ticket` skill: Communications type, the release milestone, To Do, assigned to the docs owner (`miketullo95` today). The body is a TL;DR line, then one checklist row per ticket in the table, `- [ ] <owner/repo#N>: <page title> (node <nid>)`, with a shared node listed once under every ticket on it. If it already exists, rewrite the checklist from this run's table. Step 1 reruns on every new RC, so a ticket held or pulled from the release drops off the list instead of lingering on it.
+
 ### Step 2: Re-verify the copy against the RC
 
 The drafts were written from code that was merged at the time. Between then and the RC, a label can be renamed, an option added, a default flipped, or a PR pulled from the release. Phase 1's second pass is the list of what is actually in the release; use it, not the ticket's assumptions.
@@ -909,6 +911,8 @@ Then record it, per ticket, using the full status-file ref (suffix included, so 
 python3 <docs-board>/scripts/packet.py status <owner/repo#N> published --note "<what was published, what is still owed>"
 ```
 
+Tick that ticket's row in the publish ticket as it goes, so the board shows progress if the batch stops partway.
+
 Pace the publishes one at a time with the verify between them. A failure stops the batch: report what is published, what is not, and the error, and leave the rest in `built`.
 
 ### Step 6: Report back
@@ -916,6 +920,7 @@ Pace the publishes one at a time with the verify between them. A failure stops t
 - Per ticket: node(s), published URL, what Step 2 changed, screenshots placed and still owed, Step 4 pieces done and left
 - Tickets held and why (PR pulled from the release, copy drift too big for a quiet fix, a shot that could not be taken)
 - Anything found on a page that was out of scope (a stale neighbor section, a pre-existing Editoria11y alert), offered as follow-ups, not fixed in passing
+- Close the publish ticket once every row is ticked or listed as held, with a comment naming each held ticket and the release it moves to. Leave it open, with the unticked rows, if the batch stopped partway
 - Hand Phase 7 the list of published tickets with each one's board status, so bucket D does not ask about them and the ones not in `Done` go through bucket C's status write
 
 ---
