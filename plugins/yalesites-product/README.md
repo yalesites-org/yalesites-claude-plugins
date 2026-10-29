@@ -42,6 +42,12 @@ team with:
   screenshot beside the proposed blocks, with every addition, edit, and removal
   highlighted). Approved site pages are built as unpublished drafts, and
   approved internal docs are committed on a branch
+- **RC domino hunt**: hunting a release candidate for the edge cases and
+  domino effects PR testing missed (cross-PR collisions, shared component and
+  contrib changes, new validation on old content, neighboring setting
+  combinations), read-only on the RC multidevs cloned from real sites, ending
+  in a short morning report. Runs attended, scoped to a few PRs or a hotfix,
+  or unattended as the Tuesday-night drain routine
 - **UX research** — the six current user archetypes, top pain points, delights,
   and platform usage data from the 2026 YaleSites UX Report for informing
   product decisions
