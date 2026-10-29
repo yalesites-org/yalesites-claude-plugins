@@ -505,7 +505,7 @@ Offer a follow-up ticket. If they want it, **invoke the `ticket` skill** to crea
   README or docs folder).
 
 **Every follow-up ticket goes through the `ticket` skill, never a hand-written `gh issue create`.**
-Copying its body format is not enough. The skill is what sets Status, Priority, Size, and Issue
+Copying its body format is not enough. The skill is what sets Status, Priority, Risk, and Issue
 Type on the board and reads them back. A ticket written by hand lands with the right labels and
 an empty board, which is how `YaleSites-Internal#1870` shipped without Priority or Size on
 2026-10-05.
