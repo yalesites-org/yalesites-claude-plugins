@@ -272,7 +272,7 @@ Once the issue exists and Status/Priority/Risk are confirmed, write them to the 
 4. If the script fails for any reason (auth, scope, a renamed option, a rate limit), don't loop on it. Go to "No `gh`" below, or wait a few minutes if the error says the rate limit was hit.
 5. **Read it back.** After every field, milestone, assignee, and Issue Type write, confirm them in one query (the read-back query is in `references/board-status.md`, step 3 of "Writing a field"). A command that returned no error is not proof. Fix anything missing before reporting the ticket as done, and name which field it was.
 
-**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Risk: Low`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
+**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Risk: Low`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix. `/yalesites-product:onboard` walks them through it.
 
 ### Writing the milestone, assignee, and `claude` label
 

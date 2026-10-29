@@ -163,7 +163,7 @@ When `gh` is missing, unauthenticated, or lacks the `project` scope:
 
 1. Create or update the issue itself through whatever path works (the GitHub connector can create issues, set the milestone, assignees, and labels).
 2. Tell the user, in one short block, the exact values to set on the YaleSites Board, with the issue link. For example: `Status: Backlog, Priority: Medium, Risk: Low`.
-3. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` as the durable fix, once.
+3. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` as the durable fix, once. `/yalesites-product:onboard` walks them through it.
 4. Do not report the ticket as complete until the user confirms the fields are set, or says they will do it.
 
 ### Why there is no label fallback

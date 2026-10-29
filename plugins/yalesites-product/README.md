@@ -7,6 +7,11 @@ Product team workflows for the YaleSites platform for Claude Code.
 Gives Claude the context and workflows needed to assist the YaleSites product
 team with:
 
+- **Onboarding** — a guided, plain-language setup for non-technical teammates
+  on a Mac or Windows: Claude checks the computer, installs a package manager
+  (no admin rights needed), `gh`, `jq`, `node`, and browsers for screenshots,
+  walks through the GitHub login and org access, and confirms the ticket
+  workflow is ready to run
 - **Release prep** — drafting release notes, feature documentation, release
   emails, QA testing steps, and knowledge base sync
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
@@ -62,6 +67,30 @@ team with:
   migration-path assessment: content type and component mapping, what will not
   carry over cleanly, an effort rating, and mechanism options
 
+## New to this? Start here
+
+If you have never used a terminal, start with these. In Claude Code, type each
+line and press Return:
+
+```
+/plugin marketplace add yalesites-org/yalesites-claude-plugins
+/plugin install yalesites-product@yalesites-claude-plugins
+```
+
+Then run:
+
+```
+/yalesites-product:onboard
+```
+
+This setup covers creating and grooming tickets with Claude, plus browser screenshots for them. It does not set up a developer machine (Lando, Docker, Drupal).
+
+Claude checks your Mac or Windows computer, installs what is missing, and tells you the few steps
+only you can do (a browser login, accepting an org invite). It is safe to run
+again any time. For a longer, step-by-step guide of what to expect, read
+[skills/onboard/README.md](skills/onboard/README.md). The two commands above come first because `onboard` does not
+exist until the plugin is installed.
+
 ## Installation
 
 ```
@@ -81,6 +110,7 @@ knowledge that the workflow skills reference:
 | Skill | Trigger |
 |---|---|
 | `release-prep` | Preparing a YaleSites release, finishing and publishing the docs drafts staged for it, and reconciling the board after it ships |
+| `onboard` | Setting up a Mac or Windows computer so the ticket skill works: Homebrew or Scoop, `gh`, GitHub login, org access, and plugins (invoke directly with `/yalesites-product:onboard`) |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |
