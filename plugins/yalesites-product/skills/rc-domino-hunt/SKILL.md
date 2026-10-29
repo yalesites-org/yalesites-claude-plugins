@@ -105,7 +105,7 @@ Never create the ticket without the user's yes.
 The Tuesday routine calls `/rc-domino-hunt --drain` the night before the weekly usage reset. The point is to spend the rest of the week's usage on useful work, so:
 
 - **Do not stop because the ranked list ran out.** Generators always have more.
-- **Stop when** usage is at about 99% of the weekly limit, or 20 minutes before the reset, whichever comes first. Read both from the session usage tool (`get_usage`) at the start and after every charter. The reset time moves with daylight saving, so never hard-code it.
+- **Stop when** usage is at about 99% of the weekly limit, or 20 minutes before the reset, whichever comes first. Read both from the session usage tool (`get_usage`) at the start and after every charter. The reset time moves with daylight saving, so never hard-code it. If `get_usage` is missing or errors, do not guess: finish the ranked list without the generators, then stop, and make the report's first line `usage not readable, stopped at the end of the ranked list`.
 - **A second wake-up at about 3:30 AM** resumes from `hypotheses.json` if usage is still under about 97%. This is a second scheduled task, not something the first run schedules (see "The routine" below).
 - **Ask nothing.** A charter that needs a ruling (a role user, creating content, a fleet-wide scan) is marked `blocked` with the reason, and the next charter starts.
 - **No Lando.** Everything runs against Pantheon. Never start a local site on a drain night.

@@ -56,6 +56,24 @@ class PairwiseTest(unittest.TestCase):
         rows = generate(FACTORS, weights={"width": {"768": 500}})
         self.assertEqual(rows[0]["width"], 768)
 
+    def test_large_weights_do_not_bloat_the_set(self):
+        # Raw counts past the coverage scale used to add rows (13 became 18).
+        factors = {
+            "theme": ["one", "two", "three", "four"],
+            "color": ["default", "blue", "gray"],
+            "region": ["1col", "50/50"],
+            "device": ["phone", "tablet", "desktop"],
+        }
+        plain = generate(factors)
+        heavy = generate(factors, weights={"theme": {"one": 5000}})
+        self.assertEqual(len(heavy), len(plain))
+        self.assertEqual(covered(heavy, factors, 2), [])
+
+    def test_weight_scale_does_not_matter(self):
+        small = generate(FACTORS, weights={"theme": {"one": 120}})
+        big = generate(FACTORS, weights={"theme": {"one": 5000}})
+        self.assertEqual(small, big)
+
     def test_mixed_value_types_do_not_crash(self):
         rows = generate({"a": [1, "x"], "b": ["y", 2]})
         self.assertEqual(covered(rows, {"a": [1, "x"], "b": ["y", 2]}, 2), [])

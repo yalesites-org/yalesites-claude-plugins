@@ -51,7 +51,7 @@ gh api "repos/yalesites-org/yalesites-project/contents/web/profiles/custom/yales
 
 # 2. Checksum of a PHP or Twig file the RC adds or changes (pick an added file if there is one)
 terminus drush <site>.<branch> -- php:eval '$p=DRUPAL_ROOT."/<path under web/>"; echo file_exists($p) ? md5_file($p) : "MISSING";'
-gh api "repos/yalesites-org/yalesites-project/contents/web/<path under web/>?ref=<headRefOid>" --jq .content | base64 -d | md5
+gh api "repos/yalesites-org/yalesites-project/contents/web/<path under web/>?ref=<headRefOid>" --jq .content | base64 -d | (md5sum 2>/dev/null || md5) | cut -d' ' -f1
 ```
 
 If the RC changes atomic and nothing in yalesites-project (or the other way around), check one of the two and say which.

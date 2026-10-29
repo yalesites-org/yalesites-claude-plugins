@@ -84,12 +84,14 @@ These run once per RC site per run, besides the charters. They are cheap, and th
 ### Log diff
 
 ```bash
-terminus drush <site>.<branch> -- watchdog:show --count=500 --severity-min=Warning --format=json
+terminus drush <site>.<branch> -- watchdog:show --count=1000 --severity-min=Warning --format=json
 terminus drush <site>.<branch> -- migrate:status --format=json
 terminus drush <site>.<branch> -- state:get system.cron_last
 ```
 
-The clone carries live's log with it. Split the RC's own log at `cloned_at`: entries before it are live's baseline, entries after it are the RC's. This needs no production reads, which matters because an unattended session is not allowed to read `live` with drush. In attended mode you may also read `<site>.live` directly, with the user's OK, when the cloned log is too short to compare.
+The clone carries live's log with it. Split the RC's own log at `cloned_at`: entries before it are live's baseline, entries after it are the RC's. This needs no production reads, which matters because an unattended session is not allowed to read `live` with drush.
+
+**Check the baseline first.** dblog keeps only 1000 rows (`row_limit: 1000` in the profile's `dblog.settings.yml`), and cron on the multidev trims the oldest, so on an older multidev every pre-clone row can be gone. Fetch the full 1000 rows, as above. If the oldest returned entry is not older than `cloned_at`, there is no baseline: mark the log diff `blocked: no pre-clone baseline` and do not report any group as new. In attended mode, with the user's OK, read `<site>.live` instead and compare against that. In `--drain`, leave it blocked. When there is a baseline, say in the report how many pre-clone rows the comparison rests on, since a thin one can make an old message look new.
 
 Group the messages by type and by message text with the numbers stripped out. Report message groups that appear after `cloned_at` and not before, or much more often after it.
 
