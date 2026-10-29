@@ -1,6 +1,6 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, tokens, and yale-ui-cl (UICL). Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
 argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product] [--prep]"
 ---
 
@@ -16,7 +16,7 @@ So the order of work is: work out whose review this is, load the brief, spot-che
 
 **The review is scoped to the reviewer.** Step 0 resolves who is running this and which review dimensions are theirs to rule on, from their own profile first and a shared login map second, and the rest of the steps ask, write, and label within that scope. A reviewer it cannot place gets today's behavior in full, ungated, which is the one guarantee this arrangement makes.
 
-**Repos in scope:** `yalesites-org/yalesites-project`, `yalesites-org/component-library-twig`, `yalesites-org/atomic`, `yalesites-org/tokens`
+**Repos in scope:** `yalesites-org/yalesites-project`, `yalesites-org/component-library-twig`, `yalesites-org/atomic`, `yalesites-org/tokens`, `yalesites-org/yale-ui-cl` (UICL)
 **Issues live in:** `yalesites-org/YaleSites-Internal` (PRs link to them in the body, usually as a `#XXXX` reference or full URL)
 
 Don't guess at a repo. If the user gives a bare PR number without one, ask which repo it's in, or check the URL if they pasted one.
@@ -115,7 +115,7 @@ Call `mcp__ccd_session_mgmt__set_session_title` once, with the scope that matche
 | Queue-wide sweep | `PR review queue: 2026-09-22 (5 PRs)` |
 
 - Bare numbers mean `yalesites-project`. Name the other repos: `CLT 728`, `atomic 521`,
-  `tokens 94`.
+  `tokens 94`, `UICL 57`.
 - **A queue sweep has no numbers in the prompt**, so it gets titled after Step B1 confirms the
   work set, using today's date and the unit count. This is the case that needs a title most, because
   the auto-generated one carries nothing at all.
@@ -263,6 +263,7 @@ because it changes what this review can conclude.
 | `component-library-twig` | Netlify deploy preview, Storybook only | Layout Builder placement, editor field labels, role gating, anything that depends on Drupal passing real values in |
 | `atomic` | No preview of its own. The sibling `yalesites-project` PR's multidev, if one exists | If there is no sibling, there is no deployed way to see this. Say so. |
 | `tokens` | No preview of its own. The sibling `component-library-twig` preview, if one exists | Same. Say so. |
+| `yale-ui-cl` | No PR preview. Its Storybook on GitHub Pages (`https://yalesites-org.github.io/yale-ui-cl/`) builds from `main` only | Anything on the PR branch. Run Storybook locally from the branch, or say there is no deployed way to see it |
 
 Full patterns and the direct visreg content URLs are in
 `pr-prereview`'s `references/preview-environments.md`. Do not restate the block slug table
@@ -331,7 +332,7 @@ written, then start testing once the plan exists. The user gets something to wat
 run getting ahead of the plan.
 
 **The hand-off walkthrough is for what cannot be driven, and only that.** That covers
-Storybook, `atomic` and `tokens`, and a `yalesites-project` PR whose drive-it preflight fails
+Storybook, `atomic`, `tokens` and `yale-ui-cl`, and a `yalesites-project` PR whose drive-it preflight fails
 (no multidev, a server not running the branch, a cloud session, a machine without Terminus or
 Node). For a failed preflight, say which check failed, hand the plan to the user, and offer to
 run the browser pass as soon as the cause is fixed: a skipped run is a gap in the review, not
@@ -600,7 +601,7 @@ Rather than a simple remove-one/add-one swap, **reconcile the whole set of revie
 
 Review-state labels to strip before reapplying: `needs review`, `needs work`, `pass code review`, `pass functional review`, `pass design review`, `pass a11y review`, `ready to merge`, `ready to close`. Leave every other label (type, epic, milestone-linked, etc.) untouched.
 
-Strip only labels actually present on the PR, and never add one the repo does not define. The full set differs by repo: `pass a11y review` exists in `yalesites-project` and `component-library-twig` only, `pass design review` in `component-library-twig` only, and `ready to close` in `yalesites-project` only. `references/reviewer-roles.md` holds the confirmed matrix and the command to re-verify it.
+Strip only labels actually present on the PR, and never add one the repo does not define. The full set differs by repo: `pass a11y review` exists in `yalesites-project` and `component-library-twig` only, `pass design review` in `component-library-twig` only, and `ready to close` in `yalesites-project` only. `yale-ui-cl` defines `pass code review` and `pass functional review` and none of the others. `references/reviewer-roles.md` holds the confirmed matrix and the command to re-verify it.
 
 ### The "pass ___ review" label comes from dimension and repo together
 
@@ -615,8 +616,8 @@ the labels the repo defines. The full matrix and its verification command live i
 
 | Dimension | Label | Defined in |
 |---|---|---|
-| `code` | `pass code review` | all four repos |
-| `functional` | `pass functional review` | all four repos |
+| `code` | `pass code review` | all five repos |
+| `functional` | `pass functional review` | all five repos |
 | `design` | `pass design review` | `component-library-twig` only |
 | `a11y` | `pass a11y review` | `yalesites-project`, `component-library-twig` |
 | `product` | none | recorded in the review body, not on a label |
@@ -634,6 +635,7 @@ repo alone:
 | `atomic` | `pass functional review` |
 | `tokens` | `pass functional review` |
 | `component-library-twig` | `pass design review` |
+| `yale-ui-cl` | `pass functional review` |
 
 **When the reviewer's dimensions yield no label for this repo**, a design reviewer on a
 `yalesites-project` PR or a product-only reviewer anywhere, apply no pass label. Say plainly
@@ -648,6 +650,33 @@ unlabeled honest approval beats a labeled false one.
 | Approving (demo/multidev-only PR) | the reviewer's pass label(s) for this repo + `ready to close`, but see below |
 | Approving, no pass label matched this repo | `ready to merge` only, and only after asking |
 
+**`yale-ui-cl` (UICL) needs two approvals before `ready to merge`.** Every UICL PR needs both
+Michael's (`miketullo95`) and Dave's (`dblanken-yale`) approval before it can merge. So on a UICL
+approval, `ready to merge` goes on only when this review is the **second** of those two. Before
+computing the label set, check whether the other required approver already approved:
+
+```bash
+gh api repos/yalesites-org/yale-ui-cl/pulls/NUMBER/reviews --paginate \
+  -q '.[] | select(.user.login == "OTHER_LOGIN") | select(.state != "COMMENTED") | .state' | tail -n 1
+```
+
+`OTHER_LOGIN` is whichever of the two the current `gh` user is not (`gh api user -q .login`).
+With `--paginate`, `gh` runs the `-q` filter once per page, so the filter prints every matching
+state and `tail -n 1` keeps the latest across all pages. Empty output means no review.
+
+- **`APPROVED`:** this review is the second approval. Apply the pass label(s) + `ready to merge`
+  as the table says.
+- **Anything else** (empty output, `CHANGES_REQUESTED`, `DISMISSED`): this is the first approval.
+  Submit the approval and apply the pass label(s), but leave `ready to merge` off and keep
+  `needs review` on so the PR stays in the other reviewer's queue. Tell the user the PR is
+  waiting on the other approval, by name.
+- **The current user is neither of the two:** apply the pass label(s) only and leave
+  `ready to merge` off. Their approval does not count toward the two.
+
+Never apply `ready to merge` on a first approval, even if the PR already carries it from an
+earlier pass: the strip-and-reapply above takes it off, and this check decides whether it comes
+back. This applies to `yale-ui-cl` only; the other repos keep the single-approval table above.
+
 **Open question, not settled here: whether one dimension's approval should still add
 `ready to merge`.** Today it does, for everyone, and the table above keeps that unchanged on
 purpose. But once a `pass design review` label means design and only design was checked, a lone
@@ -657,11 +686,12 @@ something to settle inside this skill. Until it is settled, **behave as the tabl
 improvise a stricter rule mid-review.** Tracked in
 [yalesites-claude-plugins#30](https://github.com/yalesites-org/yalesites-claude-plugins/issues/30).
 
-**`ready to close` only exists in `yalesites-project`.** `atomic`, `tokens`, and
-`component-library-twig` do not have that label, and applying a label a repo does not define
+**`ready to close` only exists in `yalesites-project`.** `atomic`, `tokens`,
+`component-library-twig` and `yale-ui-cl` do not have that label, and applying a label a repo does not define
 either errors or silently creates it. For a demo-only PR in one of those three, apply the
 repo's review label, leave `ready to merge` off, and tell the user the PR needs closing by
-hand. This is not hypothetical: `component-library-twig` has a long-lived `DEMO ONLY, DO NOT
+hand. A demo-only `yale-ui-cl` PR follows this too, and never gets `ready to merge` from the
+two-approval check. This is not hypothetical: `component-library-twig` has a long-lived `DEMO ONLY, DO NOT
 MERGE` PR open.
 
 This matters in practice, a PR can look "ready to merge" on the label alone while a deep-dive turns up something the earlier pass missed. Reconciling the full set avoids leaving contradictory labels (e.g. `needs work` sitting next to `ready to merge`), and picking the wrong review label is an easy mistake to make once it depends on both the reviewer's dimensions and the repo's label set.

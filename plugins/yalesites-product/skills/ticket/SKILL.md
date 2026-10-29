@@ -75,7 +75,7 @@ Valid options, exactly as configured on the YaleSites Board, in board order. **M
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
+| `Done` | Review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. Stays open until the release ships |
 
 `Done` does not mean closed. A ticket moves to `Done` when its work merges, and stays open until `release-prep` Phase 7 confirms the release shipped and closes it. Milestones, not a board status, say which release the work ships in.
 
