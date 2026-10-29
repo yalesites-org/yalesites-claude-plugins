@@ -2,16 +2,58 @@
 
 Read this when the check says the computer is a Mac (`uname -s` prints `Darwin`). Run the check with `check-setup.sh`. It covers Command Line Tools, Homebrew, the command-line tools, and how to restart.
 
+## Choose a path
+
+Which way to get the tools depends on the Command Line Tools (`clt`) and admin rights. Ask the admin question from the Homebrew section when you need it.
+
+| Situation | Path |
+|---|---|
+| `OK clt` | Homebrew in the home folder (no admin). |
+| `MISS clt`, and they have permanent admin | The official Homebrew installer, which adds the Command Line Tools itself. |
+| `MISS clt`, no admin, IT can help soon | Ask IT first (below), then Homebrew in the home folder. |
+| `MISS clt`, no admin, IT cannot help or cannot help soon | mise (see "No admin and no Command Line Tools"). |
+
 ## Command Line Tools (`clt`)
 
 These give the Mac `git` (tracks changes to files), `python3` (runs small helper scripts), and the compiler Homebrew needs when a tool has to be built from source.
 
-If the check says `MISS clt`, the home-folder Homebrew install below is **blocked**. That install is not a git checkout, so `brew update` needs a real `git`. Without the Command Line Tools, `/usr/bin/git` is only an Apple placeholder that needs admin rights. Building from source needs the same compiler. So:
+If the check says `MISS clt` and they have no permanent admin, the home-folder Homebrew install needs them first. That install is not a git checkout, so `brew update` needs a real `git`, and without the tools `/usr/bin/git` is only an Apple placeholder that needs admin rights. So ask IT first:
 
-- Tell them in plain words: "Ask IT or desktop support to install 'Xcode Command Line Tools'. If your Mac has Yale's Self Service app, look for it there."
-- Stop here. Do not install Homebrew and do not try `brew install git`. When they say it is installed, re-run the check and carry on once `OK clt` shows.
+- Put this first in the checklist. Tell them to send IT: "Please install Xcode Command Line Tools on my Mac." Yale's Self Service app may also offer them. With admin, `xcode-select --install` works.
+- Pause until IT installs them, and re-run the check. Do not install Homebrew yet.
+- If IT says no, or cannot help soon, offer the mise fallback below instead. Say plainly that it is a different route and that the person can switch to Homebrew later if IT installs the tools.
 
 The official installer (the admin aside below) installs the Command Line Tools itself, so `MISS clt` does not block that path.
+
+## No admin and no Command Line Tools: mise
+
+`/yalesites-product:ticket` does not need `git` or a compiler. It needs `gh`, `jq`, `node` (for `npx` and the browser helper) and `python3`. mise is one small program that installs ready-made copies of those into the home folder. No password, no compiler, no Command Line Tools, no git.
+
+Say first: "mise is a tool that downloads ready-made copies of gh, jq, node, and python into your own folder. It needs no password and no Apple developer tools." Ask "OK to install it?" Then:
+
+```bash
+curl https://mise.run | sh
+MISE_PYTHON_COMPILE=0 ~/.local/bin/mise use -g node@lts gh jq python@3.12
+```
+
+`MISE_PYTHON_COMPILE=0` makes mise use ready-made Python and never try to compile one. Do not run `git` or `python3` from `/usr/bin` here. They are Apple placeholders that pop up an "install developer tools" window. If that window appears, tell them to click Cancel.
+
+### Link mise to the shell (all three files)
+
+Claude Desktop starts shells that are not interactive and not login shells, so `mise activate` alone is not enough. zsh reads `~/.zshenv` for every shell, so the tools must be on the search path there. Ask: "OK if I add lines to three of your Terminal settings files so the tools work in Terminal and in Claude?" Add each line only if it is not already there (grep first, never twice):
+
+```bash
+add_line() { grep -qF "$2" "$1" 2>/dev/null || printf '\n%s\n' "$2" >> "$1"; }
+add_line "$HOME/.zshenv"   'export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"'
+add_line "$HOME/.zprofile" 'eval "$(~/.local/bin/mise activate zsh --shims)"'
+add_line "$HOME/.zshrc"    'eval "$(~/.local/bin/mise activate zsh)"'
+```
+
+The `.zshenv` line puts mise first, ahead of `/usr/bin`, so mise's `python3` wins over Apple's placeholder. In your own commands, run `export PATH="$HOME/.local/bin:$HOME/.local/share/mise/shims:$PATH"` first.
+
+After `npm install -g` for the browser helper, run `~/.local/bin/mise reshim` so `playwright-cli` appears. The helper is tied to this node version, so after a node upgrade, run onboarding again.
+
+Update on this path with `~/.local/bin/mise upgrade` (no sudo).
 
 ## Homebrew (`brew`)
 
@@ -23,7 +65,7 @@ If `MISS brew`, ask this question in plain words. Use the `INFO admin` line only
 
 > Can you install apps on this Mac yourself any time, without asking IT or using a "make me admin" button? If you are not sure, choose No.
 
-**No, or not sure (the default): install into the home folder.** Only when the check shows `OK clt` (see above). No password, no admin rights. Tell them first: "Homebrew calls this way unsupported. Some tools get built from source on your Mac, so installs can take longer. gh, jq, and node usually come ready-made, but if not, it is only slower." Then ask "OK to install it?" and run:
+**No, or not sure (the default): install into the home folder.** Only when the check shows `OK clt` (see "Choose a path"). No password, no admin rights. Tell them first: "Homebrew calls this way unsupported. Some tools get built from source on your Mac, so installs can take longer. gh, jq, and node usually come ready-made, but if not, it is only slower." Then ask "OK to install it?" and run:
 
 ```bash
 mkdir -p "$HOME/homebrew" && curl -fsSL https://github.com/Homebrew/brew/tarball/master | tar xz --strip-components 1 -C "$HOME/homebrew"
@@ -72,6 +114,7 @@ Re-run the check. In the home-folder install some packages may build from source
 
 ## Mac details for the shared steps
 
+- Where a path says `brew`, the mise path uses `mise` instead (see above). Both end the same way: gh, jq, node, python3, and npx visible from every shell.
 - Check script: `bash "${CLAUDE_SKILL_DIR}/scripts/check-setup.sh"` (add `--browser` for the browser test).
 - The GitHub login is stored in the Mac keychain and `~/.config/gh`, so it works in every folder. The person runs the login in the Terminal app (Command and Space, type Terminal, press Return).
 - Browsers install into `~/Library/Caches/ms-playwright`.

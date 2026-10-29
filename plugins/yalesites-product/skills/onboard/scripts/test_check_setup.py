@@ -61,10 +61,11 @@ class CheckSetupTest(unittest.TestCase):
         _stub(self.dir, "node", 'echo "v20.0.0"')
         _stub(self.dir, "python3", 'echo "Python 3.12.0"')
 
-    def add_gh(self, auth_text=AUTH_WITH_PROJECT):
-        with open(os.path.join(self.dir, "gh"), "w") as f:
+    def add_gh(self, auth_text=AUTH_WITH_PROJECT, into=None):
+        target = os.path.join(into or self.dir, "gh")
+        with open(target, "w") as f:
             f.write(GH_STUB)
-        os.chmod(os.path.join(self.dir, "gh"), 0o755)
+        os.chmod(target, 0o755)
         with open(os.path.join(self.dir, "auth.txt"), "w") as f:
             f.write(auth_text)
 
@@ -182,13 +183,60 @@ class CheckSetupTest(unittest.TestCase):
         self.assertNotIn("Daemon pid", out)
         self.assertIn("OK   browser-firefox", out)
 
-    def test_missing_clt_reports_miss(self):
+    def test_missing_clt_reports_miss_when_tools_are_incomplete(self):
         self.add_gh()
         _stub(self.dir, "xcode-select", "exit 2")
+        os.remove(os.path.join(self.dir, "jq"))
         code, out = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("MISS clt", out)
 
+    def _mise_setup(self, shims_on_path):
+        """No Command Line Tools; gh, jq, node, python3 only in mise shims."""
+        _stub(self.dir, "xcode-select", "exit 2")
+        for name in ("git", "jq", "node", "python3", "brew"):
+            os.remove(os.path.join(self.dir, name))
+        shims = os.path.join(self.dir, ".local", "share", "mise", "shims")
+        os.makedirs(shims)
+        self.add_gh(into=shims)
+        with open(os.path.join(self.dir, "auth.txt"), "w") as f:
+            f.write(AUTH_WITH_PROJECT)
+        _stub(shims, "jq", 'echo "jq-1.7"')
+        _stub(shims, "node", 'echo "v22.0.0"')
+        _stub(shims, "python3", 'echo "Python 3.12.0"')
+        _stub(shims, "mise", 'echo "2026.10.17"')
+        mise_bin = os.path.join(self.dir, ".local", "bin")
+        os.makedirs(mise_bin)
+        _stub(mise_bin, "mise", 'echo "2026.10.17"')
+        if shims_on_path:
+            return {"PATH": shims + os.pathsep + self.dir}
+        return {}
+
+    def test_no_clt_with_mise_tools_exits_zero_with_clt_info(self):
+        env = self._mise_setup(shims_on_path=True)
+        code, out = self.run_check(**env)
+        self.assertEqual(code, 0, out)
+        self.assertRegex(out, r"INFO clt\s+Apple Command Line Tools not installed \(not needed: tools come from mise\)")
+        self.assertRegex(out, r"INFO mise\s+2026")
+        self.assertRegex(out, r"INFO git\s+not installed")
+        self.assertNotIn("MISS", out)
+
+    def test_apple_python3_placeholder_first_on_path_warns(self):
+        if not os.path.exists("/usr/bin/python3"):
+            self.skipTest("/usr/bin/python3 does not exist on this system")
+        self.add_gh()
+        _stub(self.dir, "xcode-select", "exit 2")
+        os.remove(os.path.join(self.dir, "python3"))
+        code, out = self.run_check(PATH=self.dir + os.pathsep + "/usr/bin")
+        self.assertEqual(code, 1)
+        self.assertIn("WARN python3-stub", out)
+        self.assertIn("MISS python3", out)
+
+    def test_mise_shims_off_path_warns(self):
+        self._mise_setup(shims_on_path=False)
+        code, out = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("WARN mise-path", out)
 
 class CheckSetupPowerShellTest(unittest.TestCase):
     """Smoke test of check-setup.ps1. Needs pwsh, so it is skipped without it.

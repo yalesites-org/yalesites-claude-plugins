@@ -7,7 +7,7 @@ This sets up your computer so Claude can create YaleSites tickets for you, and t
 ## Before you start
 
 - A Mac, or a Windows computer. (Most people use a Mac. The Windows steps have not been tested on a real Windows computer yet, so tell the YaleSites team if something looks different.)
-- On a Mac only: **Xcode Command Line Tools**. These are Apple's free developer tools. They give your Mac `git` and the build tools everything else needs. To check, open Terminal (Command and Space, type Terminal, press Return) and run `xcode-select -p`. If it prints a folder path, you have them. If you do not have admin rights, ask IT or look in Yale's Self Service app for them BEFORE you start, so you do not stall halfway. If you have permanent admin rights, the official Homebrew installer adds them for you.
+- On a Mac only: **Xcode Command Line Tools**. These are Apple's free developer tools. They give your Mac `git` and the build tools everything else needs. To check, open Terminal (Command and Space, type Terminal, press Return) and run `xcode-select -p`. If it prints a folder path, you have them. They are recommended, so ask IT first. If you do not have admin rights, ask IT or look in Yale's Self Service app for them BEFORE you start, so you do not stall halfway. If IT cannot help, Claude has a no-admin fallback that does not need them. If you have permanent admin rights, the official Homebrew installer adds them for you.
 - The Claude desktop app, installed and signed in.
 - A GitHub account that is a member of the `yalesites-org` organization. If you are not a member yet, ask the YaleSites team to invite you.
 - About 20 to 30 minutes.
@@ -85,6 +85,7 @@ About once a month, or when something stops working, update your tools. The easi
 To do it by hand:
 
 - **Mac tools:** `brew update && brew upgrade`
+- **Mac tools installed with mise:** `~/.local/bin/mise upgrade`
 - **Windows tools:** `scoop update; scoop update *`
 - **Browser helper:** `npm install -g @playwright/cli@0.1.22`. The team pins this version on purpose, so do not switch to `@latest`. When a skill changes the pinned version, running onboarding again installs the new one.
 - **Browsers:** run the three `npx -y @playwright/cli@0.1.22 install-browser` lines again, with `chrome-for-testing`, `firefox`, and `webkit`.
@@ -98,6 +99,7 @@ To do it by hand:
 |---|---|---|
 | Homebrew (Mac, no admin path) | `~/homebrew` | Delete the `~/homebrew` folder. |
 | Homebrew (Mac, admin path) | `/opt/homebrew` or `/usr/local` | Run Homebrew's official uninstall script (needs admin). |
+| mise (Mac, no admin and no Command Line Tools) | `~/.local/bin/mise`, `~/.local/share/mise`, and lines in `~/.zshenv`, `~/.zprofile` and `~/.zshrc` | Run `~/.local/bin/mise implode`, then delete the mise lines from those three files. |
 | Two lines that start with `eval "$(` and mention `brew shellenv` | `~/.zprofile` and `~/.zshrc` (Mac) | Delete those lines. |
 | Scoop and the tools it installs (Windows) | `%USERPROFILE%\scoop` | Run `scoop uninstall scoop`, or delete the `%USERPROFILE%\scoop` folder. |
 | `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser` (Windows, run by the Scoop install) | Your user's PowerShell settings | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Undefined`. |

@@ -89,11 +89,64 @@ else
   report INFO admin "no (not in the admin group)"
 fi
 
-# --- Command Line Tools ----------------------------------------------------
+# --- Tool lookup -----------------------------------------------------------
+# On a Mac without the Command Line Tools, /usr/bin/git and /usr/bin/python3 are
+# Apple placeholders that pop up an install dialog when run. Never run those.
 CLT_OK=0
+clt_path=""
 if clt_path="$(xcode-select -p 2>/dev/null)"; then
   CLT_OK=1
+fi
+
+find_real() { # prints the first match on PATH that is not an Apple placeholder
+  local p all
+  all="$(type -ap "$1" 2>/dev/null)"
+  while IFS= read -r p; do
+    [[ -z "$p" ]] && continue
+    if [[ "$p" == /usr/bin/* && $CLT_OK -eq 0 ]]; then
+      continue
+    fi
+    printf '%s' "$p"
+    return 0
+  done <<<"$all"
+  return 1
+}
+
+# --- mise (a no-admin way to get the tools without Command Line Tools) -------
+MISE_BIN=""
+MISE_SHIMS="$HOME/.local/share/mise/shims"
+if command -v mise >/dev/null 2>&1; then
+  MISE_BIN="$(command -v mise)"
+elif [[ -x "$HOME/.local/bin/mise" ]]; then
+  MISE_BIN="$HOME/.local/bin/mise"
+  report WARN mise-path "mise at $MISE_BIN but not on PATH (activate line missing from ~/.zshrc)"
+  PATH="$HOME/.local/bin:$PATH"
+fi
+if [[ -n "$MISE_BIN" ]]; then
+  report INFO mise "$("$MISE_BIN" --version 2>/dev/null | first_line)"
+  if [[ -d "$MISE_SHIMS" && ":$PATH:" != *":$MISE_SHIMS:"* ]]; then
+    report WARN mise-path "mise tools in $MISE_SHIMS but not on PATH (shims line missing from ~/.zprofile)"
+    PATH="$MISE_SHIMS:$PATH"
+  fi
+fi
+
+# Are gh, jq, node and python3 all usable already? If so the Command Line Tools
+# and Homebrew are not needed for the ticket workflow.
+TOOLS_COMPLETE=1
+for t in gh jq node python3; do
+  find_real "$t" >/dev/null || TOOLS_COMPLETE=0
+done
+if [[ -n "$MISE_BIN" ]]; then
+  NOT_NEEDED="not needed: tools come from mise"
+else
+  NOT_NEEDED="not needed: gh, jq, node and python3 are installed without it"
+fi
+
+# --- Command Line Tools ----------------------------------------------------
+if [[ $CLT_OK -eq 1 ]]; then
   report OK clt "$clt_path"
+elif [[ $TOOLS_COMPLETE -eq 1 ]]; then
+  report INFO clt "Apple Command Line Tools not installed ($NOT_NEEDED)"
 else
   report MISS clt "Apple Command Line Tools not installed"
 fi
@@ -104,6 +157,8 @@ fi
 # script so later checks are fair, and warn so the skill can fix the shell files.
 if command -v brew >/dev/null 2>&1; then
   report OK brew "$(brew --version 2>/dev/null | first_line)"
+elif [[ -n "$MISE_BIN" && $TOOLS_COMPLETE -eq 1 ]]; then
+  report INFO brew "Homebrew not on PATH ($NOT_NEEDED)"
 else
   brew_prefix=""
   for candidate in "$HOME/homebrew" /opt/homebrew /usr/local; do
@@ -115,27 +170,38 @@ else
   if [[ -n "$brew_prefix" ]]; then
     report WARN brew-path "brew at $brew_prefix but not on PATH (shellenv line missing from ~/.zprofile and ~/.zshrc)"
     PATH="$brew_prefix/bin:$PATH"
+  elif [[ $TOOLS_COMPLETE -eq 1 ]]; then
+    report INFO brew "Homebrew not installed ($NOT_NEEDED)"
   else
     report MISS brew "Homebrew not installed"
   fi
 fi
 
 # --- Tools -----------------------------------------------------------------
-# On a Mac without the Command Line Tools, /usr/bin/git and /usr/bin/python3
-# are stubs that pop up an install dialog when run. Do not run them then.
 check_tool() { # item command version-args...
   local item="$1" cmd="$2"
   shift 2
-  local path
-  if ! path="$(command -v "$cmd" 2>/dev/null)"; then
-    report MISS "$item" "not installed"
+  local real first
+  if ! real="$(find_real "$cmd")"; then
+    if [[ "$item" == git && $CLT_OK -eq 0 ]]; then
+      report INFO git "not installed (not needed for tickets)"
+    elif [[ $CLT_OK -eq 0 ]] && command -v "$cmd" >/dev/null 2>&1; then
+      report MISS "$item" "not installed (only the Apple placeholder is present)"
+      if [[ "$item" == python3 && "$(command -v python3)" == /usr/bin/python3 ]]; then
+        report WARN python3-stub "Apple's /usr/bin/python3 is only a placeholder; do not run it (click Cancel if a pop-up appears)"
+      fi
+    else
+      report MISS "$item" "not installed"
+    fi
     return
   fi
-  if [[ "$path" == /usr/bin/* && $CLT_OK -eq 0 ]]; then
-    report MISS "$item" "not installed (only the Apple placeholder is present)"
-    return
+  first="$(command -v "$cmd" 2>/dev/null)"
+  if [[ "$item" == python3 && "$first" == /usr/bin/python3 && $CLT_OK -eq 0 ]]; then
+    report WARN python3-stub "Apple's /usr/bin/python3 comes first on PATH and is only a placeholder; put the mise or brew folder before /usr/bin (click Cancel if a pop-up appears)"
+  elif [[ "$first" == /usr/bin/* && "$real" != "$first" ]]; then
+    report WARN "$item-path" "the Apple placeholder comes first on PATH; mise or brew folders must come before /usr/bin"
   fi
-  report OK "$item" "$("$cmd" "$@" 2>&1 | first_line)"
+  report OK "$item" "$("$real" "$@" 2>&1 | first_line)"
 }
 
 check_tool git git --version

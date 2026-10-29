@@ -40,7 +40,7 @@ Find out which system this is. On a Mac, `uname -s` prints `Darwin`. On Windows 
 
 Use `${CLAUDE_SKILL_DIR}` for the skill folder. If it is empty, use the full path to this skill's folder. The scripts only read. They print one line per item: `OK`, `MISS` (not installed), `FAIL` (installed but not usable), `WARN` (works but needs a fix), `SKIP` (not checked), or `INFO` (just a fact).
 
-Turn the result into a short checklist for the person: what is done, what is left, in plain words. On a Mac, if the check shows `MISS clt` and the person does not have permanent admin rights, put that first in the checklist as the one thing that blocks everything else. Give them these exact words to send IT: "Please install Xcode Command Line Tools on my Mac." (Yale's Self Service app may also offer them.) If they do have admin rights, they can run `xcode-select --install` themselves. Pause until the tools are installed and the check passes. Mark the browser items (`playwright`, `browser-*`) as optional. If everything required is `OK`, say so in a few lines and go to Step 8. Plugin state cannot be checked from a script, so ask about plugins in Step 7 even when the check is green.
+Turn the result into a short checklist for the person: what is done, what is left, in plain words. On a Mac, if the check shows `MISS clt` and the person does not have permanent admin rights, put that first in the checklist as the thing that blocks the Homebrew route. Give them these exact words to send IT: "Please install Xcode Command Line Tools on my Mac." (Yale's Self Service app may also offer them.) If they do have admin rights, they can run `xcode-select --install` themselves. Ask IT first. If IT says no or cannot help soon, do not leave them stuck: the Mac file has a no-admin fallback (mise) that needs neither admin rights nor the Command Line Tools. Pause for IT only if they want to wait. Mark the browser items (`playwright`, `browser-*`) as optional. If everything required is `OK`, say so in a few lines and go to Step 8. Plugin state cannot be checked from a script, so ask about plugins in Step 7 even when the check is green.
 
 ## Step 2. Fix in this order
 
@@ -48,7 +48,7 @@ Fix one thing at a time, in dependency order, and re-run the check after each fi
 
 ## Step 3. Package manager and tools
 
-Follow the system file. On a Mac, a missing Command Line Tools item blocks the home-folder install until IT installs them, and the file says what to tell the person. It covers the package manager (Homebrew on a Mac, Scoop on Windows, both without admin rights by default), the tools `gh`, `git`, `jq`, `node`, and `python3`, and linking them so Claude can see them. Ask before each install.
+Follow the system file. On a Mac, the file has a short table to choose the path: Homebrew in the home folder when the Command Line Tools are there, the official installer for people with permanent admin, and mise when there is no admin and IT cannot install the tools. Ask IT first, because it is the first choice. It covers the package manager (Homebrew or mise on a Mac, Scoop on Windows, all without admin rights), the tools `gh`, `git`, `jq`, `node`, and `python3`, and linking them so Claude can see them. Ask before each install.
 
 ## Step 4. GitHub account, login, and access
 
@@ -110,7 +110,11 @@ Claude is a normal desktop app. It reads the computer's search path only when it
 2. Open it again and start a new session.
 3. Run `/yalesites-product:onboard` again from the new session.
 
-Re-running the check from the new session proves Claude can find everything, from any folder.
+Re-running the check from the new session proves Claude can find everything, from any folder. Do these checks on every path, not only one:
+
+1. Run the check script from the new session.
+2. Run `command -v gh node npx jq python3 playwright-cli` (on Windows, `Get-Command gh, node, npx, jq, python, playwright-cli | Select-Object Name, Source`) and confirm each path is the expected one: the mise shims folder, the Homebrew folder, or the Scoop folder. On the mise path, `python3` must NOT be `/usr/bin/python3`.
+3. If a tool resolves wrong or is missing, the fix is the shell file line plus a full Command and Q restart, not a reinstall.
 
 ## Step 7. Claude Code plugins
 
@@ -136,7 +140,8 @@ Do not create a real issue yourself during onboarding.
 
 **Offer updates when everything is already green.** On a machine that is fully set up, ask once: "Everything is up to date enough to work. Want me to also update your tools? It is safe to skip." Only on a yes, run the update for this system (no `sudo` on either path):
 
-- Mac: `brew update && brew upgrade`
+- Mac with Homebrew: `brew update && brew upgrade`
+- Mac with mise: `~/.local/bin/mise upgrade`
 - Windows: `scoop update; scoop update *`
 
 Then, if the browser helper and browsers were set up, reinstall the pinned versions from Step 5 (the same `npm install -g @playwright/cli@0.1.22` and three `install-browser` lines). Never move to `@latest`: the team pins that version on purpose. Point the person to "Keeping things up to date" in `README.md` for the rest, such as plugins, and do not repeat it in full.
