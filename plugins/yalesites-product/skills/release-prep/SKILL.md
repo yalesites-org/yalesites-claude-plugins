@@ -632,7 +632,7 @@ gh api repos/yalesites-org/yalesites-project/compare/master...<mergeCommit> --jq
 | **A — Confirmed shipped** | Open in `Done`, and the ticket's ship-verifying PR is in `master` — the `yalesites-project` PR where one exists, otherwise a satellite PR confirmed through the release chain in Step 4 | Eligible to close |
 | **B — Not shipped** | Open in `Done`, but merged to an epic/staging branch, or merged to `develop` after the RC cut | Leave open in `Done`. Merged work stays `Done` while its branch makes its way to `master`; do not move it back to `In review`. It closes in the run for the release that ships it |
 | **C — Stragglers** | Board says `In progress` / `In review` / `Blocked` / `To Do`, but a linked PR *is* in `master` | Propose `Done` and close, flagged separately — these need a closer look than bucket A |
-| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (nothing in docs-board, page-build, or Phase 8 moves a docs ticket to `Done`, so most land in C and get the status write before closing) |
+| **D — Undetermined** | No linked PR found, or the ticket has no code (docs, research, coordination) | Ask; never guess. A docs ticket whose `yalesites-docs-board` status reads `published` (Phase 8) is the exception: that status is its ship proof. Bucket it by its board status like a shipped code ticket: bucket A if it is open in `Done`, bucket C otherwise (`yalesites-docs-board` moves a docs ticket to `Done` once its approved draft is staged, so most land in A. Tickets staged before that rule, or built by hand, land in C and get the status write before closing) |
 
 **`unknown-locally` is never bucket B.** A `128` from `--is-ancestor` says the SHA isn't in your clone, not that the code didn't ship. Resolve it with the compare API in Step 4 and bucket on that answer. If it still won't resolve, it's bucket D. Bucket B means the code was found and is genuinely not in `master`.
 
@@ -825,6 +825,7 @@ Expect the whole run to take well over an hour of wall clock, most of it waiting
 - Everything before Step 5 edits our own staged drafts only, with `yalesites-page-build`'s rules in full (its Step 3 row for editing our own draft in place, the exact-replace recipe, Save as Draft, the verify pass). Never the live revision, never a reusable block.
 - Screenshots are taken here and handed over for placement. `yalesites-page-build` has no media upload step, and improvising one on production is not an option (Phase 2, Screenshots). If the team wants that automated, it is a page-build change to decide first, not something this phase does.
 - Status changes go through `packet.py status`, so the work dashboard and Phase 7 can read them.
+- The publish ticket is the one board item this phase writes, and every write to it waits for approval in chat: creating it or rewriting its checklist (Step 1), ticking rows (covered by Step 5's batch approval, which names it), and closing it (Step 6).
 
 ### Step 1: Inventory the staged drafts
 
@@ -854,6 +855,8 @@ For each one, read the packet it came from (`~/.claude/yalesites/docs-board/pack
 | Shared nodes | Several tickets staged on one node (the sections page regularly holds three). Publish once, record it on every ticket |
 
 A ticket in `built` whose milestone is a later release stays out of this run. Say so in the report rather than silently skipping it.
+
+**One publish ticket per release.** The docs tickets themselves sit in `Done` once staged, so the board needs one item that says the release's docs are not live yet. After the table, search the release milestone for an open issue titled `Docs: Publish staged docs for <milestone>`. Show the user the checklist this run would write, and whether that means creating the ticket or rewriting an existing one, then wait for approval in chat before writing either. If none exists, create it through the `ticket` skill: Communications type, the release milestone, To Do, assigned to the docs owner (`miketullo95` today). The body is a TL;DR line, then one checklist row per ticket in the table, `- [ ] <owner/repo#N>: <page title> (node <nid>)`, with a shared node listed once under every ticket on it. If it already exists, rewrite the checklist from this run's table, but never untick a row: a row already ticked stays ticked, and a ticket whose entry is already `published` keeps a ticked row even though it is out of this run's `built` table. That covers a rerun after a Step 5 that stopped partway. Step 1 reruns on every new RC, so a ticket held or pulled from the release drops off the list instead of lingering on it (only unticked rows drop).
 
 ### Step 2: Re-verify the copy against the RC
 
@@ -893,7 +896,7 @@ Build the right-hand column as forward drafts during the RC period wherever prod
 
 **The gate.** Open yalesites.yale.edu logged in and read the Gin toolbar's "Live Site - <version>" bar. It must show the release's `yalesites_profile` version (the `chore: bump yalesites_profile to X` commit on the release PR). The release PR merged to `master` is not enough: Pantheon deploys after the merge, and a draft published into the old code shows a page that describes controls visitors cannot find. If the bar shows the old version, stop and wait.
 
-**The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat. Nothing publishes without it, and a held ticket stays unpublished even if the rest are approved. Mark any held ticket that shares a node with approved ones, and say whether its sections come out first or the whole node waits (sub-step 4 below).
+**The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat, and say in the same ask that each published ticket's row in the publish ticket gets ticked as it goes. Nothing publishes or gets ticked without it, and a held ticket stays unpublished even if the rest are approved. Mark any held ticket that shares a node with approved ones, and say whether its sections come out first or the whole node waits (sub-step 4 below).
 
 **The publish.** In one logged-in browser (the `pw` wrapper from `yalesites-page-build`, Step 2, with the user doing CAS), per node:
 
@@ -909,6 +912,8 @@ Then record it, per ticket, using the full status-file ref (suffix included, so 
 python3 <docs-board>/scripts/packet.py status <owner/repo#N> published --note "<what was published, what is still owed>"
 ```
 
+Tick that ticket's row in the publish ticket as it goes, so the board shows progress if the batch stops partway.
+
 Pace the publishes one at a time with the verify between them. A failure stops the batch: report what is published, what is not, and the error, and leave the rest in `built`.
 
 ### Step 6: Report back
@@ -916,6 +921,7 @@ Pace the publishes one at a time with the verify between them. A failure stops t
 - Per ticket: node(s), published URL, what Step 2 changed, screenshots placed and still owed, Step 4 pieces done and left
 - Tickets held and why (PR pulled from the release, copy drift too big for a quiet fix, a shot that could not be taken)
 - Anything found on a page that was out of scope (a stale neighbor section, a pre-existing Editoria11y alert), offered as follow-ups, not fixed in passing
+- Once every row is ticked or listed as held, show the user the closing comment (each held ticket and the release it moves to) and close the publish ticket only after they approve it in chat. Leave it open, with the unticked rows, if the batch stopped partway
 - Hand Phase 7 the list of published tickets with each one's board status, so bucket D does not ask about them and the ones not in `Done` go through bucket C's status write
 
 ---
@@ -945,6 +951,6 @@ All draft files saved to the workspace folder.
 - Tables don't render reliably in GitHub comments — always use bulleted lists for the PR reference section
 - Issues live in `yalesites-org/YaleSites-Internal`; PRs live in `yalesites-org/yalesites-project` — don't mix them up when making API calls
 - Phase 6 edits the skill's own reference files — this keeps the knowledge base self-maintaining across releases
-- Phase 7 is the only phase that writes to the YaleSites Board, and it never writes without explicit approval — board mechanics and field options live in the `ticket` skill's `references/board-status.md`
+- Phases 7 and 8 are the only phases that write to the YaleSites Board, and neither writes without explicit approval. Phase 7 writes ticket statuses; Phase 8 writes only its one publish ticket (create, tick, close). Board mechanics and field options live in the `ticket` skill's `references/board-status.md`
 - The state file under `~/.claude/yalesites/release-prep/` is shared with the work dashboard's release prep board. Record decisions and phase completions there (see "Recording progress"); never clear a mark the dashboard wrote
 - Broad backlog quality problems are out of Phase 7's scope and belong to the planned `backlog-hygiene` skill, which isn't released yet — Phase 7 only reconciles status against what shipped

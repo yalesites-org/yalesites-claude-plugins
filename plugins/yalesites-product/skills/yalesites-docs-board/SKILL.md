@@ -337,6 +337,28 @@ built again. That is on purpose. A page that half-built (draft created, some ops
 not the page the reviewer approved, so before it goes back on the board, recapture it if a
 draft was saved, and add what got applied and what did not to the item's `notes`.
 
+**Then move the ticket to `Done` on the board.** For a docs ticket, `Done` means the draft is
+approved and staged on yalesites.yale.edu. That is the same handoff a merge is for code: nothing
+is left for the writer, and the ticket stays open until `release-prep` Phase 8 publishes it and
+Phase 7 closes it. Without this the ticket sits in `In review` until release day and reads as
+open work on the board and the dashboard. Move it only once every page the ticket touches is
+`built` (all of `#1914-a` to `#1914-h`, not just the first). Read the current status first and
+write only if it is not already `Done`, with the read and write recipes in the `ticket` skill's
+`references/board-status.md`.
+
+- **A page left `skipped` or `failed` keeps the whole ticket out of `Done`.** The ticket is not
+  staged until all of it is. Step 9 lists it as not moved, naming each page and its state. A
+  later round that builds the rest moves it then. If the reviewer skipped a page because the
+  ticket no longer needs it, that is a scope change: offer `ticket-sync` to drop the page from
+  the ticket, and move the ticket once the rest is built. Never move it on the pages that did
+  build.
+- **A failed write is recorded, not retried in a loop.** Note it on every page entry of that
+  ticket, so the next run sees it:
+  `packet.py status <ref> built --note "board: Done write failed: <error>"`. Report it in Step 9.
+  At the start of every Step 8, look for `built` entries with that note: read the ticket's
+  status, write `Done` once if it is still not `Done`, and on success clear the note with
+  `--note ""`. A second failure keeps the note and goes in the report again.
+
 ### Internal docs
 
 1. Render the approved file: `python3 <skill-dir>/scripts/packet.py render "$DIR" <id> --out <tmp>`.
@@ -349,11 +371,14 @@ draft was saved, and add what got applied and what did not to the item's `notes`
 4. Stop there. Report the branch and commit, and ask before pushing or opening a PR. On a yes,
    use `yalesites-dev:yalesites-pr` if it is installed.
 5. Status `built` with `--result '{"branch": "...", "commit": "..."}'`.
+6. Leave the board status alone. An internal doc is code in a repo, so it reaches `Done` when its
+   PR merges, like any other change.
 
 ## Step 9: Hand off
 
 Report in one table: ticket, decision, and result (the draft URL and node, or the branch and
-commit). Under it, what is left: screenshots owed, release-day publishing, a PR waiting on a
+commit), and whether the ticket moved to `Done` (and if not, why: a page `skipped` or `failed`,
+or a failed write). Under it, what is left: screenshots owed, release-day publishing, a PR waiting on a
 go-ahead, follow-ups the freshness audit found.
 
 Then offer, without doing it: a short comment on each built ticket with the draft link (through

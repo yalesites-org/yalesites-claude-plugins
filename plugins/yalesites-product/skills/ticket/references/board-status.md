@@ -34,9 +34,9 @@ In board order. **Capitalization matters:** `--value` is matched against the con
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Done` | Review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. Stays open until the release ships |
+| `Done` | Review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. For a docs ticket, its draft is approved and staged on yalesites.yale.edu. Stays open until the release ships |
 
-**`Done` is not closed.** A ticket moves to `Done` when its work merges, including a merge into the release staging branch or an epic branch. `In review` means a reviewer still has something to do, so merged work does not wait there for the branch to reach `develop` (decided 2026-10-14). It stays open, and visible on the Board view, until `release-prep` Phase 7 confirms the release shipped and closes it. The milestone says which release that is.
+**`Done` is not closed.** A ticket moves to `Done` when its work merges, including a merge into the release staging branch or an epic branch, or, for a docs ticket, when `yalesites-docs-board` stages its approved draft. `In review` means a reviewer still has something to do, so merged work does not wait there for the branch to reach `develop` (decided 2026-10-14). It stays open, and visible on the Board view, until `release-prep` Phase 7 confirms the release shipped and closes it. The milestone says which release that is.
 
 **Retired statuses.** `Ready for Release (in dev)` was retired on 2026-09-23 (YaleSites-Internal#1778), because milestones now mark the release. `Ready For Work` is not a board status either. It survives only as a catch-all *milestone* name. Setting either as a Status fails.
 
@@ -134,6 +134,7 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 | PR reviewed | Approve or request changes | `pr-feedback` skill | Labels only, board untouched by design |
 | PR merged → PR's own card to `Done` | PR merges | Board workflow "Pull request merged" | Working. Moves the PR card only, not the linked ticket |
 | Merged to `develop` → ticket to `Done` | PR merges | Workflow `02-pr-status-monitor` | **Built but dormant** (see YaleSites-Internal#1385) |
+| Docs draft approved and staged → ticket to `Done` | Draft built on yalesites.yale.edu | `yalesites-docs-board` Step 8 | Working |
 | Release ships → ticket closed | Release merged to `master` | `release-prep` Phase 7 | Working |
 | Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | **Dormant** (see `release-prep` Phase 7). Must stay that way |
 | Status set to `Done` → issue closed | Board change | Board workflow "Auto-close issue" | **Off by design** since 2026-09-23. Turning it on closes tickets before they ship |
