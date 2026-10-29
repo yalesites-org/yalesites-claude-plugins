@@ -18,6 +18,7 @@ Explore <surface> on <sites and pages> to find <the oracle from the hypothesis>.
 - Sites and pages: ys-your-yale-edu /about, ys-registrar-yale-edu /calendar
 - Conditions to cover: <the untested condition, plus the pairwise rows if any>
 - Login: logged out | user 1 (read-only)
+- Devices: desktop Chrome 1280 | phone (WebKit, iPhone 15) | both
 - Budget: 20 minutes, or about 40 browser actions
 - Evidence folder: runs/<run>/screenshots/<NN>/
 ```
@@ -39,10 +40,24 @@ The subagent must:
 2. **Drive it.** Use `pr-feedback/references/drive-it.md`, Step D3 "Driving the page", for the CLI commands, with `-s=c<NN>`. Prefer `run-code` with locators on forms.
 3. **Capture the baseline.** For every check, capture the same page and condition on `live_url`. See "Baselines" in `rc-sites.md` for content drift.
 4. **Measure, don't eyeball.** Bounding boxes, computed colors, `scrollWidth > innerWidth`, counts of items, response codes.
-5. **Screenshot every check**, pass or fail, named `<NN>-<result>-<site>-<slug>.png`. Follow "Screenshots: every step, pass or fail" in `drive-it.md`. Look at every image before giving it a result, and retake it if it is wrong.
-6. **Re-run every failure once**, from a fresh page load. Agents misread pages that are still loading, and dynamic content, as failures. Only a failure that repeats is `confirmed`. A failure that does not repeat is `suspicious`, with both screenshots.
-7. **Stay inside the rules** in `rc-sites.md`: read-only, Layout Builder discard only, no outbound forms.
-8. **Close the browser session** when done.
+5. **Run phone checks on mobile WebKit**, not a narrow Chrome window (see "Phones" below).
+6. **Screenshot every check**, pass or fail, named `<NN>-<result>-<site>-<device>-<slug>.png`. Follow "Screenshots: every step, pass or fail" in `drive-it.md`. Look at every image before giving it a result, and retake it if it is wrong.
+7. **Re-run every failure once**, from a fresh page load. Agents misread pages that are still loading, and dynamic content, as failures. Only a failure that repeats is `confirmed`. A failure that does not repeat is `suspicious`, with both screenshots.
+8. **Stay inside the rules** in `rc-sites.md`: read-only, Layout Builder discard only, no outbound forms.
+9. **Close the browser session** when done.
+
+### Phones
+
+A narrow Chrome window tests breakpoints but not Safari's engine, touch instead of hover, or mobile form controls. So every phone check runs in Playwright's WebKit with iPhone emulation: Safari's engine, a 393px viewport at 3x density, an iPhone user agent, touch input, and `(hover: none)`.
+
+```bash
+npx -y @playwright/cli@0.1.22 -s=c<NN>-m open --browser webkit --device "iPhone 15" '<RC url or login link>'
+```
+
+- A phone session is its own session (`-s=c<NN>-m`), so it needs its own `uli` link: one-time links do not carry across sessions.
+- Capture the live baseline in the same device setup.
+- What to look for on phones in particular: sideways overflow (`document.documentElement.scrollWidth > innerWidth`), menus and dropdowns that only open on hover, sticky headers covering content, full-height heroes, tap targets under 24px, and images or embeds wider than the screen.
+- This is still emulation, not a real iPhone. It does not show the Safari toolbar changing the screen height, real iOS fonts, or native date and select pickers. If a finding depends on those, mark it `suspicious` and say "needs a real iPhone or the iOS Simulator to confirm".
 
 ### Debrief
 
@@ -117,12 +132,12 @@ This touches about 299 production sites. **Attended mode only**, with the user's
 
 When the ranked list is used up, make new charters from these, in this order. Weight every value by real use from the portfolio crawl, so common setups come first.
 
-1. **Pairwise combinations over the changed blocks.** Factors: global theme, section color, layout region, viewport width (360, 768, 1280). Take the values from what real sites use: `global_theme` in `sites-index.csv`, and `data-component-theme` plus the width and variation attributes in each site's `raw/sites/<site>.json`. Don't guess values, and drop empty ones (`global_theme` is blank for some sites). Generate the rows with `scripts/pairwise.py` (2-way), then find a real RC page that matches each row. 2-way covers most configuration bugs but not all of them, so also run 3-way, but only for blocks the RC directly changed.
+1. **Pairwise combinations over the changed blocks.** Factors: global theme, section color, layout region, and device (phone on WebKit, tablet at 768 in Chrome, desktop at 1280 in Chrome). Take the values from what real sites use: `global_theme` in `sites-index.csv`, and `data-component-theme` plus the width and variation attributes in each site's `raw/sites/<site>.json`. Don't guess values, and drop empty ones (`global_theme` is blank for some sites). Generate the rows with `scripts/pairwise.py` (2-way), then find a real RC page that matches each row. 2-way covers most configuration bugs but not all of them, so also run 3-way, but only for blocks the RC directly changed.
 2. **Content extremes.** Pages where the changed block has empty optional fields, a missing image, one item, the most items on any RC site, the longest title, or a long URL in a teaser (yalesites-org/YaleSites-Internal#1729). Find them with `SELECT`s, not by browsing.
 3. **Date boundaries** for anything that shows dates or events. Month ends, multi-day events, all-day events, recurring events, and the current month's last day (yalesites-org/YaleSites-Internal#1374, yalesites-org/YaleSites-Internal#1379).
 4. **Reusable vs. inline.** The same block type in existing placements of both kinds, found with a `SELECT` (never create one, and never submit a reusable block's form; see `rc-sites.md`) (yalesites-org/YaleSites-Internal#1381).
 5. **Neighbors.** The changed block directly above and below each other block type it appears next to on real pages, and nested in tabs or accordions where that is possible.
-6. **WebKit.** Changed surfaces in WebKit (Safari's engine), using "Safari" in `drive-it.md` (yalesites-org/YaleSites-Internal#1730). In `--drain`, only if WebKit is already installed.
+6. **Phones.** Every changed surface on mobile WebKit (see "Phones" above), on the RC pages with the most items or the longest content. Safari-only bugs are real (yalesites-org/YaleSites-Internal#1730, an EXIF-rotated photo that broke a card in Safari).
 7. **Another site.** A `clean` hypothesis, re-run on an RC site it has not been run on. This is the lowest priority: it never mattered in the hotfix lookback.
 
 A generated charter gets a hypothesis entry of kind `generated` and goes through the same rules: concrete oracle, baseline, re-run, debrief.

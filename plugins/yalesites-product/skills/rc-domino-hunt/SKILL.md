@@ -84,7 +84,7 @@ Add the standing hypotheses that every RC gets (calendar filter and navigation c
 
 See `references/charters.md`. Each hypothesis becomes a charter: "Explore *surface* on *sites* to find *what*", with a budget. Run each charter in its own subagent (Agent tool), passing the charter file path and the paths to `references/rc-sites.md` and `references/charters.md`. Run at most **two at a time**: the RC multidevs are small Pantheon containers shared with the team, and Playwright sessions must not collide. Name sessions `-s=c<NN>`.
 
-Also run the standing checks once per site per run: log diff, old-data queries, and accessibility on changed surfaces.
+Also run the standing checks once per site per run: log diff, old-data queries, and accessibility on changed surfaces. Every charter that looks at a page checks it on a phone too, in mobile WebKit (`references/charters.md`, "Phones").
 
 When the ranked list is used up, the generators in `references/charters.md` make new charters. In attended mode, stop and ask whether to keep going. In `--drain`, keep going.
 

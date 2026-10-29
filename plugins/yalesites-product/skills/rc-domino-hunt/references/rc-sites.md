@@ -38,6 +38,7 @@ Finish every check before the first charter. If one fails, say which one in one 
 | Node is available | `command -v npx` | Stop. |
 | Terminus works | `terminus multidev:list yalesites-yale-edu --fields=id` returns rows | Stop, and mention `terminus auth:login`. `auth:whoami` can say "not logged in" while commands still work, so test with a real command. |
 | The CLI opens a browser | `npx -y @playwright/cli@0.1.22 -s=preflight open about:blank`, then `-s=preflight close` | Follow "Browsers" in `pr-feedback/references/drive-it.md`. In `--drain`, never install anything: stop. |
+| The CLI opens mobile WebKit | `npx -y @playwright/cli@0.1.22 -s=preflight-m open --browser webkit --device "iPhone 15" about:blank`, then `-s=preflight-m close` | Attended: ask once, then `npx -y @playwright/cli@0.1.22 install-browser webkit` (no admin needed). In `--drain`: do not install. Run phone checks in Chrome at 390px instead, and say in the report that Safari was not covered. |
 | The RC runs the release branch | atomic version and a file checksum on one RC site vs the release branch head (below) | Stop. Say which site, with both values. Results from stale code are worse than none. |
 | At least half the RC sites exist | `exists` in `release.json` | Report the missing ones. Continue on the rest if at least half exist, otherwise stop. |
 
