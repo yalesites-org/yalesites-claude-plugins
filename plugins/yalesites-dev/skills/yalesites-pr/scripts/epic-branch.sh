@@ -3,7 +3,7 @@
 # issue sits under an epic, else the repo default branch (also for the epic issue
 # itself, whose own PR targets the default branch).
 # The epic is the nearest of the issue, its parent, grandparent or great-grandparent
-# carrying the YaleSites-Internal label "epic".
+# with Issue Type Epic in YaleSites-Internal (or the retired "epic" label, still honored).
 # Usage: epic-branch.sh <issue-number> <repo> [--ensure]
 #   --ensure creates the epic branch (empty commit) and its draft Epic PR if missing.
 # The branch name is the first hit of: a "Base branch: `name`" line in the epic body,
@@ -22,12 +22,12 @@ default=develop
 [[ " ${repos[*]} " == *" $repo "* ]] || { echo "unknown repo: $repo" >&2; exit 2; }
 
 # shellcheck disable=SC2016  # $n is a GraphQL variable
-q='fragment F on Issue{number title body labels(first:20){nodes{name}}}
+q='fragment F on Issue{number title body issueType{name} labels(first:20){nodes{name}}}
 query($n:Int!){repository(owner:"yalesites-org",name:"YaleSites-Internal"){issue(number:$n){...F parent{...F parent{...F parent{...F}}}}}}'
 info=$(gh api graphql -f query="$q" -F n="$issue" --jq '.data.repository.issue') \
   || { echo "cannot read issue $issue" >&2; exit 1; }
 epic=$(jq -r '[., .parent, .parent.parent, .parent.parent.parent]
-  | map(select(. != null and any(.labels.nodes[]; .name=="epic"))) | first
+  | map(select(. != null and (.issueType.name == "Epic" or any(.labels.nodes[]; .name=="epic")))) | first
   | if . == null then "" else "\(.number)\t\(.title)" end' <<<"$info")
 if [[ -z $epic ]]; then echo "$default"; exit 0; fi
 IFS=$'\t' read -r num title <<<"$epic"
@@ -38,7 +38,7 @@ title=$(sed -E 's/^[[:space:]]*[Ee][Pp][Ii][Cc][[:space:]]*:[[:space:]]*//' <<<"
 # Declared base branch in the epic body: > **Base branch:** `name`.
 # shellcheck disable=SC2016  # backticks are literal in the sed pattern
 declared=$(jq -r '[., .parent, .parent.parent, .parent.parent.parent]
-  | map(select(. != null and any(.labels.nodes[]; .name=="epic"))) | first | .body // ""' <<<"$info" \
+  | map(select(. != null and (.issueType.name == "Epic" or any(.labels.nodes[]; .name=="epic")))) | first | .body // ""' <<<"$info" \
   | sed -nE 's/.*Base branch:[^`]*`([^`]+)`.*/\1/p' | head -1)
 
 # Prints the head branch of the open Epic PR titled "<epic>:" in repo $1 (empty if none);
