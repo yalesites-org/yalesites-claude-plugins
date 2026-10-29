@@ -222,4 +222,4 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - If it is already "In review", make no change.
    - `gh` needs the **`project` scope** for this write; `read:project` can read the board but not write to it. If the write fails, don't retry or troubleshoot the user's `gh` setup mid-task — report that the status wasn't moved and carry on. The PR itself is the important artifact.
 
-   Full board reference (all Status options and their meanings, Priority/Size, reading current values, and which skill owns which transition) lives in the `ticket` skill's `references/board-status.md`, in the `yalesites-product` plugin. The command above is self-sufficient without it.
+   Full board reference (all Status options and their meanings, Priority/Risk, reading current values, and which skill owns which transition) lives in the `ticket` skill's `references/board-status.md`, in the `yalesites-product` plugin. The command above is self-sufficient without it.

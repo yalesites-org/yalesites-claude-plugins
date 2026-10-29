@@ -379,10 +379,10 @@ posted review will *not* cover, which is what makes a scoped approval honest:
 Two calls are outside your lane, so I have left them:
 - The `--variant` default on line 88 is a code call. That one is for our lead developer.
 - The 12px gap under the heading is a design call, April's.
-Neither gates your functional approval. Want me to flag them on the PR for whoever picks them up?
+Neither gates your functional approval. Want me to raise them as decisions for whoever owns them?
 ```
 
-Offer to flag them as a plain non-blocking comment if the reviewer wants, and skip it if not.
+Offer to raise each one as a `needs-decision` on the PR (see "Open calls go on the record" below), with **Decides** set to the owner the role map names for that dimension. When no one in `references/reviewer-roles.md` owns the dimension, ask the reviewer who should decide. Skip it if the reviewer says no.
 
 **On the unscoped path from Step 0, none of this applies.** Every held call goes to the user, as
 it does today.
@@ -391,6 +391,31 @@ If the brief's Your calls section is empty, say so plainly rather than inventing
 An empty section means the audit found nothing that needed a human ruling, which is a real
 and common outcome. Say it is empty even when the reviewer is scoped, so an empty brief and a
 fully-out-of-lane brief do not look the same from the outside.
+
+### Open calls go on the record
+
+Anything this review leaves open must end up on GitHub with a name and a date, not only in this chat. That is what puts it in the owner's queue: the `router` brief and the work dashboard both read these labels. The labels, block formats, and resolution lines are defined in `../ticket/references/routing.md` ("Waiting on a person"). Use them exactly, since the router parses them.
+
+**Before asking anything, check what's already open.** Read the PR and its linked issue for an open `needs-decision` or `follow-up` (labels plus the latest `## Decision needed` / `## Follow-up needed` block):
+
+```bash
+gh pr view NUMBER --repo yalesites-org/REPO --json labels,body,comments \
+  --jq '{labels: [.labels[].name], blocks: [(.body, .comments[].body) | select(test("## (Decision|Follow-up) needed"))]}'
+```
+
+Put any open decision that names the reviewer to them first, ahead of the brief's calls. If they answer it, post the resolution line from `routing.md` (`## Decision: (b), decided by Michael on 2026-11-03. Reason: ...`) as part of Step 9, and remove the label in Step 8.
+
+**Raise a block when a call stays open:**
+
+| What happened | What to raise | Who |
+|---|---|---|
+| A held call is out of the reviewer's lane, and they said yes to raising it | `needs-decision` on the PR | Decides: the dimension's owner from the role map |
+| The reviewer can't call it yet ("let me think," "I want to see the real site," "check with Chris") | `needs-decision` if it's a choice, `follow-up` if someone owes an action | The reviewer, or whoever they name |
+| The review requests changes that hinge on an unanswered product question | `needs-decision`, and say in the review body that the changes wait on it | The decider |
+
+Default **Needed by** to 5 working days out unless the reviewer gives a date. Post each block as its own PR comment in Step 9, before the review itself, and add the label in Step 8. Then tell the reviewer what you raised, in one line each.
+
+**Never raise one silently.** Each block is a public ask of a named person, so confirm the list with the reviewer before posting, the same way the review body is confirmed.
 
 **Part 2, their own read.** Always ask what they noticed, separately from your questions. They
 may have tested the multidev before starting this session, or carry context from a meeting the
@@ -480,7 +505,7 @@ Offer a follow-up ticket. If they want it, **invoke the `ticket` skill** to crea
   README or docs folder).
 
 **Every follow-up ticket goes through the `ticket` skill, never a hand-written `gh issue create`.**
-Copying its body format is not enough. The skill is what sets Status, Priority, Size, and Issue
+Copying its body format is not enough. The skill is what sets Status, Priority, Risk, and Issue
 Type on the board and reads them back. A ticket written by hand lands with the right labels and
 an empty board, which is how `YaleSites-Internal#1870` shipped without Priority or Size on
 2026-10-05.
@@ -600,6 +625,8 @@ Labels go through `gh api ... -X PUT`, which **replaces the entire label set**. 
 Rather than a simple remove-one/add-one swap, **reconcile the whole set of review-state labels** every time. A PR can arrive in an inconsistent state (e.g. still carrying `pass functional review` / `ready to merge` from an earlier pass that a fresh deep-dive now contradicts), so start by stripping *all* of these regardless of which are present, then add back only the ones that match the new outcome:
 
 Review-state labels to strip before reapplying: `needs review`, `needs work`, `pass code review`, `pass functional review`, `pass design review`, `pass a11y review`, `ready to merge`, `ready to close`. Leave every other label (type, epic, milestone-linked, etc.) untouched.
+
+**`needs-decision` and `follow-up` are not review-state labels.** Never strip them in the reconcile. Add one only for a block raised in Step 3b, and remove one only when this review resolved it (see "Open calls go on the record").
 
 Strip only labels actually present on the PR, and never add one the repo does not define. The full set differs by repo: `pass a11y review` exists in `yalesites-project` and `component-library-twig` only, `pass design review` in `component-library-twig` only, and `ready to close` in `yalesites-project` only. `yale-ui-cl` defines `pass code review` and `pass functional review` and none of the others. `references/reviewer-roles.md` holds the confirmed matrix and the command to re-verify it.
 
@@ -735,7 +762,7 @@ silently litters a new label onto the repo instead of failing. Check the repo be
 
 ## Step 9: Post it, and confirm it landed
 
-Post the review from Step 6 and the label update from Step 8, in that order.
+Post any decision or follow-up blocks and resolution lines from Step 3b first, each as its own PR comment, then the review from Step 6, then the label update from Step 8.
 
 `gh` writes with the CLI's own credentials, so the GitHub connector's 403 write gap does not
 apply here. If a write does fail, read the error rather than retrying blindly:
