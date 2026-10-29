@@ -23,7 +23,7 @@ Search these when you need implementation context, but always write the issue de
 - An epic's native GitHub progress bar only reflects open/closed sub-issue state. It has no awareness of custom Project board Status fields (e.g., "Ready for Deployment"), so don't expect it to show a custom workflow stage as complete — that needs to be tracked separately if it matters.
 - Some larger reworks run as "the whole epic lives in one PR" — nothing merges until the full scope is done and approved, rather than the usual merge-then-follow-up-tickets model. Confirm which model applies to a given epic before drafting PR review feedback that assumes work will continue after merge.
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
-- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only `gh project item-edit` does. See "Writing Status, Priority, and Size to the Board" below.
+- **Status, Priority, and Risk aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only a board write does: use `scripts/set-board-fields.sh`. See "Writing Status, Priority, and Risk to the Board" below.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
 - **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI, distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
 
@@ -58,7 +58,7 @@ gh api user --jq .login
 ```
 
 - **A groomer** (`miketullo95` for anything; `dblanken-yale` for dev-only work): use the full flow in the rest of this skill.
-- **Anyone else, filing a feature request or enhancement:** write an **intake stub** (below) and stop. Don't ask about phases, Priority, Size, milestone, assignee, or `claude`. Those aren't their calls, and asking makes filing feel like a test.
+- **Anyone else, filing a feature request or enhancement:** write an **intake stub** (below) and stop. Don't ask about phases, Priority, Risk, milestone, assignee, or `claude`. Those aren't their calls, and asking makes filing feel like a test.
 - **Anyone else, filing a bug or comms, docs, or training work:** use the full flow, but skip the Priority question and leave Priority unset. Say in your summary that a groomer will set it.
 
 If the request is unclear about which kind it is, ask the filer one plain question ("Is this something broken, or something new you'd like it to do?"), not a field.
@@ -96,7 +96,7 @@ source: [servicenow|office-hours|email|meeting|other]
 -->
 ```
 
-Create it with title `Feature Request: <what they want>`, Issue Type `Feature`, label `forming`, board Status `Backlog`, and nothing else (no Priority, Size, milestone, assignee, or `claude`). Read back the type, label, and Status. Then tell the filer: "Filed as #N. Michael will groom it; you'll see it move when he does."
+Create it with title `Feature Request: <what they want>`, Issue Type `Feature`, label `forming`, board Status `Backlog`, and nothing else (no Priority, Risk, milestone, assignee, or `claude`). Read back the type, label, and Status. Then tell the filer: "Filed as #N. Michael will groom it; you'll see it move when he does."
 
 ### Grooming a `forming` ticket
 
@@ -106,18 +106,18 @@ When a groomer grooms a `forming` ticket, run the full flow on it (see "Grooming
 
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket** (as a groomer; see "Who's Filing" above), check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
+Before doing any grooming or drafting work on a **single ticket** (as a groomer; see "Who's Filing" above), check whether the user's prompt covered **Status**, **Priority**, **Risk**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
 
 **Batch them, but mind the caps.** `AskUserQuestion` allows at most **4 questions per call** and at most **4 options per question**. Both are hard validation, so a call asking six questions is rejected outright and the user sees nothing. Six unanswered fields therefore go in two calls:
 
-1. **Board fields:** Status, Priority, Size, Milestone.
+1. **Board fields:** Status, Priority, Risk, Milestone.
 2. **Routing:** Assignee, and the `claude` label.
 
 Two calls instead of six round trips. Drop whatever the user already answered, and if four or fewer are left, ask in one call.
 
-The option cap bites just as easily: Status has six valid values, Size has five, and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
+The option cap bites just as easily: Status has six valid values and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
 
-Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
+Do not guess or default these values silently. Status and Priority decide how the ticket is sequenced on the project board, Risk decides how carefully it's built and reviewed; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
 
 ### Status (project board column)
 
@@ -150,11 +150,11 @@ If not specified, ask: *"What priority should this be — Hotfix, High, Medium, 
 
 If the answer is Hotfix, the title needs the `Hotfix:` prefix stacked in front of its type prefix. See "Title" below.
 
-### Size
+### Risk
 
-Valid options: `XS` · `S` · `M` · `L` · `XL`
+Valid options: `Low` · `Medium` · `High`
 
-If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"* Five values against a 4-option cap, so offer the four that bracket your own estimate and let **Other** carry the fifth.
+If not specified, ask: *"What risk level is this: Low, Medium, or High?"* Lead with your own read from the definitions in "4. Risk" below. Size was retired on 2026-10-28; don't ask for it or set it.
 
 ### Milestone
 
@@ -243,7 +243,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 
 Two things have to be true before it goes on:
 
-- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Size, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
@@ -252,29 +252,27 @@ Assignee and `claude` are independent: a ticket can be both assigned to a person
 
 Once the values are confirmed, proceed with grooming.
 
-**Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Size to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
+**Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Risk to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
 
 ---
 
-## Writing Status, Priority, and Size to the Board
+## Writing Status, Priority, and Risk to the Board
 
-Once the issue exists and Status/Priority/Size are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`) with the `gh` CLI. This is the only supported path. **Never apply `status:*`, `priority:*`, or `size:*` labels as a substitute.** The label-sync workflow does not match them, so they leave the board field empty while looking like they worked. `references/board-status.md` has the history.
+Once the issue exists and Status/Priority/Risk are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`) with the `gh` CLI. This is the only supported path. **Never apply `status:*`, `priority:*`, or `size:*` labels as a substitute.** The label-sync workflow does not match them, so they leave the board field empty while looking like they worked. `references/board-status.md` has the history.
 
 **`gh` CLI** writes the Project v2 fields directly.
 
 1. Check it's usable before relying on it: `gh auth status`. `gh` needs to be installed, authenticated, and its token needs the `project` scope specifically — `read:project` alone can read the board but can't write to it. If any of that isn't true, don't troubleshoot the user's `gh` setup mid-task. Go to "No `gh`" below.
-2. Make sure the issue is on the board (a no-op if it's already there): `gh project item-add 6 --owner yalesites-org --url <issue-url>`
-3. Set each field by name — no need to look up field or option IDs:
+2. Put the issue on the board and set every field in one go with `scripts/set-board-fields.sh`. It adds the issue if it isn't there yet, writes all the fields in a single call, and prints what the board now says:
    ```bash
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "To Do"
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
+   scripts/set-board-fields.sh <issue-number> Status="To Do" Priority=High Risk=Medium
    ```
-   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`).
-4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry. Go to "No `gh`" below.
+   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization. The script refuses a value that isn't an option, and several Status options are not title-cased (`In progress`, `In review`). Add `-R owner/repo` for an issue outside YaleSites-Internal.
+3. **Don't use `gh project item-edit --url` for this.** On a board this size, each call looks the item up again and is expensive. A batch of tickets (a feature with its phases, a set of sub-issues) trips GitHub's per-minute limit partway through and leaves tickets half set. The script makes about four cheap calls per ticket. For the other writes, prefer REST: `gh api -X PATCH repos/<repo>/issues/<n> -f type=Task` sets the Issue Type, and the sub-issue and blocked-by calls in "Wiring" are REST already.
+4. If the script fails for any reason (auth, scope, a renamed option, a rate limit), don't loop on it. Go to "No `gh`" below, or wait a few minutes if the error says the rate limit was hit.
 5. **Read it back.** After every field, milestone, assignee, and Issue Type write, confirm them in one query (the read-back query is in `references/board-status.md`, step 3 of "Writing a field"). A command that returned no error is not proof. Fix anything missing before reporting the ticket as done, and name which field it was.
 
-**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Size: XS`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
+**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Risk: Low`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
 
 ### Writing the milestone, assignee, and `claude` label
 
@@ -461,17 +459,17 @@ Choose one based on user and platform impact. Priority says what goes first, not
 
 ---
 
-### 4. Size
+### 4. Risk
 
-Estimate relative effort and complexity:
+How much could go wrong, and how hard it is to undo. Risk sets how carefully the work is built and reviewed, and breaks ties in the agent pickup order. It replaced Size on 2026-10-28; don't estimate effort.
 
-| Size | Definition |
-|------|-----------|
-| **XS** | Single file change or quick setting adjustment. < 1 hour |
-| **S** | Minor feature update or simple block modification. 1–4 hours |
-| **M** | New block component or moderate platform enhancement. 1–2 days |
-| **L** | Complex feature with multiple components or significant UX changes. 3–5 days |
-| **XL** | Major platform addition requiring design system updates and extensive testing. 1–2 weeks |
+| Risk | Means | What it triggers |
+|------|-------|------------------|
+| **Low** | Bounded, existing patterns, easy rollback | The normal gate and pre-review, one quick human look |
+| **Medium** | Shared components, config, update hooks, editor-facing UI | A plan comment before building, functional and design review |
+| **High** | New data, auth, migrations, irreversible, or cross-repo | A spike or ADR first, Dave on code, Michael on product, visual regression, Vincent on deploy |
+
+If unsure between two levels, pick the higher one.
 
 ---
 
@@ -519,10 +517,10 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
 ### Steps
 
 1. **Pick the phases.** Ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
-2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Size go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
+2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
 3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
 4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
-5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. Ask once for the whole set ("use the default owners?") rather than per child.
+5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
 6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
 7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
@@ -616,7 +614,7 @@ Create the child tickets as real GitHub issues first, then reference their numbe
 
 ### Step 5: Write each child ticket using the standard Issue Format
 
-Every child ticket still follows the six-field format above (Description, Acceptance Criteria, Priority, Size, Type, Labels). An epic doesn't change how individual tickets are written — it just adds a parent that ties them together and gives the whole body of work a shared goal.
+Every child ticket still follows the six-field format above (Description, Acceptance Criteria, Priority, Risk, Type, Labels). An epic doesn't change how individual tickets are written — it just adds a parent that ties them together and gives the whole body of work a shared goal.
 
 ### Avoid these epic anti-patterns
 
@@ -662,7 +660,7 @@ An open `needs-decision` also blocks the `claude` label (see "Claude pickup" abo
 When grooming an existing ticket that's missing fields or has a thin description:
 
 1. Read the existing issue body — preserve anything already written
-2. Identify what's missing (description too vague, no acceptance criteria, no size/priority, etc.) — including whether the title is vague, generic, or doesn't match what the description actually says
+2. Identify what's missing (description too vague, no acceptance criteria, no priority/risk, etc.) — including whether the title is vague, generic, or doesn't match what the description actually says
 3. Search the relevant repos for context if the work is technical
 4. Fill in the missing fields following the format above, rewriting the title if it doesn't clearly state the work (see "Title" above)
 5. If the ticket has no TL;DR line, add one at the top. If it carries a block of platform-fit or archetype analysis inline above the Description, move it into a collapsed **Background and analysis** block — this is a reformat, not a rewrite; preserve the words
@@ -691,9 +689,9 @@ Before submitting or updating an issue, check:
 - [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
 - [ ] For a ticket that names a specific block, section layout, or sitewide setting, the one-line adoption figure with its crawl vintage is in the Background and analysis block (Step 1c), or the `yalesites-portfolio` skill was unavailable and no number was estimated
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
-- [ ] Size is realistic — if unsure, err toward larger
+- [ ] Risk is set. If unsure, err toward the higher level
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
-- [ ] Status, Priority, Size, Type, milestone, and assignee were **read back** from GitHub after writing, not assumed from a clean exit
+- [ ] Status, Priority, Risk, Type, milestone, and assignee were **read back** from GitHub after writing, not assumed from a clean exit
 - [ ] No `status:*`, `priority:*`, or `size:*` label is on the ticket
 - [ ] Relevant labels are applied
 - [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first

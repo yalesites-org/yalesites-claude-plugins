@@ -32,6 +32,7 @@ Rules:
 - **Gates.** A phase with a handle in the Gate column needs that person's go before it starts. When its blockers finish, the router does not move it. It lists it under "Waiting on a go" instead. `auto` means the router moves it on its own. Gates are set per phase here, so adding or removing one is a one-cell edit.
 - **Defaults, not rules.** Reassign any child when the work calls for it. The router only assigns the default owner when a child it promotes has no assignee.
 - April (UX) and Michael (QA) are first guesses as of 2026-10-27. Confirm or change them here.
+- **April's capacity varies week to week.** The `ticket` skill asks before assigning a UX phase to her and falls back to Michael. The router only assigns default owners to children it promotes, and UX is always a first phase, so it never assigns April on its own.
 
 ### How a phase child is marked
 
@@ -65,7 +66,7 @@ When someone who is not a groomer runs the `ticket` skill:
 
 | They're filing | They get | Labels and fields |
 |---|---|---|
-| A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Size, milestone, assignee, or `claude` |
+| A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Risk, milestone, assignee, or `claude` |
 | A bug, or comms, docs, or training work | A full ticket, as today | Everything except Priority, which a groomer sets |
 
 **`forming` is the intake label.** It means "filed, not yet groomed." Every open `forming` ticket shows in the router brief's Intake section and in the dashboard's Intake queue. Grooming removes it.
@@ -90,7 +91,7 @@ Priority is also how every agent orders its work, whoever runs it. When an agent
 4. **The next milestone**: the dated release milestone after the current one, in the same order, only once the current one has nothing left it can take: every ticket still open in it is assigned to someone else, blocked, waiting on a `needs-decision`, or already has an open PR. During an RC window, next-release work doesn't merge to `develop`.
 5. **Never a ticket with no milestone, except a `Hotfix`** (step 2). A person schedules it first.
 
-Ties go to lower Risk once the board has a Risk field. Until then, the older ticket wins.
+Ties go to lower Risk (a board field since 2026-10-28). When Risk isn't set, the older ticket wins.
 
 **The team cap.** Every open yalesites-project PR uses one of Pantheon's 25 multidevs, and the whole team shares them. When 25 or more yalesites-project PRs are open, agents stop taking new work and only do rework and `Hotfix` tickets. A person can wave through something that's clearly urgent. It's a soft cap on purpose: it doesn't matter whether those PRs are waiting on review, approved, or in rework. A closed PR's multidev lives until the next deploy, so the open count can run a little low.
 
