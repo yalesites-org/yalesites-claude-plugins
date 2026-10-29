@@ -199,6 +199,8 @@ is not, and "open the multidev" is useless when there are four different multide
   **and name that sibling PR**, so it is clear why the number in the URL does not match the PR
   under review.
 - **`tokens`:** same, through the sibling `component-library-twig` preview.
+- **`yale-ui-cl`:** no PR preview. Its GitHub Pages Storybook builds from `main` only, so say
+  the branch is local-only and never link the Pages site as the PR's environment.
 - **No sibling, or a probe that did not answer:** say there is no deployed way to see this and
   that it is local-only. Never print a link that failed its probe.
 
@@ -256,6 +258,8 @@ packet numbers its files from `01`, so two units' `01-...` files would overwrite
 the board would show one unit's screenshot on the other's question. Prefix each copied file with
 the packet id (`ysp-1608-01-fail-editor-overflow-360.png`) and rewrite every `src` to the new
 name, including a `compare` block's `images[].src` and a `video` block's `src` and `poster`.
+Copy each prepped packet's `units` entry into the batch packet's `units`, and write one for every
+unit that was not prepped, so the About panel names the ticket and PR on every page.
 Set `pr` on each question so its page is tagged with the PR, keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.

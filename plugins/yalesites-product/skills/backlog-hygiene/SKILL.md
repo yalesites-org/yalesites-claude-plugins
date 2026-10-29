@@ -78,8 +78,8 @@ Run these across every open ticket. No bodies needed.
 
 **Classification gaps**
 - **No native Issue Type set** (`issueType` is null). This is the one that matters; the team's types are `Feature`, `Bug`, `Task`, `Communications`, `AI`, `Vendor/Supported Builds`, and `Epic`.
-- **Native Issue Type contradicts a type label**, for example native type `Feature` on a ticket labelled `task`. Report the conflict, don't pick a winner. Roughly a third of tickets carrying both disagree, so this is a real class, not an edge case.
-- Title starts with `Epic:` but the `epic` label and native `Epic` type are both missing, or vice versa
+- **A retired type label is still on an open ticket** (`bug`, `feature`, `task`, `epic`, `communications`, retired 2026-10-28). Report it next to the ticket's Issue Type. The Issue Type wins, and the label can just come off.
+- Title starts with `Epic:` but the Issue Type isn't `Epic`, or vice versa
 
 **Leftover trigger labels**
 - Any `status:*`, `priority:*`, or `size:*` label still present. Skills no longer apply these, and the sync Action never matched them (its mappings expect `priority: medium` with a space). A label like this almost always means the board field was never set. Report the label next to the ticket's actual board value. See the `ticket` skill's `references/board-status.md`.
