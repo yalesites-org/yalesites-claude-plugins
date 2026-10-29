@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always sets Issue Type Epic on parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always sets Issue Type Epic on parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Scopes a new Feature as a parent issue (not an epic) with one sub-issue per phase that applies (UX, Design, Development, QA, Visual regression, Docs), each assigned to its phase owner and chained with blocked-by dependencies so the router skill can hand each phase off when the one before it finishes, and gathers an in-flight feature's loose tickets under one parent. Also use to raise or resolve a `needs-decision` or `follow-up` on an issue (e.g. 'flag this for April to follow up', 'this needs a decision from Michael'). When someone other than a groomer files a feature request, it writes a short intake stub labeled `forming` for the PM to groom instead of asking them to make product calls. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -23,7 +23,7 @@ Search these when you need implementation context, but always write the issue de
 - An epic's native GitHub progress bar only reflects open/closed sub-issue state. It has no awareness of custom Project board Status fields (e.g., "Ready for Deployment"), so don't expect it to show a custom workflow stage as complete — that needs to be tracked separately if it matters.
 - Some larger reworks run as "the whole epic lives in one PR" — nothing merges until the full scope is done and approved, rather than the usual merge-then-follow-up-tickets model. Confirm which model applies to a given epic before drafting PR review feedback that assumes work will continue after merge.
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
-- **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only `gh project item-edit` does. See "Writing Status, Priority, and Size to the Board" below.
+- **Status, Priority, and Risk aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only a board write does: use `scripts/set-board-fields.sh`. See "Writing Status, Priority, and Risk to the Board" below.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
 - **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI; it replaced the `feature`/`bug`/`task`/`epic` type labels, retired 2026-10-28) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
 
@@ -49,20 +49,75 @@ Search these when you need implementation context, but always write the issue de
 
 ---
 
+## Who's Filing: Intake or Full Grooming
+
+**Check this first, before any other step.** Grooming means product calls (priority, scope, phases, milestone, who builds it), and those belong to the groomers listed in `references/routing.md` under "Intake." Find out who is running the skill:
+
+```bash
+gh api user --jq .login
+```
+
+- **A groomer** (`miketullo95` for anything; `dblanken-yale` for dev-only work): use the full flow in the rest of this skill.
+- **Anyone else, filing a feature request or enhancement:** write an **intake stub** (below) and stop. Don't ask about phases, Priority, Risk, milestone, assignee, or `claude`. Those aren't their calls, and asking makes filing feel like a test.
+- **Anyone else, filing a bug or comms, docs, or training work:** use the full flow, but skip the Priority question and leave Priority unset. Say in your summary that a groomer will set it.
+
+If the request is unclear about which kind it is, ask the filer one plain question ("Is this something broken, or something new you'd like it to do?"), not a field.
+
+### The intake stub
+
+Ask the filer only what they know, in one `AskUserQuestion` call or from what they've already said:
+
+- What was asked for, in the requester's own words if possible
+- Who asked (name and office or site), and where it came from (ServiceNow ticket number, office hours date, email, meeting)
+- Why it matters to them, and how many people it affects if they know
+- Links or screenshots (use `github-screenshots` for images)
+
+Then run the **Platform Fit Check** (Step 1 below only). If the feature already exists, tell the filer right away; they may be able to answer the requester today. Put the finding in the stub.
+
+Write it like this:
+
+```markdown
+**TL;DR:** [Requester] asked for [one plain sentence]. Filed for grooming.
+
+## The request
+[What they asked for, in their words. Why it matters to them.]
+
+## Where it came from
+**Requester:** [name, office or site]   **Source:** [ServiceNow INC/RITM number, office hours YYYY-MM-DD, email]
+**Filed by:** @[filer]
+
+## Platform fit
+[Already exists / extends X / new. One or two lines.]
+
+<!-- yalesites:agent
+surface: ticket
+kind: intake-stub
+source: [servicenow|office-hours|email|meeting|other]
+-->
+```
+
+Create it with title `Feature Request: <what they want>`, Issue Type `Feature`, label `forming`, board Status `Backlog`, and nothing else (no Priority, Risk, milestone, assignee, or `claude`). Read back the type, label, and Status. Then tell the filer: "Filed as #N. Michael will groom it; you'll see it move when he does."
+
+### Grooming a `forming` ticket
+
+When a groomer grooms a `forming` ticket, run the full flow on it (see "Grooming Existing Stub Tickets"). Keep the request, source, and filer sections as they are. A feature becomes a feature parent: retitle it `Feature: <name>` and add its phases (see "Scoping a Feature"). Remove `forming` as the last step, once every field is written and read back.
+
+---
+
 ## Clarify Missing Fields Before Starting
 
-Before doing any grooming or drafting work on a **single ticket**, check whether the user's prompt covered **Status**, **Priority**, **Size**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
+Before doing any grooming or drafting work on a **single ticket** (as a groomer; see "Who's Filing" above), check whether the user's prompt covered **Status**, **Priority**, **Risk**, **Milestone**, **Assignee**, and whether they want the **`claude` label**. Ask about anything they haven't already answered, using the `AskUserQuestion` tool.
 
 **Batch them, but mind the caps.** `AskUserQuestion` allows at most **4 questions per call** and at most **4 options per question**. Both are hard validation, so a call asking six questions is rejected outright and the user sees nothing. Six unanswered fields therefore go in two calls:
 
-1. **Board fields:** Status, Priority, Size, Milestone.
+1. **Board fields:** Status, Priority, Risk, Milestone.
 2. **Routing:** Assignee, and the `claude` label.
 
 Two calls instead of six round trips. Drop whatever the user already answered, and if four or fewer are left, ask in one call.
 
-The option cap bites just as easily: Status has six valid values, Size has five, and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
+The option cap bites just as easily: Status has six valid values and the assignee table below lists nine handles. Offer the few most likely for this ticket and let the user take **Other**, which `AskUserQuestion` supplies on its own. Never list every valid value as an option just because it is valid.
 
-Do not guess or default these values silently. Status, Priority, and Size decide how the ticket is prioritized and sequenced on the project board; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
+Do not guess or default these values silently. Status and Priority decide how the ticket is sequenced on the project board, Risk decides how carefully it's built and reviewed; Milestone decides which release it ships in; Assignee and the `claude` label decide who (or what) actually picks it up.
 
 ### Status (project board column)
 
@@ -95,11 +150,11 @@ If not specified, ask: *"What priority should this be — Hotfix, High, Medium, 
 
 If the answer is Hotfix, the title needs the `Hotfix:` prefix stacked in front of its type prefix. See "Title" below.
 
-### Size
+### Risk
 
-Valid options: `XS` · `S` · `M` · `L` · `XL`
+Valid options: `Low` · `Medium` · `High`
 
-If not specified, ask: *"What size estimate feels right — XS, S, M, L, or XL?"* Five values against a 4-option cap, so offer the four that bracket your own estimate and let **Other** carry the fifth.
+If not specified, ask: *"What risk level is this: Low, Medium, or High?"* Lead with your own read from the definitions in "4. Risk" below. Size was retired on 2026-10-28; don't ask for it or set it.
 
 ### Milestone
 
@@ -120,6 +175,7 @@ Three kinds of milestone show up in that list, and only the first is ever a vali
 |------|----------|-----------------|
 | **Dated release** | `12-08-26 Feature Release`, `07-07-26 Drupal 10.6 Release` | The normal case. This is what "next upcoming release" means. |
 | **Initiative** | `Views Block Rework`, `Drupal AI Migration` | Only when the ticket is a child of that epic or initiative. Don't pick one just because it happens to be open. |
+| **Hotfix** | `10-14-26 Hotfix` | Only for a `Hotfix`-priority ticket. See "Hotfix tickets" below. |
 | **Catch-all bucket** | `Ready For Work`, `Backlog` | The work is real but genuinely unscheduled. These carry sentinel due dates far in the future (2030), so they'll never win a soonest-due-date sort. Don't let one become the default by accident. |
 
 Two traps when working out which release is "next":
@@ -128,6 +184,18 @@ Two traps when working out which release is "next":
 - **Don't drop new feature work into a release that's already in its RC window.** Once RC testing has started, only fixes for that release belong in it; new feature work goes to the release after. If you can't tell whether a release is locked, ask instead of assuming.
 
 If not specified, ask: *"What milestone should this go in?"* Offer the next upcoming feature release first as the recommendation, with the current in-flight release and "no milestone for now" as the alternatives.
+
+**Hotfix tickets.** A `Hotfix`-priority ticket still gets a milestone: the open `MM-DD-YY Hotfix` milestone for the hotfix it ships in. Agents will pick up a Hotfix with no milestone (see "Priority and the agent pickup order" in `references/routing.md`), but that is a fallback, not the plan. List open milestones whose title ends in `Hotfix`:
+
+- **One or more open:** recommend the soonest, with "no milestone for now" as the alternative.
+- **None open:** ask *"There's no open hotfix milestone. Do you want to create one for the upcoming hotfix?"* If yes, ask the hotfix date, then create `MM-DD-YY Hotfix` with its due date one week after the hotfix date at `T12:00:00Z`, matching the release milestones' hotfix buffer:
+
+  ```bash
+  gh api repos/yalesites-org/YaleSites-Internal/milestones -X POST \
+    -f title="MM-DD-YY Hotfix" -f due_on="YYYY-MM-DDT12:00:00Z"
+  ```
+
+  If no, leave the milestone empty and say the ticket is unscheduled until someone picks a hotfix date.
 
 For an **epic**, the milestone is a scoping decision rather than a routine field, and the epic's own clarifying questions already cover it (Step 1 under "Creating an Epic": YaleSites epics ship as a single unit in one milestone). Don't ask for it twice.
 
@@ -175,7 +243,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 
 Two things have to be true before it goes on:
 
-- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Size, and Type all present, and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
@@ -184,29 +252,27 @@ Assignee and `claude` are independent: a ticket can be both assigned to a person
 
 Once the values are confirmed, proceed with grooming.
 
-**Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Size to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
+**Note:** if the request is actually epic-shaped (see "Creating an Epic" below), don't apply Status/Priority/Risk to the parent epic ticket the same way — those apply to each child ticket individually. Use the epic's own clarifying-question flow instead.
 
 ---
 
-## Writing Status, Priority, and Size to the Board
+## Writing Status, Priority, and Risk to the Board
 
-Once the issue exists and Status/Priority/Size are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`) with the `gh` CLI. This is the only supported path. **Never apply `status:*`, `priority:*`, or `size:*` labels as a substitute.** The label-sync workflow does not match them, so they leave the board field empty while looking like they worked. `references/board-status.md` has the history.
+Once the issue exists and Status/Priority/Risk are confirmed, write them to the **YaleSites Board** project (`yalesites-org`, project number `6`) with the `gh` CLI. This is the only supported path. **Never apply `status:*`, `priority:*`, or `size:*` labels as a substitute.** The label-sync workflow does not match them, so they leave the board field empty while looking like they worked. `references/board-status.md` has the history.
 
 **`gh` CLI** writes the Project v2 fields directly.
 
 1. Check it's usable before relying on it: `gh auth status`. `gh` needs to be installed, authenticated, and its token needs the `project` scope specifically — `read:project` alone can read the board but can't write to it. If any of that isn't true, don't troubleshoot the user's `gh` setup mid-task. Go to "No `gh`" below.
-2. Make sure the issue is on the board (a no-op if it's already there): `gh project item-add 6 --owner yalesites-org --url <issue-url>`
-3. Set each field by name — no need to look up field or option IDs:
+2. Put the issue on the board and set every field in one go with `scripts/set-board-fields.sh`. It adds the issue if it isn't there yet, writes all the fields in a single call, and prints what the board now says:
    ```bash
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Status" --value "To Do"
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Priority" --value "High"
-   gh project item-edit 6 --owner yalesites-org --url <issue-url> --field "Size" --value "M"
+   scripts/set-board-fields.sh <issue-number> Status="To Do" Priority=High Risk=Medium
    ```
-   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization — `gh` matches `--value` against the field's configured options, and several Status options are not title-cased (`In progress`, `In review`).
-4. If any `gh project` command fails for any reason (auth, scope, a renamed option, anything), don't retry. Go to "No `gh`" below.
+   Use the exact option text from the "Clarify Missing Fields" section above, including its capitalization. The script refuses a value that isn't an option, and several Status options are not title-cased (`In progress`, `In review`). Add `-R owner/repo` for an issue outside YaleSites-Internal.
+3. **Don't use `gh project item-edit --url` for this.** On a board this size, each call looks the item up again and is expensive. A batch of tickets (a feature with its phases, a set of sub-issues) trips GitHub's per-minute limit partway through and leaves tickets half set. The script makes about four cheap calls per ticket. For the other writes, prefer REST: `gh api -X PATCH repos/<repo>/issues/<n> -f type=Task` sets the Issue Type, and the sub-issue and blocked-by calls in "Wiring" are REST already.
+4. If the script fails for any reason (auth, scope, a renamed option, a rate limit), don't loop on it. Go to "No `gh`" below, or wait a few minutes if the error says the rate limit was hit.
 5. **Read it back.** After every field, milestone, assignee, and Issue Type write, confirm them in one query (the read-back query is in `references/board-status.md`, step 3 of "Writing a field"). A command that returned no error is not proof. Fix anything missing before reporting the ticket as done, and name which field it was.
 
-**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Size: XS`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
+**No `gh`:** create the issue through whatever works, then give the user the exact values to set on the board by hand (`Status: Backlog, Priority: Medium, Risk: Low`) with the issue link. Don't report the ticket as complete until they confirm. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` once as the durable fix.
 
 ### Writing the milestone, assignee, and `claude` label
 
@@ -374,36 +440,36 @@ A single bulleted list of everything required to close the issue. Cover all rele
 - Documentation: note if any existing docs need updating or new docs need to be created
 - Spikes and ADRs: when the deliverable is an ADR (architecture decision record), add the criterion that it lands in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, not in a product repo. This applies to a standalone spike ticket as much as to the first child of an epic, so the dev or their agent does not default to the repo the code lives in. The full convention is the `yalesites` skill's `references/adr-conventions.md`.
 
-If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over.
+If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over. Also raise it as a `needs-decision` with its block (see "Raising a Decision or a Follow-up" below), so it shows up in the decider's queue instead of waiting for someone to reread the ticket.
 
-**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships.
+**Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Under a feature parent the Docs phase child is the exception: it starts in `Backlog` and waits for its gatekeeper's go once Development finishes (see the Gate column in `references/routing.md`, and "Scoping a Feature" below).
 
 ---
 
 ### 3. Priority
 
-Choose one based on user and platform impact:
+Choose one based on user and platform impact. Priority says what goes first, not when: the milestone says when. Agents pick up work in Priority order within a milestone (see "Priority and the agent pickup order" in `references/routing.md`), so don't raise a ticket's Priority to pull it into a release. Give it the right milestone instead.
 
 | Priority | When to use |
 |----------|-------------|
-| **Hotfix** | Critical issue breaking core functionality or accessibility. Immediate deployment required. Also prepend the `Hotfix:` title prefix (see "Title" above). |
-| **High** | Significantly impacts user experience or blocks key workflows. Soonest milestone priority. |
+| **Hotfix** | Critical issue breaking core functionality or accessibility. Jumps ahead of every milestone and ships on its own. Also prepend the `Hotfix:` title prefix (see "Title" above). |
+| **High** | Significantly impacts user experience or blocks key workflows. First in its milestone. |
 | **Medium** | Improves platform usability or addresses moderate user pain points. |
-| **Low** | Nice-to-have enhancement with minimal user impact. Future consideration. |
+| **Low** | Nice-to-have enhancement with minimal user impact. Last in its milestone. |
 
 ---
 
-### 4. Size
+### 4. Risk
 
-Estimate relative effort and complexity:
+How much could go wrong, and how hard it is to undo. Risk sets how carefully the work is built and reviewed, and breaks ties in the agent pickup order. It replaced Size on 2026-10-28; don't estimate effort.
 
-| Size | Definition |
-|------|-----------|
-| **XS** | Single file change or quick setting adjustment. < 1 hour |
-| **S** | Minor feature update or simple block modification. 1–4 hours |
-| **M** | New block component or moderate platform enhancement. 1–2 days |
-| **L** | Complex feature with multiple components or significant UX changes. 3–5 days |
-| **XL** | Major platform addition requiring design system updates and extensive testing. 1–2 weeks |
+| Risk | Means | What it triggers |
+|------|-------|------------------|
+| **Low** | Bounded, existing patterns, easy rollback | The normal gate and pre-review, one quick human look |
+| **Medium** | Shared components, config, update hooks, editor-facing UI | A plan comment before building, functional and design review |
+| **High** | New data, auth, migrations, irreversible, or cross-repo | A spike or ADR first, Dave on code, Michael on product, visual regression, Vincent on deploy |
+
+If unsure between two levels, pick the higher one.
 
 ---
 
@@ -432,6 +498,61 @@ Labels describe the work, not its type: the native Issue Type covers that, so ne
 The old area labels (`component-library`, `color-system`, `views-blocks`, `embeds`, and the rest) and requester tags (`opac`) were retired on 2026-10-28. Don't recreate them.
 
 `claude` is a workflow label, not a descriptive one. It only goes on when the user has explicitly confirmed it and the ticket clears the bar in "Claude pickup" above. Never add it as part of a routine "apply all relevant labels" sweep.
+
+---
+
+## Scoping a Feature (parent issue)
+
+**A `Feature` gets a parent issue with one sub-issue per phase.** Nearly every feature needs work from more than one person: UX, design, development, QA, visual regression, docs. Grooming those tickets up front is how none of them gets forgotten, and the hand-offs between them are what the `router` skill automates.
+
+**A feature parent is not an epic.** The two work at different sizes:
+
+| | Feature parent | Epic |
+|---|---|---|
+| What it is | One shippable thing, e.g. the Office Hours block | An initiative made of several features or a large rework, e.g. the Views Block Rework |
+| Title | `Feature: Office Hours block` | `Epic: Views Block Architectural Rework` |
+| Issue Type | `Feature` | `Epic` |
+| `epic` label | No | Yes |
+| Children | Phase tickets | Features, spikes, and tasks |
+
+A feature parent can be a sub-issue of an epic when it is part of a bigger initiative. The reference example is yalesites-org/YaleSites-Internal#1542 (Office Hours block).
+
+The exception is a small enhancement: one developer, one Acceptance Criteria list, no UX or design work, and docs that fit as one AC line. That stays a single ticket. If you aren't sure, ask the user.
+
+### Steps
+
+1. **Pick the phases.** Ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
+2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
+3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
+4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
+5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
+6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
+7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
+
+   ```bash
+   # Sub-issue: the child's numeric id, not its number
+   CHILD_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<child> --jq .id)
+   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<parent>/sub_issues -F sub_issue_id=$CHILD_ID
+
+   # <child> is blocked by <blocker>
+   BLOCKER_ID=$(gh api repos/yalesites-org/YaleSites-Internal/issues/<blocker> --jq .id)
+   gh api -X POST repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by -F issue_id=$BLOCKER_ID
+   ```
+
+   A child that already has a different parent must be moved: add `-F replace_parent=true` to the sub-issue call. Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the feature as done.
+8. **Milestone.** Every phase child gets the parent's milestone, Docs included.
+9. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
+
+### Retrofitting a feature already in flight
+
+A feature that grew a pile of loose tickets can be gathered under a parent after the fact. Use the original feature ticket as the parent if it is typed `Feature` (retitle it `Feature: <name>`), otherwise create one. Then, for each related ticket:
+
+- Make it a direct sub-issue of the parent (move it with `replace_parent=true` if it sits under a sibling).
+- Add `phase: <key>` and `parent: ...` to its machine block. **Append** the block to the end of the body if it has none; never rewrite text someone else wrote.
+- Leave Status alone. The router only moves tickets out of `Backlog`, so in-flight work is untouched.
+- Leave out tickets that span many features (e.g. "redo all block picker icons"). Link them from the parent's body instead.
+
+Add blocked-by links only between phases that haven't started yet. Linking finished work is noise.
 
 ---
 
@@ -498,7 +619,7 @@ Create the child tickets as real GitHub issues first, then reference their numbe
 
 ### Step 5: Write each child ticket using the standard Issue Format
 
-Every child ticket still follows the six-field format above (Description, Acceptance Criteria, Priority, Size, Type, Labels). An epic doesn't change how individual tickets are written — it just adds a parent that ties them together and gives the whole body of work a shared goal.
+Every child ticket still follows the six-field format above (Description, Acceptance Criteria, Priority, Risk, Type, Labels). An epic doesn't change how individual tickets are written — it just adds a parent that ties them together and gives the whole body of work a shared goal.
 
 ### Avoid these epic anti-patterns
 
@@ -522,12 +643,29 @@ Before treating an epic as ready:
 
 ---
 
+## Raising a Decision or a Follow-up
+
+When work can't go on until a person does something, mark it so it can't get lost. Two labels cover it, and both are defined in `references/routing.md`:
+
+- **`needs-decision`:** someone has to make a choice. Replaces `question`. Don't apply `question` to anything new.
+- **`follow-up`:** someone owes an action, such as a reply, a test, a review, or a check-in with a requester.
+
+Each label goes with a block, in the issue body or a new comment, that names one handle, what they owe, and a date. Use the block formats in `references/routing.md` exactly, since the `router` skill parses them. Then add the label. Ask the user for the handle and the date if they didn't give them. Offer 5 working days out as the default date.
+
+To close one out, post the resolution comment from `references/routing.md` and remove the label. The label is the switch: a block with no label counts as closed.
+
+This works on PRs in the code repos too. Use `gh pr comment` and `gh pr edit --add-label`, since the GitHub connector is read-only on `yalesites-project`.
+
+An open `needs-decision` also blocks the `claude` label (see "Claude pickup" above) and stops the router from promoting that ticket.
+
+---
+
 ## Grooming Existing Stub Tickets
 
 When grooming an existing ticket that's missing fields or has a thin description:
 
 1. Read the existing issue body — preserve anything already written
-2. Identify what's missing (description too vague, no acceptance criteria, no size/priority, etc.) — including whether the title is vague, generic, or doesn't match what the description actually says
+2. Identify what's missing (description too vague, no acceptance criteria, no priority/risk, etc.) — including whether the title is vague, generic, or doesn't match what the description actually says
 3. Search the relevant repos for context if the work is technical
 4. Fill in the missing fields following the format above, rewriting the title if it doesn't clearly state the work (see "Title" above)
 5. If the ticket has no TL;DR line, add one at the top. If it carries a block of platform-fit or archetype analysis inline above the Description, move it into a collapsed **Background and analysis** block — this is a reformat, not a rewrite; preserve the words
@@ -556,9 +694,9 @@ Before submitting or updating an issue, check:
 - [ ] For user-facing work, affected archetypes are named and any new-user cost is stated (Step 1b), or the check is explicitly noted as not applicable
 - [ ] For a ticket that names a specific block, section layout, or sitewide setting, the one-line adoption figure with its crawl vintage is in the Background and analysis block (Step 1c), or the `yalesites-portfolio` skill was unavailable and no number was estimated
 - [ ] Priority reflects actual user/platform impact (don't default to Medium)
-- [ ] Size is realistic — if unsure, err toward larger
+- [ ] Risk is set. If unsure, err toward the higher level
 - [ ] Type is set — as the native Issue Type field on the issue, not just stated in the body (see the `updateIssue` mutation in the workflow notes above)
-- [ ] Status, Priority, Size, Type, milestone, and assignee were **read back** from GitHub after writing, not assumed from a clean exit
+- [ ] Status, Priority, Risk, Type, milestone, and assignee were **read back** from GitHub after writing, not assumed from a clean exit
 - [ ] No `status:*`, `priority:*`, or `size:*` label is on the ticket
 - [ ] Relevant labels are applied
 - [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first
@@ -566,4 +704,4 @@ Before submitting or updating an issue, check:
 - [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
 
-For epics specifically, also run through the Epic Quality Bar above.
+For epics specifically, also run through the Epic Quality Bar above. For a feature parent, also check: one child per phase that applies, each with its `phase:` machine line, its phase owner, and the parent's milestone; native sub-issues and blocked-by dependencies are wired and read back; only the first phase is in `To Do`; the parent is typed `Feature` with no `epic` label.
