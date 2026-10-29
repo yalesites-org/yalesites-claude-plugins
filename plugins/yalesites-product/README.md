@@ -10,7 +10,7 @@ team with:
 - **Release prep** — drafting release notes, feature documentation, release
   emails, QA testing steps, and knowledge base sync
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
-  existing ones with correct format, acceptance criteria, priority, size,
+  existing ones with correct format, acceptance criteria, priority, risk,
   type, and labels
 - **Backlog hygiene** — a read-only audit of the backlog that reports tickets
   missing acceptance criteria, board fields, or a type, and hands findings off
@@ -22,6 +22,11 @@ team with:
 - **Reviewer profile**, a short interview that records what one person
   reviews, so PR feedback asks them the calls that are theirs and labels only
   the checks they performed
+- **Router**: a weekday routine that hands each feature phase (UX,
+  design, development, QA, visual regression, docs) to its next owner when
+  the phase before it finishes, and posts a brief of open decisions and
+  follow-ups by person, plus tickets that have gone quiet. Routing rules live
+  in `skills/ticket/references/routing.md`
 - **Ticket sync** — checking whether a ticket still matches how the work
   actually turned out as it moves through review and grooming, and catching
   it up with a comment or an edit
@@ -37,6 +42,12 @@ team with:
   screenshot beside the proposed blocks, with every addition, edit, and removal
   highlighted). Approved site pages are built as unpublished drafts, and
   approved internal docs are committed on a branch
+- **RC domino hunt**: hunting a release candidate for the edge cases and
+  domino effects PR testing missed (cross-PR collisions, shared component and
+  contrib changes, new validation on old content, neighboring setting
+  combinations), read-only on the RC multidevs cloned from real sites, ending
+  in a short morning report. Runs attended, scoped to a few PRs or a hotfix,
+  or unattended as the Tuesday-night drain routine
 - **UX research** — the six current user archetypes, top pain points, delights,
   and platform usage data from the 2026 YaleSites UX Report for informing
   product decisions
@@ -69,7 +80,7 @@ knowledge that the workflow skills reference:
 
 | Skill | Trigger |
 |---|---|
-| `release-prep` | Preparing a YaleSites release, and reconciling the board after it ships |
+| `release-prep` | Preparing a YaleSites release, finishing and publishing the docs drafts staged for it, and reconciling the board after it ships |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |

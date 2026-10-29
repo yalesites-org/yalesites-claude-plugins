@@ -54,12 +54,12 @@ number means `yalesites-org/YaleSites-Internal`.
 
 **Nothing named:** list the open docs tickets assigned to the user. A docs ticket is one the work
 dashboard's Docs & web tab would show: a `Docs:`, `Web:`, or `[DOCS]` title prefix, or the
-`documentation` or `communications` label.
+`docs-comms` label (or the older `documentation` and `communications` labels it replaced).
 
 ```bash
 gh issue list -R yalesites-org/YaleSites-Internal --assignee @me --state open --limit 100 \
   --json number,title,labels,milestone \
-  --jq '.[] | select((.title|test("^(Docs:|Web:|\\[DOCS\\])";"i")) or ([.labels[].name]|any(.=="documentation" or .=="communications")))'
+  --jq '.[] | select((.title|test("^(Docs:|Web:|\\[DOCS\\])";"i")) or ([.labels[].name]|any(.=="docs-comms" or .=="documentation" or .=="communications")))'
 ```
 
 Show the list with milestones, soonest first, and ask which to take. Default to the ones in the
@@ -276,11 +276,11 @@ ticket's summary and `draft.md` in chat and ask for a decision on each.
 | `changes` | Revise the item from the notes and comments. Re-run `yalesites-web-content`'s checker on the new copy. Bump `revision`, set `previousFeedback` to one line restating what they asked for, validate, and set status `on-board` again |
 
 **A ticket built on an earlier round does not come back.** `packet.py status <ref> built` (and
-`building`) sets `locked` on that item in `packet.json`. The board shows a locked item read-only
+`building`, and `published`) sets `locked` on that item in `packet.json`. The board shows a locked item read-only
 with a Built badge, counts it as settled, and leaves it out of `decisions.json`, so the stale
 `approve` from the round that built it is never sent again. The status file stays as the
 backstop: on every round after the first, check `status.json` before acting on an `approve`. If
-a ticket at `built` or `building` still arrives with a decision (a packet edited by hand, a lock
+a ticket at `built`, `building`, or `published` still arrives with a decision (a packet edited by hand, a lock
 that did not get written), say so in the playback and leave it out of Step 8. Only `approved`
 and `on-board` tickets go on to be built.
 
@@ -299,9 +299,9 @@ Build each approved ticket once. Set `building` as each one starts: that locks t
 up. `built` keeps the lock. The lock finds the packet through the `--packet` recorded in Step 5,
 so pass `--packet` again if that status entry was never written, and the item by its ticket ref
 (pass `--item <id>` if the ref alone does not name one item). Before starting any of them,
-still read `~/.claude/yalesites/docs-board/status.json` and drop every ticket already at `built`
-or `building`: building it again would put a second draft on the page or a second commit on the
-branch, and the lock only guards the board, not a decision taken in chat.
+still read `~/.claude/yalesites/docs-board/status.json` and drop every ticket already at `built`,
+`building`, or `published`: building it again would put a second draft on the page (on a page
+that is already live, for `published`) or a second commit on the branch, and the lock only guards the board, not a decision taken in chat.
 
 ### Site pages (`edit` and `new`)
 
@@ -337,6 +337,28 @@ built again. That is on purpose. A page that half-built (draft created, some ops
 not the page the reviewer approved, so before it goes back on the board, recapture it if a
 draft was saved, and add what got applied and what did not to the item's `notes`.
 
+**Then move the ticket to `Done` on the board.** For a docs ticket, `Done` means the draft is
+approved and staged on yalesites.yale.edu. That is the same handoff a merge is for code: nothing
+is left for the writer, and the ticket stays open until `release-prep` Phase 8 publishes it and
+Phase 7 closes it. Without this the ticket sits in `In review` until release day and reads as
+open work on the board and the dashboard. Move it only once every page the ticket touches is
+`built` (all of `#1914-a` to `#1914-h`, not just the first). Read the current status first and
+write only if it is not already `Done`, with the read and write recipes in the `ticket` skill's
+`references/board-status.md`.
+
+- **A page left `skipped` or `failed` keeps the whole ticket out of `Done`.** The ticket is not
+  staged until all of it is. Step 9 lists it as not moved, naming each page and its state. A
+  later round that builds the rest moves it then. If the reviewer skipped a page because the
+  ticket no longer needs it, that is a scope change: offer `ticket-sync` to drop the page from
+  the ticket, and move the ticket once the rest is built. Never move it on the pages that did
+  build.
+- **A failed write is recorded, not retried in a loop.** Note it on every page entry of that
+  ticket, so the next run sees it:
+  `packet.py status <ref> built --note "board: Done write failed: <error>"`. Report it in Step 9.
+  At the start of every Step 8, look for `built` entries with that note: read the ticket's
+  status, write `Done` once if it is still not `Done`, and on success clear the note with
+  `--note ""`. A second failure keeps the note and goes in the report again.
+
 ### Internal docs
 
 1. Render the approved file: `python3 <skill-dir>/scripts/packet.py render "$DIR" <id> --out <tmp>`.
@@ -349,11 +371,14 @@ draft was saved, and add what got applied and what did not to the item's `notes`
 4. Stop there. Report the branch and commit, and ask before pushing or opening a PR. On a yes,
    use `yalesites-dev:yalesites-pr` if it is installed.
 5. Status `built` with `--result '{"branch": "...", "commit": "..."}'`.
+6. Leave the board status alone. An internal doc is code in a repo, so it reaches `Done` when its
+   PR merges, like any other change.
 
 ## Step 9: Hand off
 
 Report in one table: ticket, decision, and result (the draft URL and node, or the branch and
-commit). Under it, what is left: screenshots owed, release-day publishing, a PR waiting on a
+commit), and whether the ticket moved to `Done` (and if not, why: a page `skipped` or `failed`,
+or a failed write). Under it, what is left: screenshots owed, release-day publishing, a PR waiting on a
 go-ahead, follow-ups the freshness audit found.
 
 Then offer, without doing it: a short comment on each built ticket with the draft link (through
@@ -367,13 +392,14 @@ was proposed and approved, and the dashboard reads its status.
 
 `~/.claude/yalesites/docs-board/status.json`, keyed by ticket ref. Write it only through
 `packet.py status`. States: `drafting`, `on-board`, `changes`, `approved`, `building`, `built`,
-`skipped`, `failed`. The work dashboard joins it onto its Docs & web tab, the same way it joins
-`pr-feedback`'s prep status onto the review queue. `building` and `built` also set `locked` on
-the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the item's
-`revision` (see Step 8). One ticket touching two pages is two items with the ref suffixed
-(`#1818-a`, `#1818-b`), each with its own status entry. If the file is not valid
-JSON, `packet.py status` stops and says so rather than replacing it: fix or remove the file by
-hand, because replacing it would drop every other ticket's state.
+`published`, `skipped`, `failed`. `published` is written by `release-prep` Phase 8, the only thing that
+publishes a staged draft. The work dashboard joins it onto its Docs & web tab, the same way it joins
+`pr-feedback`'s prep status onto the review queue. `building`, `built`, and `published` also set
+`locked` on the ticket's item in its packet (see Step 7), and `failed` clears it and bumps the
+item's `revision` (see Step 8). One ticket touching two pages is two items with the ref suffixed
+(`#1818-a`, `#1818-b`), each with its own status entry. If the file is not valid JSON,
+`packet.py status` stops and says so rather than replacing it: fix or remove the file by hand,
+because replacing it would drop every other ticket's state.
 
 ## Related skills
 
@@ -383,4 +409,4 @@ hand, because replacing it would drop every other ticket's state.
   (`scripts/review-board/server.py`, tests included), and the shared Playwright browser setup in
   `references/drive-it.md`
 - `ticket-sync`: when a draft shows that the ticket's scope moved
-- `release-prep`: publishes the staged drafts on release day
+- `release-prep`: Phase 8 finishes the staged drafts (RC screenshots, copy re-verified against the release, release-only pieces) and publishes them on release day

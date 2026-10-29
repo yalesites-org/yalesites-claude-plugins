@@ -7,7 +7,7 @@ description: "Audit the YaleSites backlog for tickets that don't meet the team's
 
 ## What this skill is for
 
-Not every YaleSites ticket is written through the `ticket` skill. People file issues directly in GitHub, from a meeting, or in a hurry. Those tickets are legitimate work but often don't carry the fields the team's process expects: acceptance criteria, Priority, Size, a Status on the board, a descriptive title.
+Not every YaleSites ticket is written through the `ticket` skill. People file issues directly in GitHub, from a meeting, or in a hurry. Those tickets are legitimate work but often don't carry the fields the team's process expects: acceptance criteria, Priority, Risk, a Status on the board, a descriptive title.
 
 This skill finds those tickets and reports them. It does **not** fix them.
 
@@ -49,10 +49,10 @@ gh api graphql --paginate -f query='query($endCursor:String) {
 ```bash
 # Board fields for every item, bodies stripped
 gh project item-list 6 --owner yalesites-org --format json --limit 1000 \
-  --jq '[.items[] | select(.content.type=="Issue") | {num: .content.number, repo: .content.repository, title, status, priority, size, labels, assignees}]'
+  --jq '[.items[] | select(.content.type=="Issue") | {num: .content.number, repo: .content.repository, title, status, priority, risk, labels, assignees}]'
 ```
 
-Board items expose `status`, `priority`, and `size` at the top level. An unset field is absent or `null`. Note the board also contains closed issues and items from other repos, so filter to open `YaleSites-Internal` issues before comparing.
+Board items expose `status`, `priority`, and `risk` at the top level. An unset field is absent or `null`. Note the board also contains closed issues and items from other repos, so filter to open `YaleSites-Internal` issues before comparing.
 
 Join the two lists on issue number. An open issue with no matching board item is **not on the board at all**, which is its own finding.
 
@@ -68,7 +68,7 @@ Run these across every open ticket. No bodies needed.
 - Not on the board at all. Worth keeping as a check, but expect it to be empty most runs; issues are added to the board reliably. If this suddenly returns a batch, something upstream broke.
 - No Status. This is the common one, on the order of 50 tickets.
 - No Priority
-- No Size
+- No Risk on a `To Do` ticket. Risk is new as of 2026-10-28, so older tickets lack it; only flag the ones queued for work. Size is retired: never flag a missing Size
 
 **Status contradicted by reality**
 - Status is `Done` but the issue is still open
@@ -78,8 +78,8 @@ Run these across every open ticket. No bodies needed.
 
 **Classification gaps**
 - **No native Issue Type set** (`issueType` is null). This is the one that matters; the team's types are `Feature`, `Bug`, `Task`, `Communications`, `AI`, `Vendor/Supported Builds`, and `Epic`.
-- **Native Issue Type contradicts a type label**, for example native type `Feature` on a ticket labelled `task`. Report the conflict, don't pick a winner. Roughly a third of tickets carrying both disagree, so this is a real class, not an edge case.
-- Title starts with `Epic:` but the `epic` label and native `Epic` type are both missing, or vice versa
+- **A retired type label is still on an open ticket** (`bug`, `feature`, `task`, `epic`, `communications`, retired 2026-10-28). Report it next to the ticket's Issue Type. The Issue Type wins, and the label can just come off.
+- Title starts with `Epic:` but the Issue Type isn't `Epic`, or vice versa
 
 **Leftover trigger labels**
 - Any `status:*`, `priority:*`, or `size:*` label still present. Skills no longer apply these, and the sync Action never matched them (its mappings expect `priority: medium` with a space). A label like this almost always means the board field was never set. Report the label next to the ticket's actual board value. See the `ticket` skill's `references/board-status.md`.
@@ -188,7 +188,7 @@ A report that flags 400 tickets gets ignored. Be deliberately conservative:
 
 - **Skip tickets updated in the last 14 days.** They're likely in flight.
 - **Skip quality nits on tickets already `In progress` or `In review`.** Too late to be useful, and the developer already has context.
-- **Don't flag missing Size or Priority on `Backlog` tickets** unless the user asked for a full audit. Those get set when work is queued, and flagging all of them buries the real findings.
+- **Don't flag missing Risk or Priority on `Backlog` tickets** unless the user asked for a full audit. Those get set when work is queued, and flagging all of them buries the real findings.
 - **Cap each section at 15 tickets**, ordered by how actionable they are, and give the total count so nothing looks hidden.
 - **Don't flag intentional patterns as problems.** Placeholder epics, tracking tickets, and long-lived `Blocked` items are often deliberate. If a ticket looks odd but has recent human comments explaining why, leave it alone.
 
@@ -202,7 +202,7 @@ End the report with the next action, not a list of everything wrong. Something l
 
 > The 6 tickets under "Ready to groom" are the highest-value fixes. Want me to run `/ticket` against them one at a time?
 
-Grooming happens through the `ticket` skill, one ticket at a time, with the user confirming Status, Priority, and Size. **Don't batch-groom from a hygiene report**, and don't carry findings straight into edits without the user picking them.
+Grooming happens through the `ticket` skill, one ticket at a time, with the user confirming Status, Priority, and Risk. **Don't batch-groom from a hygiene report**, and don't carry findings straight into edits without the user picking them.
 
 ---
 

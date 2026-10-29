@@ -1,6 +1,6 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, and tokens. Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, tokens, and yale-ui-cl (UICL). Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
 argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product] [--prep]"
 ---
 
@@ -16,7 +16,7 @@ So the order of work is: work out whose review this is, load the brief, spot-che
 
 **The review is scoped to the reviewer.** Step 0 resolves who is running this and which review dimensions are theirs to rule on, from their own profile first and a shared login map second, and the rest of the steps ask, write, and label within that scope. A reviewer it cannot place gets today's behavior in full, ungated, which is the one guarantee this arrangement makes.
 
-**Repos in scope:** `yalesites-org/yalesites-project`, `yalesites-org/component-library-twig`, `yalesites-org/atomic`, `yalesites-org/tokens`
+**Repos in scope:** `yalesites-org/yalesites-project`, `yalesites-org/component-library-twig`, `yalesites-org/atomic`, `yalesites-org/tokens`, `yalesites-org/yale-ui-cl` (UICL)
 **Issues live in:** `yalesites-org/YaleSites-Internal` (PRs link to them in the body, usually as a `#XXXX` reference or full URL)
 
 Don't guess at a repo. If the user gives a bare PR number without one, ask which repo it's in, or check the URL if they pasted one.
@@ -115,7 +115,7 @@ Call `mcp__ccd_session_mgmt__set_session_title` once, with the scope that matche
 | Queue-wide sweep | `PR review queue: 2026-09-22 (5 PRs)` |
 
 - Bare numbers mean `yalesites-project`. Name the other repos: `CLT 728`, `atomic 521`,
-  `tokens 94`.
+  `tokens 94`, `UICL 57`.
 - **A queue sweep has no numbers in the prompt**, so it gets titled after Step B1 confirms the
   work set, using today's date and the unit count. This is the case that needs a title most, because
   the auto-generated one carries nothing at all.
@@ -263,6 +263,7 @@ because it changes what this review can conclude.
 | `component-library-twig` | Netlify deploy preview, Storybook only | Layout Builder placement, editor field labels, role gating, anything that depends on Drupal passing real values in |
 | `atomic` | No preview of its own. The sibling `yalesites-project` PR's multidev, if one exists | If there is no sibling, there is no deployed way to see this. Say so. |
 | `tokens` | No preview of its own. The sibling `component-library-twig` preview, if one exists | Same. Say so. |
+| `yale-ui-cl` | No PR preview. Its Storybook on GitHub Pages (`https://yalesites-org.github.io/yale-ui-cl/`) builds from `main` only | Anything on the PR branch. Run Storybook locally from the branch, or say there is no deployed way to see it |
 
 Full patterns and the direct visreg content URLs are in
 `pr-prereview`'s `references/preview-environments.md`. Do not restate the block slug table
@@ -332,7 +333,7 @@ written, then start testing once the plan exists. The user gets something to wat
 run getting ahead of the plan.
 
 **The hand-off walkthrough is for what cannot be driven, and only that.** That covers
-Storybook, `atomic` and `tokens`, and a `yalesites-project` PR whose drive-it preflight fails
+Storybook, `atomic`, `tokens` and `yale-ui-cl`, and a `yalesites-project` PR whose drive-it preflight fails
 (no multidev, a server not running the branch, a cloud session, a machine without Terminus or
 Node). For a failed preflight, say which check failed, hand the plan to the user, and offer to
 run the browser pass as soon as the cause is fixed: a skipped run is a gap in the review, not
@@ -379,12 +380,11 @@ posted review will *not* cover, which is what makes a scoped approval honest:
 Two calls are outside your lane, so I have left them:
 - The `--variant` default on line 88 is a code call. That one is for our lead developer.
 - The 12px gap under the heading is a design call, April's.
-Neither gates your functional approval. Want me to flag them on the PR for whoever picks them up?
+Neither gates your functional approval. Want me to raise them as decisions for whoever owns them?
 ```
 
 On the board, they go in the PR's unit as `notAsked` and show on its lead-in, with no chat
-message and no offer. On the chat fallback, offer to flag them as a plain non-blocking comment if
-the reviewer wants, and skip it if not.
+message and no offer. On the chat fallback, offer to raise each one as a `needs-decision` on the PR (see "Open calls go on the record" below), with **Decides** set to the owner the role map names for that dimension. When no one in `references/reviewer-roles.md` owns the dimension, ask the reviewer who should decide. Skip it if the reviewer says no.
 
 **On the unscoped path from Step 0, none of this applies.** Every held call goes to the user, as
 it does today.
@@ -393,6 +393,31 @@ If the brief's Your calls section is empty, say so plainly rather than inventing
 An empty section means the audit found nothing that needed a human ruling, which is a real
 and common outcome. Say it is empty even when the reviewer is scoped, so an empty brief and a
 fully-out-of-lane brief do not look the same from the outside.
+
+### Open calls go on the record
+
+Anything this review leaves open must end up on GitHub with a name and a date, not only in this chat. That is what puts it in the owner's queue: the `router` brief and the work dashboard both read these labels. The labels, block formats, and resolution lines are defined in `../ticket/references/routing.md` ("Waiting on a person"). Use them exactly, since the router parses them.
+
+**Before asking anything, check what's already open.** Read the PR and its linked issue for an open `needs-decision` or `follow-up` (labels plus the latest `## Decision needed` / `## Follow-up needed` block):
+
+```bash
+gh pr view NUMBER --repo yalesites-org/REPO --json labels,body,comments \
+  --jq '{labels: [.labels[].name], blocks: [(.body, .comments[].body) | select(test("## (Decision|Follow-up) needed"))]}'
+```
+
+Put any open decision that names the reviewer to them first, ahead of the brief's calls. If they answer it, post the resolution line from `routing.md` (`## Decision: (b), decided by Michael on 2026-11-03. Reason: ...`) as part of Step 9, and remove the label in Step 8.
+
+**Raise a block when a call stays open:**
+
+| What happened | What to raise | Who |
+|---|---|---|
+| A held call is out of the reviewer's lane, and they said yes to raising it | `needs-decision` on the PR | Decides: the dimension's owner from the role map |
+| The reviewer can't call it yet ("let me think," "I want to see the real site," "check with Chris") | `needs-decision` if it's a choice, `follow-up` if someone owes an action | The reviewer, or whoever they name |
+| The review requests changes that hinge on an unanswered product question | `needs-decision`, and say in the review body that the changes wait on it | The decider |
+
+Default **Needed by** to 5 working days out unless the reviewer gives a date. Post each block as its own PR comment in Step 9, before the review itself, and add the label in Step 8. Then tell the reviewer what you raised, in one line each.
+
+**Never raise one silently.** Each block is a public ask of a named person, so confirm the list with the reviewer before posting, the same way the review body is confirmed.
 
 **Part 2, their own read.** Always ask what they noticed, separately from your questions. They
 may have tested the multidev before starting this session, or carry context from a meeting the
@@ -487,7 +512,7 @@ Offer a follow-up ticket. If they want it, **invoke the `ticket` skill** to crea
   README or docs folder).
 
 **Every follow-up ticket goes through the `ticket` skill, never a hand-written `gh issue create`.**
-Copying its body format is not enough. The skill is what sets Status, Priority, Size, and Issue
+Copying its body format is not enough. The skill is what sets Status, Priority, Risk, and Issue
 Type on the board and reads them back. A ticket written by hand lands with the right labels and
 an empty board, which is how `YaleSites-Internal#1870` shipped without Priority or Size on
 2026-10-05.
@@ -624,7 +649,9 @@ Rather than a simple remove-one/add-one swap, **reconcile the whole set of revie
 
 Review-state labels to strip before reapplying: `needs review`, `needs work`, `pass code review`, `pass functional review`, `pass design review`, `pass a11y review`, `ready to merge`, `ready to close`. Leave every other label (type, epic, milestone-linked, etc.) untouched.
 
-Strip only labels actually present on the PR, and never add one the repo does not define. The full set differs by repo: `pass a11y review` exists in `yalesites-project` and `component-library-twig` only, `pass design review` in `component-library-twig` only, and `ready to close` in `yalesites-project` only. `references/reviewer-roles.md` holds the confirmed matrix and the command to re-verify it.
+**`needs-decision` and `follow-up` are not review-state labels.** Never strip them in the reconcile. Add one only for a block raised in Step 3b, and remove one only when this review resolved it (see "Open calls go on the record").
+
+Strip only labels actually present on the PR, and never add one the repo does not define. The full set differs by repo: `pass a11y review` exists in `yalesites-project` and `component-library-twig` only, `pass design review` in `component-library-twig` only, and `ready to close` in `yalesites-project` only. `yale-ui-cl` defines `pass code review` and `pass functional review` and none of the others. `references/reviewer-roles.md` holds the confirmed matrix and the command to re-verify it.
 
 ### The "pass ___ review" label comes from dimension and repo together
 
@@ -639,8 +666,8 @@ the labels the repo defines. The full matrix and its verification command live i
 
 | Dimension | Label | Defined in |
 |---|---|---|
-| `code` | `pass code review` | all four repos |
-| `functional` | `pass functional review` | all four repos |
+| `code` | `pass code review` | all five repos |
+| `functional` | `pass functional review` | all five repos |
 | `design` | `pass design review` | `component-library-twig` only |
 | `a11y` | `pass a11y review` | `yalesites-project`, `component-library-twig` |
 | `product` | none | recorded in the review body, not on a label |
@@ -658,6 +685,7 @@ repo alone:
 | `atomic` | `pass functional review` |
 | `tokens` | `pass functional review` |
 | `component-library-twig` | `pass design review` |
+| `yale-ui-cl` | `pass functional review` |
 
 **When the reviewer's dimensions yield no label for this repo**, a design reviewer on a
 `yalesites-project` PR or a product-only reviewer anywhere, apply no pass label. Say plainly
@@ -672,6 +700,33 @@ unlabeled honest approval beats a labeled false one.
 | Approving (demo/multidev-only PR) | the reviewer's pass label(s) for this repo + `ready to close`, but see below |
 | Approving, no pass label matched this repo | `ready to merge` only, and only after asking |
 
+**`yale-ui-cl` (UICL) needs two approvals before `ready to merge`.** Every UICL PR needs both
+Michael's (`miketullo95`) and Dave's (`dblanken-yale`) approval before it can merge. So on a UICL
+approval, `ready to merge` goes on only when this review is the **second** of those two. Before
+computing the label set, check whether the other required approver already approved:
+
+```bash
+gh api repos/yalesites-org/yale-ui-cl/pulls/NUMBER/reviews --paginate \
+  -q '.[] | select(.user.login == "OTHER_LOGIN") | select(.state != "COMMENTED") | .state' | tail -n 1
+```
+
+`OTHER_LOGIN` is whichever of the two the current `gh` user is not (`gh api user -q .login`).
+With `--paginate`, `gh` runs the `-q` filter once per page, so the filter prints every matching
+state and `tail -n 1` keeps the latest across all pages. Empty output means no review.
+
+- **`APPROVED`:** this review is the second approval. Apply the pass label(s) + `ready to merge`
+  as the table says.
+- **Anything else** (empty output, `CHANGES_REQUESTED`, `DISMISSED`): this is the first approval.
+  Submit the approval and apply the pass label(s), but leave `ready to merge` off and keep
+  `needs review` on so the PR stays in the other reviewer's queue. Tell the user the PR is
+  waiting on the other approval, by name.
+- **The current user is neither of the two:** apply the pass label(s) only and leave
+  `ready to merge` off. Their approval does not count toward the two.
+
+Never apply `ready to merge` on a first approval, even if the PR already carries it from an
+earlier pass: the strip-and-reapply above takes it off, and this check decides whether it comes
+back. This applies to `yale-ui-cl` only; the other repos keep the single-approval table above.
+
 **Open question, not settled here: whether one dimension's approval should still add
 `ready to merge`.** Today it does, for everyone, and the table above keeps that unchanged on
 purpose. But once a `pass design review` label means design and only design was checked, a lone
@@ -681,11 +736,12 @@ something to settle inside this skill. Until it is settled, **behave as the tabl
 improvise a stricter rule mid-review.** Tracked in
 [yalesites-claude-plugins#30](https://github.com/yalesites-org/yalesites-claude-plugins/issues/30).
 
-**`ready to close` only exists in `yalesites-project`.** `atomic`, `tokens`, and
-`component-library-twig` do not have that label, and applying a label a repo does not define
+**`ready to close` only exists in `yalesites-project`.** `atomic`, `tokens`,
+`component-library-twig` and `yale-ui-cl` do not have that label, and applying a label a repo does not define
 either errors or silently creates it. For a demo-only PR in one of those three, apply the
 repo's review label, leave `ready to merge` off, and tell the user the PR needs closing by
-hand. This is not hypothetical: `component-library-twig` has a long-lived `DEMO ONLY, DO NOT
+hand. A demo-only `yale-ui-cl` PR follows this too, and never gets `ready to merge` from the
+two-approval check. This is not hypothetical: `component-library-twig` has a long-lived `DEMO ONLY, DO NOT
 MERGE` PR open.
 
 This matters in practice, a PR can look "ready to merge" on the label alone while a deep-dive turns up something the earlier pass missed. Reconciling the full set avoids leaving contradictory labels (e.g. `needs work` sitting next to `ready to merge`), and picking the wrong review label is an easy mistake to make once it depends on both the reviewer's dimensions and the repo's label set.
@@ -729,7 +785,7 @@ silently litters a new label onto the repo instead of failing. Check the repo be
 
 ## Step 9: Post it, and confirm it landed
 
-Post the review from Step 6 and the label update from Step 8, in that order.
+Post any decision or follow-up blocks and resolution lines from Step 3b first, each as its own PR comment, then the review from Step 6, then the label update from Step 8.
 
 `gh` writes with the CLI's own credentials, so the GitHub connector's 403 write gap does not
 apply here. If a write does fail, read the error rather than retrying blindly:
