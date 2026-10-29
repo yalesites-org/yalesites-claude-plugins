@@ -1,6 +1,6 @@
 ---
 name: ticket
-description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always applies the epic label to parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
+description: "Create and groom GitHub issues for the YaleSites backlog, including scoping multi-ticket epics. Use when creating a new issue, filling out an existing stub ticket, reviewing a ticket for completeness, or preparing issues for an upcoming sprint or grooming session. Also use when the user wants to create an epic, break a large initiative into an epic with child tickets, or describes a body of work spanning multiple tickets, developers, or sprints — trigger on phrases like 'create an epic', 'epic for X', 'break this into an epic', or 'this is too big for one ticket'. Applies the correct description format, acceptance criteria, priority, size, type, and labels, asks clarifying questions to scope epics properly, and always sets Issue Type Epic on parent tickets. Also asks which milestone the ticket should ship in (defaulting to the next upcoming feature release), who it should be assigned to, and whether to tag it `claude` so the dev team's Claude agent can pick it up asynchronously. Cross-references the YaleSites platform knowledge base to catch overlap with existing features before new work is scoped."
 ---
 
 # YaleSites Ticket Skill
@@ -25,7 +25,7 @@ Search these when you need implementation context, but always write the issue de
 - If a ticket should go to someone not yet onboarded to GitHub (no handle yet), assign it to the requester as a placeholder rather than leaving it unassigned, and swap in the real assignee once they're set up.
 - **Status, Priority, and Size aren't set through issue creation.** These are GitHub Projects V2 custom fields. Neither the issue-creation tools (`gh issue create`, `mcp__github__create_issue`/`update_issue`) nor labels set them. Only `gh project item-edit` does. See "Writing Status, Priority, and Size to the Board" below.
 - **The Project V2 Status field isn't queryable via the REST API either** — `get_issue`/`search_issues`/`list_issues` won't return it. If asked to audit tickets by board status, the closest available proxy is PR review-state labels (`pass code review` / `pass functional review` / `pass design review`, `needs review`, `needs work`) on companion PRs across `yalesites-project`, `atomic`, and `component-library-twig` — not a direct status query.
-- **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI, distinct from the `feature`/`bug`/`task`/`epic` labels used in Step 5 above) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
+- **GitHub's native Issue Type field** (Task/Feature/Bug/Epic/Communications/AI; it replaced the `feature`/`bug`/`task`/`epic` type labels, retired 2026-10-28) **is** settable from the CLI, and should be set on every ticket. It is not a Project v2 field, so `gh project item-edit` cannot touch it, and `mcp__github__create_issue`/`update_issue` do not expose it either. Use the `updateIssue` GraphQL mutation, which takes an `issueTypeId`:
 
   ```bash
   # 1. list the org's types and their ids (ids are stable; look them up once)
@@ -42,7 +42,7 @@ Search these when you need implementation context, but always write the issue de
 
   This note previously said Issue Type had to be set manually in the UI. That was wrong, and it meant tickets created through this skill were shipping with no Type set at all.
 - **Sub-issue linking may not be automatic.** A `- [ ] #XXXX` checklist reference in an issue body creates a backlink, but don't assume it always registers as a tracked GitHub sub-issue (the mechanism that drives the parent's progress bar) — if the epic's progress bar isn't reflecting a child ticket, check whether it needs to be linked explicitly via "Add sub-issue" in the GitHub UI.
-- Before recommending a ticket as "available" for pickup (by a person or an unmoderated agent), check more than the absence of an assignment label — confirm there's no assignee set and no `in-review-tag`/`forming`-style in-progress signal on it. A ticket can look open on one signal and still be actively claimed.
+- Before recommending a ticket as "available" for pickup (by a person or an unmoderated agent), check more than the absence of an assignment label — confirm there's no assignee set and no `forming` label or In progress status on it. A ticket can look open on one signal and still be actively claimed.
 - **Also check for merged PRs, not just open ones, before recommending a ticket as available.** A `claude`-tagged or open-looking ticket can already be done — the PR merged but the issue was never closed (the team's PR body format isn't a GitHub-recognized closing keyword, so merges don't auto-close issues). A backlog sweep that only checks for *open* PRs will hand out already-finished work. Cross-reference against merged PR activity in the relevant repo(s) before calling a batch of tickets "ready."
 - Don't close a ticket as stale or duplicate without first checking whether it has a live, unmerged PR against it — closing out from under active work is an easy mistake during a backlog sweep.
 - **Cross-repo issue/PR references need the full `owner/repo#number` form.** A bare `#1299` in an issue body always resolves to that number *in the current repo*, even if the surrounding text names a different repo. Linking a `yalesites-project` PR from a `YaleSites-Internal` issue with just `#1299` will silently link to YaleSites-Internal's own issue #1299 instead. Always write the full cross-repo reference (e.g. `yalesites-org/yalesites-project#1299`) when linking across repos.
@@ -75,7 +75,7 @@ Valid options, exactly as configured on the YaleSites Board, in board order. **M
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
+| `Done` | Review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. Stays open until the release ships |
 
 `Done` does not mean closed. A ticket moves to `Done` when its work merges, and stays open until `release-prep` Phase 7 confirms the release shipped and closes it. Milestones, not a board status, say which release the work ships in.
 
@@ -153,7 +153,7 @@ Ask: *"Who should this be assigned to?"*
 
 Three routing habits worth keeping:
 
-- **Accessibility is easy to leave unrouted.** If a ticket carries an accessibility acceptance criterion or the `accessibility-bug` label and nobody is named, suggest `ntay90`.
+- **Accessibility is easy to leave unrouted.** If a ticket carries an accessibility acceptance criterion or the `accessibility` label and nobody is named, suggest `ntay90`.
 - **Upgrade and pipeline work has its own owner.** If a ticket is a Drupal core or contrib major-version upgrade, a PHP version bump, or a change to CI, build, or deploy tooling, suggest `vinmassaro` rather than routing it to general development.
 - **A ticket that came in through ServiceNow usually stays with whoever filed it.** `Feature Request:` and `Bug:` tickets often originate with Chris or Rachel working the support queue. If the user is grooming one of theirs, keep them on it rather than reassigning, since they hold the reporter context and will be the one closing the loop with the requester.
 
@@ -424,7 +424,12 @@ Choose one:
 
 ### 6. Labels
 
-Apply all relevant labels: `ai-engine` `feedback` `vendor-build` `accessibility-bug` `opac` (add others as applicable)
+Labels describe the work, not its type: the native Issue Type covers that, so never add a type label (`bug`, `feature`, `task`, `epic`, `communications`). Apply:
+
+- **At most one workstream:** `design-system` (components, Storybook, themes, tokens), `platform` (Drupal features, views, embeds, forms, config), `ai` (Beacon and AI features), `devops`, `docs-comms` (docs, release notes, comms), or `migration`.
+- **Any flags that fit:** `accessibility`, `tech-debt`, `feedback`, `non-testable`.
+
+The old area labels (`component-library`, `color-system`, `views-blocks`, `embeds`, and the rest) and requester tags (`opac`) were retired on 2026-10-28. Don't recreate them.
 
 `claude` is a workflow label, not a descriptive one. It only goes on when the user has explicitly confirmed it and the ticket clears the bar in "Claude pickup" above. Never add it as part of a routine "apply all relevant labels" sweep.
 
@@ -482,14 +487,14 @@ Use this structure, modeled on #1161. Same GitHub-reading rules as a regular tic
 - [ ] #XXXX -- [Child ticket 2]
 
 ## Follow-up Work (Post-Epic)
-[Explicitly out-of-scope items this epic unblocks or surfaces. Tag with a `<epic-name>-followup` label so they're easy to find later, and note they shouldn't be pulled into active work until the epic's milestone closes.]
+[Explicitly out-of-scope items this epic unblocks or surfaces. Add each as a native sub-issue of this epic so it's easy to find later, and note it shouldn't be pulled into active work until the epic's milestone closes. Don't create a `<epic-name>-followup` label: those were retired on 2026-10-28, and the `follow-up` label means something else: an action a named person owes, like a reply or a check-in.]
 ```
 
 Create the child tickets as real GitHub issues first, then reference their numbers in the parent's checklist — GitHub automatically tracks checklist items that reference issue numbers as sub-issues, which is what gives the parent a clean progress view (this is what made #1161 easy to follow).
 
-### Step 4: Apply the epic label
+### Step 4: Set the Epic Issue Type
 
-**Always apply the `epic` label to the parent ticket.** This is how the epic is distinguished from a regular issue on the board and in filtered views — don't skip it, and double-check it's set before treating the epic ticket as done.
+**Always set the parent's Issue Type to `Epic`** with the `updateIssue` mutation (see the Issue Type note near the top). That's how the epic is told apart from a regular issue on the board, in filtered views, and by `yalesites-pr`'s epic-branch script. Read it back before treating the epic ticket as done. Don't add an `epic` label: it was retired on 2026-10-28.
 
 ### Step 5: Write each child ticket using the standard Issue Format
 
@@ -509,7 +514,7 @@ Before treating an epic as ready:
 - [ ] Body opens with a TL;DR line, and the longer context (Current State, Proposed Approach) is in a collapsed block
 - [ ] Problem/goal and success criteria are stated in the Summary
 - [ ] Scope is explicit — in-scope, and out-of-scope/follow-up if relevant
-- [ ] `epic` label is applied to the parent ticket
+- [ ] The parent's Issue Type is `Epic` (no `epic` label)
 - [ ] Child tickets exist and are checklisted in the parent
 - [ ] If the technical approach is unsettled, a spike/ADR ticket is first in the child list
 - [ ] Milestone reflects a single release, not an open-ended span

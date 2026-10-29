@@ -54,12 +54,12 @@ number means `yalesites-org/YaleSites-Internal`.
 
 **Nothing named:** list the open docs tickets assigned to the user. A docs ticket is one the work
 dashboard's Docs & web tab would show: a `Docs:`, `Web:`, or `[DOCS]` title prefix, or the
-`documentation` or `communications` label.
+`docs-comms` label (or the older `documentation` and `communications` labels it replaced).
 
 ```bash
 gh issue list -R yalesites-org/YaleSites-Internal --assignee @me --state open --limit 100 \
   --json number,title,labels,milestone \
-  --jq '.[] | select((.title|test("^(Docs:|Web:|\\[DOCS\\])";"i")) or ([.labels[].name]|any(.=="documentation" or .=="communications")))'
+  --jq '.[] | select((.title|test("^(Docs:|Web:|\\[DOCS\\])";"i")) or ([.labels[].name]|any(.=="docs-comms" or .=="documentation" or .=="communications")))'
 ```
 
 Show the list with milestones, soonest first, and ask which to take. Default to the ones in the

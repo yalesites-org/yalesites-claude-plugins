@@ -27,17 +27,17 @@ scoping: a review should not stamp a label asserting a check nobody performed.
 
 ## Dimension to label, per repo
 
-Confirmed against all four repos' label sets on 2026-09-21. **Never send a label a repo does not
+Confirmed against all five repos' label sets on 2026-09-21 (`yale-ui-cl` on 2026-10-28). **Never send a label a repo does not
 define.** Step 8's `PUT` creates it silently rather than erroring, which litters a new label onto
 the repo.
 
-| Dimension | Label | `yalesites-project` | `component-library-twig` | `atomic` | `tokens` |
-|---|---|---|---|---|---|
-| `code` | `pass code review` | yes | yes | yes | yes |
-| `functional` | `pass functional review` | yes | yes | yes | yes |
-| `design` | `pass design review` | **no** | yes | **no** | **no** |
-| `a11y` | `pass a11y review` | yes | yes | **no** | **no** |
-| `product` | none | n/a | n/a | n/a | n/a |
+| Dimension | Label | `yalesites-project` | `component-library-twig` | `atomic` | `tokens` | `yale-ui-cl` |
+|---|---|---|---|---|---|---|
+| `code` | `pass code review` | yes | yes | yes | yes | yes |
+| `functional` | `pass functional review` | yes | yes | yes | yes | yes |
+| `design` | `pass design review` | **no** | yes | **no** | **no** | **no** |
+| `a11y` | `pass a11y review` | yes | yes | **no** | **no** | **no** |
+| `product` | none | n/a | n/a | n/a | n/a | n/a |
 
 `product` has no label of its own anywhere. A product-only call is recorded in the review body,
 not on a label. In practice `product` travels with `functional`, because the person weighing
@@ -88,7 +88,7 @@ above are the two parts of this feature that go stale as the team changes, so th
 file on purpose. Re-confirm the label matrix against the repos if a repo's label set changes:
 
 ```bash
-for r in yalesites-project component-library-twig atomic tokens; do
+for r in yalesites-project component-library-twig atomic tokens yale-ui-cl; do
   echo "=== $r ==="
   gh label list --repo yalesites-org/$r --limit 200 --json name -q '.[].name' \
     | grep -Ei 'pass|ready to'
