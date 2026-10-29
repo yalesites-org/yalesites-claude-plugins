@@ -195,7 +195,7 @@ cleanup failed, name the items still on the multidev before anything else: they 
 the prep run and need removing the same way.
 
 On the `ready` path, the review still owes everything after Step 3b: the reviewer's rulings,
-Steps 4 to 10, and one explicit approve or request-changes call. A prepped board saves the wait,
+which the board's last page gives per PR, and Steps 4 to 10. A prepped board saves the wait,
 not the review.
 
 **The brief is local and stays local.** It contains the product calls the audit is forbidden
@@ -317,7 +317,8 @@ a stale one refreshed from the new commits, and one written at the start of this
 the Step 1 dry-run fallback all lead to the same run. Do not offer the hand-off walkthrough as
 an alternative, and do not ask whether to drive it. Read `references/drive-it.md` and follow
 it: preflight (including proof the server runs the branch, since green CI does not show that),
-the brief and plan before any testing, ask once before creating anything, log in per role with
+the brief and plan before any testing, create test content without asking (running the skill
+is consent, `drive-it.md` Step D1), log in per role with
 `drush uli`, run each step in a visible Playwright browser while the user watches, screenshot
 every result (pass, fail, ask, or blocked), record a short clip where the step is about
 behavior over time (a dialog, focus order, an AJAX rebuild), check the Drupal log, and clean
@@ -382,7 +383,8 @@ Two calls are outside your lane, so I have left them:
 Neither gates your functional approval. Want me to raise them as decisions for whoever owns them?
 ```
 
-Offer to raise each one as a `needs-decision` on the PR (see "Open calls go on the record" below), with **Decides** set to the owner the role map names for that dimension. When no one in `references/reviewer-roles.md` owns the dimension, ask the reviewer who should decide. Skip it if the reviewer says no.
+On the board, they go in the PR's unit as `notAsked` and show on its lead-in, with no chat
+message and no offer. On the chat fallback, offer to raise each one as a `needs-decision` on the PR (see "Open calls go on the record" below), with **Decides** set to the owner the role map names for that dimension. When no one in `references/reviewer-roles.md` owns the dimension, ask the reviewer who should decide. Skip it if the reviewer says no.
 
 **On the unscoped path from Step 0, none of this applies.** Every held call goes to the user, as
 it does today.
@@ -453,7 +455,7 @@ For every point that does go in:
 
 Keep the tone direct and collegial, matching [[feedback_ticket_tone]] (if this memory exists for the person running the skill), no "PM-approved," no "do not push back," no ownership stamps. State the feedback and let it speak for itself.
 
-**New scope found mid-review doesn't automatically become a new ticket.** If reviewing the diff surfaces functionality worth adding beyond what the linked issue asked for, don't default to grooming it into a separate backlog ticket, ask the user first. They may want it folded into the existing ticket instead (edited in after the PR merges) with the new functionality just drafted as a PR comment for the developer to see now.
+**New scope found mid-review doesn't automatically become a new ticket.** If reviewing the diff surfaces functionality worth adding beyond what the linked issue asked for, don't default to grooming it into a separate backlog ticket, ask the user first: as a question on the board, in that PR's group, when Step 2 found it (`references/review-board.md`), or in chat on the fallback. They may want it folded into the existing ticket instead (edited in after the PR merges) with the new functionality just drafted as a PR comment for the developer to see now.
 
 **Voice:** if a personal writing-voice skill exists for whoever is running this, check for it and apply it, the comment is going out under that person's name. If none exists, default to a plain, direct, dev-facing tone: specific, unadorned, no forced friendliness.
 
@@ -486,6 +488,11 @@ to happen here, so this step is now offering them, not finding them.
 that explicitly when raising them, so an offer to open a ticket does not read as a condition
 on this PR.
 
+**On the board, these offers are questions, built with the rest of the packet.** Each gets an
+`approve`-verdict "Ticket it" option and a "Skip" option in its PR's group; the docs offer's
+options name where the doc lives. Act on the answers after the board is sent, without asking
+again. The wording below is for the chat fallback.
+
 **A. Visreg coverage gaps.** The brief flags a brand-new block, or a new variant, field, or
 option on an existing block, that the shared visreg content set will not represent. The
 consequence is worth stating when you raise it: the next PR to touch this area will have no
@@ -516,7 +523,14 @@ for follow-up work the audit did not surface.
 
 ## Step 6: Decide approve vs. request changes
 
-Ask the user directly if it isn't obvious from their feedback: is this ready to approve, or does it need another pass?
+**On a board review, the ruling is already made.** `answers.json` carries one `verdicts` entry per
+PR (`references/review-board.md` Step R3): `approve`, `changes`, or `comment` (a decision still
+pending, posted as a comment). Post exactly that. Do not ask again, and do not play it back for a
+confirmation: the board's last page showed the reviewer every ruling and what sending would post,
+and finishing the board is finishing the review.
+
+**On the chat fallback,** ask the user directly if it isn't obvious from their feedback: is this
+ready to approve, or does it need another pass?
 
 **The event has to match the body.** Developers, and the Claude sessions they review with, treat
 an approval as "done, merge it" and do not dig through its body for work. Developer Claude
@@ -532,7 +546,16 @@ Claude never saw the edits.
 | Anything the reviewer expects changed before merge, even one small edit | **Request changes** |
 
 When the user says "approve" but the composed body still carries a before-merge edit, stop and
-say so before posting. Offer the two honest options: request changes with those items as the
+say so before posting. On a board review, check every PR ruled `approve` or `comment` (a comment
+is not a changes request either, so an edit in it is lost the same way). The edit can come from:
+
+- a free-text answer ("Something else" always rules `comment`, whatever it says) or a note;
+- the reviewer's own read (`ownRead`), or a pin, box, or comment on the board (`markups`), which
+  the inferred ruling never reads;
+- an option answer whose `verdict` is `changes`, on a PR whose entry has `inferred: false`, since
+  the reviewer's manual ruling replaced what that answer pointed to.
+
+That mismatch is the only reason to ask after the board. Offer the two honest options: request changes with those items as the
 blocking list, or downgrade them to genuinely optional (or to a follow-up ticket) and approve.
 Do not pick for them, and do not soften the wording to make an approval fit.
 
@@ -792,6 +815,10 @@ the computed label set, and retry those exact artifacts once the cause is fixed.
 ## Step 9b: Check whether the linked ticket needs to catch up
 
 This is exactly the moment tickets go stale, Step 2 may have surfaced a place where the diff and the issue's acceptance criteria diverge, and Step 3 resolved it in conversation with the user. If nothing writes that resolution back to the ticket, the next person who reads it sees the original ask, not what was actually decided.
+
+On a board review, the call is already made: when Step 2 found a divergence, the packet asked
+it as a question (update the ticket, comment on it, or leave it), so apply that answer through
+`ticket-sync` without its own confirmation step.
 
 Now that the review from Step 9 is posted, load the `ticket-sync` skill and hand it the linked issue from Step 1, the divergences found in Step 2, and how they were resolved, Step 3's conversation plus the final posted review body. It decides whether the resolution is worth a comment (context only) or an edit (scope/acceptance criteria actually changed), and, if the issue is a child ticket under an epic, whether the parent epic's `Scope` or `Child Tickets` section needs a matching update.
 

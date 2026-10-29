@@ -13,8 +13,8 @@ to the user as `SKILL.md` Step 3 describes.
 
 **Prep mode changes some of this.** When this runs under `/pr-feedback --prep`
 (`references/prep-mode.md`), no one is watching: sessions are headless, nothing is installed,
-nothing is shown as it goes, and the disposable multidev rule in prep-mode.md Step P3 replaces the
-Step D1 ask. Everything else here applies as written, Step D5 cleanup included.
+nothing is shown as it goes, and the disposable multidev rule in prep-mode.md Step P3 is the same
+standing consent Step D1 gives. Everything else here applies as written, Step D5 cleanup included.
 
 **The user watches, the user rules.** Driving the browser settles mechanical questions (does it
 overflow, which column is on the left, does focus move). It never settles design or product
@@ -110,11 +110,13 @@ and why before the run starts, so the user can overrule it. Skipping silently is
 record it as `fail (known)` with the ticket it is tracked on. The run cannot know that the
 known issue is the only one there.
 
-## Step D1: Ask once, before writing anything
+## Step D1: Before writing anything
 
 Visreg multidevs carry a red "DO NOT CHANGE CONTENT" banner. That banner protects the visreg
-site itself; a PR multidev is a disposable copy. Still, in a live review, ask the user once per PR, with one
-`AskUserQuestion`, before doing any of these:
+site itself; a PR multidev is a disposable copy. **Running the skill is consent to write to PR
+multidevs, so do not ask.** The reviewer does not want a question before every run. The consent
+covers PR multidevs (`pr-<N>`) only, never a visreg multidev, `dev`, `test`, or `live`, and only
+these kinds:
 
 - creating test pages (nodes). Inline blocks and sections placed on a test page go with it
 - creating reusable blocks or media (including uploaded files)
@@ -124,13 +126,14 @@ site itself; a PR multidev is a disposable copy. Still, in a live review, ask th
 Only these kinds, because Step D5 knows how to handle each one. Anything else a step would
 need is out of bounds: say so and hand that step off.
 
-Say in the same question what happens afterwards: on this PR's own `pr-<N>` multidev the test
-content stays after the run, so the reviewer can open it and check the findings by hand, and
-settings go back to their original values. Anywhere else, including another PR's multidev
-used as a baseline, everything the run made is removed. See Step D5.
+What happens afterwards does not change: on this PR's own `pr-<N>` multidev the test content
+stays after the run, so the reviewer can open it and check the findings by hand, and settings go
+back to their original values. Anywhere else, including another PR's multidev used as a
+baseline, everything the run made is removed. See Step D5. Say so in one line when the run
+starts, as a note, not a question.
 
-Offer the alternative in the same question: test on an existing page such as
-`/empty-testing-page` or the `/blocks-for-visreg/...` pages, read-only, where the plan allows.
+Prefer an existing page such as `/empty-testing-page` or the `/blocks-for-visreg/...` pages,
+read-only, where the plan allows it.
 
 Record everything as it is created, in `.created` in the run folder, one line per item,
 starting with the environment it lives on: `pr-1413 node <nid>`, `pr-1413 block_content <id>`,
@@ -184,7 +187,7 @@ npx -y @playwright/cli@0.1.22 -s=<role> open --headed '<login link>'
 ```
 
 Follow "Roles" in `beyond-ac-checks.md`: user 1 (a bare `uli`) is for setup only, `e2etest` is
-the site admin, `qa-<role>` users are created only with consent, and real people's accounts are
+the site admin, `qa-<role>` users are created only under Step D1's consent, and real people's accounts are
 never used. Confirm `e2etest` exists and still holds `site_admin` before relying on it
 (`terminus drush ... -- user:information e2etest`). If it does not, treat site admin like any
 other role: a `qa-site_admin` user, created with the D1 consent. Name each session after its role (`-s=site_admin`, `-s=editor`) so the logins never

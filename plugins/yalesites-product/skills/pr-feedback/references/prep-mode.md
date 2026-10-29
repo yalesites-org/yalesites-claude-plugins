@@ -121,9 +121,9 @@ it for them.
 Driving applies to `yalesites-project` units, as in `SKILL.md` Step 3. Follow `drive-it.md`,
 with these changes:
 
-**The disposable multidev rule replaces the Step D1 ask.** A PR multidev is a disposable copy of
-the platform, so prep mode has standing consent to create the Step D1 kinds on it (test pages,
-reusable blocks, media and files, `qa-<role>` users, and setting changes) without asking. The
+**The disposable multidev rule is Step D1's standing consent, narrowed.** A PR multidev is a disposable copy of
+the platform, so prep mode creates the Step D1 kinds on it without asking (test pages,
+reusable blocks, media and files, `qa-<role>` users, and setting changes). The
 rule holds only when all of these are true:
 
 - The environment is `yalesites-platform.pr-<N>`, the PR's own multidev. Never a visreg
@@ -207,9 +207,9 @@ Follow `review-board.md` Step R1, with two differences:
   left half-built needs no name and no tidying. The status entry's `packetDir` is the only
   pointer anyone follows, so an old folder is never mistaken for the current packet, and no old
   `answers.json` can end the next review's wait early.
-- **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The About
-  panel"), a unit with nothing to drive included. The reviewer opens the packet days later with
-  no brief in front of them, so the panel is their only summary of the ticket and the PR.
+- **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The lead-in:
+  `units`"), a unit with nothing to drive included. The reviewer opens the packet days later with
+  no brief in front of them, so the lead-in is their only summary of the ticket and the PR.
 - **Write `prep.json` next to `packet.json`.** It holds what the review session needs and the
   board does not show:
 

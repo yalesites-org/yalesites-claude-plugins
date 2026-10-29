@@ -23,47 +23,94 @@
     }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
   a { color: var(--accent); }
   button, textarea, input { font: inherit; color: inherit; }
-  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; gap: 16px; align-items: center; }
-  header .title { flex: 1; min-width: 0; }
-  header .title h1 { font-size: 17px; font-weight: 500; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  header .title .sub { font-size: 13px; color: var(--muted); }
-  .progress { font-size: 13px; color: var(--muted); white-space: nowrap; }
-  .layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: calc(100vh - 62px); }
-  nav { border-right: 1px solid var(--border); padding: 16px 12px; background: var(--surface); }
-  nav button { display: flex; gap: 10px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: var(--radius); padding: 8px 10px; cursor: pointer; align-items: flex-start; }
-  nav button:hover { background: var(--bg); }
-  nav button[aria-current="true"] { background: var(--accent-bg); border-color: var(--accent); }
-  nav .dot { flex: none; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border-strong); font-size: 12px; display: grid; place-items: center; margin-top: 1px; }
-  nav .done .dot { background: var(--ok-bg); border-color: var(--ok); color: var(--ok); }
-  nav .lbl { font-size: 14px; line-height: 1.35; }
-  nav .lbl small { display: block; color: var(--muted); font-size: 12px; }
-  main { padding: 28px 40px 80px; max-width: 1100px; }
-  .layout.has-about { grid-template-columns: 240px minmax(0, 1fr) 340px; }
-  aside.about { border-left: 1px solid var(--border); background: var(--surface); padding: 20px 20px 40px; position: sticky; top: 62px; align-self: start; max-height: calc(100vh - 62px); overflow: auto; font-size: 14px; line-height: 1.5; }
-  .about h2 { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 14px; }
-  .about .unit + .unit { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); }
-  .about .part { margin: 0 0 16px; }
-  .about .part-label { font-size: 12px; color: var(--muted); margin-bottom: 2px; }
-  .about .ref { font-size: 13px; }
-  .about .part-title { font-weight: 600; font-size: 15px; line-height: 1.35; margin: 2px 0 4px; }
-  .about .doc { font-size: 14px; max-height: none; overflow: visible; padding: 0; }
-  .about .doc p, .about .doc ul { margin-bottom: 6px; }
-  .about .doc code { font-size: 12px; }
-  .about ul.related { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-  .about ul.related .note { color: var(--muted); }
-  @media (max-width: 1280px) {
-    .layout.has-about { grid-template-columns: 240px minmax(0, 1fr); }
-    .layout.has-about aside.about { grid-column: 2; grid-row: 1; position: static; max-height: none; border-left: none; border-bottom: 1px solid var(--border); padding: 16px 40px; }
-    .layout.has-about main { grid-column: 2; }
-    .layout.has-about nav { grid-row: 1 / span 2; }
-    .about .units { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px 32px; }
-    .about .unit + .unit { margin-top: 0; padding-top: 0; border-top: none; }
+  /* v2 header: one line of title + PR chips, then the stepper. */
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 24px 12px; }
+  .h-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .h-row h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .chip { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 99px; padding: 3px 11px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .chip .num { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .chip .cnt { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-current="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+  .chip.complete .cnt { color: var(--ok); }
+  .details-btn { border: none; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 4px; text-decoration: underline dotted; }
+  .legend { font-size: 13px; color: var(--muted); margin: 8px 0 0; display: grid; gap: 2px; }
+  .stepper { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  /* Each PR gets a color (--c): its chip dot, its bracket under the stepper, its segments.
+     Pale segment = open, solid = answered. */
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); align-self: center; flex: none; }
+  .chip[aria-current="true"] { background: color-mix(in srgb, var(--c) 16%, var(--surface)); border-color: var(--c); color: var(--text); }
+  .steps { display: flex; gap: 10px; flex: 1; min-width: 0; align-items: flex-start; }
+  .grp { display: flex; flex-direction: column; gap: 4px; flex: var(--n); min-width: 0; }
+  .grp .segs { display: flex; gap: 3px; }
+  .grp .bracket { height: 6px; border: 2px solid var(--c); border-top: none; border-radius: 0 0 3px 3px; }
+  .grp .glabel { font-size: 11px; line-height: 1; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .step { height: 10px; min-width: 12px; flex: 1; border: none; border-radius: 3px; background: color-mix(in srgb, var(--c, var(--faint)) 28%, transparent); cursor: pointer; padding: 0; position: relative; }
+  .step:hover { background: color-mix(in srgb, var(--c, var(--faint)) 55%, transparent); }
+  .step.done { background: var(--c, var(--ok)); }
+  .step.done.later { background: repeating-linear-gradient(45deg, var(--c) 0 3px, transparent 3px 6px); }
+  .q-meta .tag.pr { background: color-mix(in srgb, var(--c) 18%, var(--surface)); color: var(--text); box-shadow: inset 3px 0 0 var(--c); border-radius: 4px; }
+  .brief { border-left: 4px solid var(--c, var(--border)); }
+  .step[aria-current="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .step.own { background: transparent; border: 1.5px dashed var(--border-strong); height: 10px; }
+  .step.own.done { background: var(--ok); border-style: solid; border-color: var(--ok); }
+  .progress { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 0; max-width: 1680px; margin: 0 auto; }
+  main { padding: 24px 40px 80px; min-width: 0; }
+  aside.call { position: sticky; top: var(--hh, 96px); align-self: start; max-height: calc(100vh - var(--hh, 96px)); overflow: auto; padding: 24px 24px 32px; border-left: 1px solid var(--border); background: var(--surface); min-height: calc(100vh - var(--hh, 96px)); }
+  .call .kicker { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  .call .ask { font-size: 21px; line-height: 1.35; font-weight: 600; margin: 0 0 18px; }
+  .call .options { grid-template-columns: 1fr; gap: 8px; }
+  .call .opt { padding: 11px 14px; flex-direction: row; gap: 12px; align-items: flex-start; border-radius: 10px; }
+  .call .opt .key { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border-strong); font-size: 12px; display: grid; place-items: center; color: var(--muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .call .opt[aria-pressed="true"] .key { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  .call .opt .o-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .call .opt .o-label { font-size: 16px; }
+  .call .opt .o-detail { font-size: 13px; }
+  .call .opt.defer { border-style: dashed; }
+  .call textarea { min-height: 80px; font-size: 15px; }
+  .call .pager { margin-top: 18px; padding-top: 16px; }
+  .call .keys { font-size: 12px; color: var(--faint); margin-top: 10px; }
+  .call .notes-toggle { border: none; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 14px; margin-top: 14px; }
+  /* Question header in the main column. */
+  .q-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  h2.q-title { font-size: 24px; font-weight: 600; margin: 8px 0 12px; line-height: 1.3; }
+  .brief { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin: 0 0 22px; }
+  .brief .b-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .brief ul { margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.5; }
+  .brief li + li { margin-top: 3px; }
+  .brief .full { font-size: 14px; color: var(--muted); margin: 10px 0 0; border-top: 1px solid var(--border); padding-top: 10px; }
+  .unitcard { font-size: 14px; line-height: 1.5; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
+  .unitcard dt { color: var(--muted); }
+  .unitcard dd { margin: 0; }
+  .v-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0 0 6px; }
+  .verdict { display: inline-flex; }
+  .verdict .btn { border-radius: 0; padding: 5px 12px; font-size: 14px; margin-left: -1px; }
+  .verdict .btn:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .verdict .btn:last-child { border-radius: 0 6px 6px 0; }
+  .intro .i-row { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 6px 0; font-size: 16px; line-height: 1.5; }
+  .intro .i-row + .i-row { border-top: 1px solid var(--border); }
+  .intro .i-label { color: var(--muted); font-size: 14px; padding-top: 1px; }
+  ol.coming { margin: 0; padding-left: 24px; display: grid; gap: 8px; font-size: 17px; }
+  ol.coming li::marker { color: var(--c); font-weight: 600; }
+  ol.coming button { border: none; background: none; padding: 0; cursor: pointer; text-align: left; font-size: 17px; color: var(--text); }
+  ol.coming button:hover { color: var(--accent); text-decoration: underline; }
+  ol.coming li.done button { color: var(--muted); }
+  ol.coming li.done button::after { content: ' ✓'; color: var(--ok); }
+  ol.coming .tag { margin-left: 8px; vertical-align: 2px; }
+  .intro ul.not-asked { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  .grp .glabel.on { text-decoration: underline; text-underline-offset: 3px; }
+  .evidence-h { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.call { position: static; max-height: none; min-height: 0; border-left: none; border-top: 1px solid var(--border); }
   }
   .tag { display: inline-block; text-decoration: none; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); margin-right: 6px; }
-  h2.q-title { font-size: 26px; font-weight: 500; margin: 10px 0 6px; line-height: 1.3; }
   p.q-text { font-size: 19px; color: var(--text); margin: 0 0 24px; max-width: 70ch; }
   section.block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 0 0 20px; }
   .block-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
@@ -136,30 +183,33 @@
   .done-card h2 { font-size: 26px; font-weight: 500; }
   .done-card p { color: var(--muted); font-size: 17px; }
   @media (max-width: 860px) {
-    .layout { grid-template-columns: 1fr; } nav { border-right: none; border-bottom: 1px solid var(--border); }
     main { padding: 20px; } .compare { grid-template-columns: 1fr; }
-    .layout.has-about { grid-template-columns: 1fr; }
-    .layout.has-about nav, .layout.has-about aside.about, .layout.has-about main { grid-column: 1; grid-row: auto; }
-    .layout.has-about aside.about { padding: 16px 20px; }
   }
 </style>
 </head>
 <body>
-<header>
-  <div class="title"><h1 id="h-title">Loading review…</h1><div class="sub" id="h-sub"></div></div>
-  <div class="progress" id="h-progress"></div>
+<header id="hdr">
+  <div class="h-row">
+    <h1 id="h-title">Loading review…</h1>
+    <nav class="chips" id="chips" aria-label="PRs in this review"></nav>
+    <button class="details-btn" id="h-details" type="button" aria-expanded="false">Details</button>
+  </div>
+  <div class="legend" id="h-legend" hidden></div>
+  <div class="stepper">
+    <nav class="steps" id="steps" aria-label="Questions"></nav>
+    <div class="progress" id="h-progress"></div>
+  </div>
 </header>
 <div class="layout">
-  <nav id="nav" aria-label="Questions"></nav>
   <main id="main"></main>
-  <aside id="about" class="about" aria-label="About this review" hidden></aside>
+  <aside id="call" class="call" aria-label="Your call"></aside>
 </div>
 <script>
 const params = new URLSearchParams(location.search);
 const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
 const storeKey = `review-board:${packetId}`;
-let packet, state, current = 0, submitted = false, zoom = null;
+let packet, state, current = 0, submitted = false, zoom = null, fromRecap = false;
 const clips = {};
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -200,10 +250,12 @@ function md(src, highlights = [], quotes = []) {
 
 function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
 function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+// test:begin isAnswered
 function isAnswered(i) {
   const a = state.answers[i];
   return a.choice && (a.choice !== '__other' || a.other.trim());
 }
+// test:end
 const totalSteps = () => packet.questions.length + 1;
 
 async function init() {
@@ -215,129 +267,274 @@ async function init() {
     $('#h-title').textContent = `Couldn't load packet "${packetId}"`;
     return;
   }
-  document.title = `Review: ${packet.title}`;
+  document.title = `Review: ${packet.shortTitle || packet.title}`;
   const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
   state = saved && saved.answers?.length === packet.questions.length
     ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
+  groups = buildGroups();
+  rulingGroups = [...groups, ...quietGroups()];
   const pr = packet.pr || {};
-  $('#h-title').innerHTML = pr.url ? `<a href="${esc(pr.url)}" target="_blank" rel="noopener">${esc(packet.title)}</a>` : esc(packet.title);
-  $('#h-sub').innerHTML = [pr.ref, packet.issue && `<a href="${esc(packet.issue.url)}" target="_blank" rel="noopener">${esc(packet.issue.ref)}</a>`, packet.subtitle]
-    .filter(Boolean).map(s => s.startsWith('<') ? s : esc(s)).join(' · ');
+  // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
+  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'PR review'} · ${rulingGroups.length} PRs` : (packet.shortTitle || packet.title);
+  $('#h-title').textContent = title;
+  $('#h-title').title = packet.title;
+  // The long subtitle (environments, legends) moves behind Details.
+  const legend = $('#h-legend'), det = $('#h-details');
+  const bits = String(packet.subtitle || '').split(' | ').filter(Boolean);
+  legend.replaceChildren(...bits.map(b => h('div', {}, b)));
+  det.hidden = !bits.length;
+  det.onclick = () => { legend.hidden = !legend.hidden; det.setAttribute('aria-expanded', String(!legend.hidden)); det.textContent = legend.hidden ? 'Details' : 'Hide details'; };
+  new ResizeObserver(() => document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px')).observe($('#hdr'));
+  intro = groups[0] || null;
   render();
 }
 
+// Questions grouped by the PR (unit) they come from, in packet order. A question finds its
+// unit by its PR ref, or one of the unit's extraPrs (a multi-repo change reviewed as one).
+let groups = [];
+// Mid-tone hues that read on both the light and dark surfaces.
+const PR_COLORS = ['#3b82d6', '#9b5de5', '#e07a2e', '#1fa08a', '#d14d86', '#8a9a1f'];
+const REPO_SHORT = { 'yalesites-project': 'ysp', 'component-library-twig': 'clt', 'atomic': 'atomic', 'tokens': 'tokens', 'YaleSites-Internal': 'internal' };
+function shortRef(ref) {
+  const m = String(ref || '').match(/^[^/]+\/([^#]+)#(\d+)$/);
+  return m ? `${REPO_SHORT[m[1]] || m[1]}#${m[2]}` : (ref || '');
+}
+function unitOf(q) {
+  const units = packet.units || [], ref = q.pr?.ref || packet.pr?.ref;
+  return units.find(u => u.pr?.ref === ref || (u.extraPrs || []).includes(ref)) || (units.length === 1 ? units[0] : null);
+}
+function buildGroups() {
+  const out = [];
+  packet.questions.forEach((q, i) => {
+    const u = unitOf(q), key = u ? u.pr.ref : (q.pr?.ref || packet.pr?.ref || 'review');
+    let g = out.find(x => x.key === key);
+    if (!g) out.push(g = { key, unit: u, label: u?.short || u?.pr?.title || '', ref: u?.pr?.ref || key, qs: [], color: PR_COLORS[out.length % PR_COLORS.length] });
+    g.qs.push(i);
+  });
+  return out;
+}
+// A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
+// ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
+let rulingGroups = [];
+// test:begin quietGroups
+function quietGroups() {
+  return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
+    .map((u, k) => ({ key: u.pr.ref, unit: u, label: u.short || u.pr.title || '', ref: u.pr.ref, qs: [], quiet: true, color: PR_COLORS[(groups.length + k) % PR_COLORS.length] }));
+}
+// test:end
+const groupOf = qi => groups.find(g => g.qs.includes(qi));
+const answeredCount = () => packet.questions.filter((_, i) => isAnswered(i)).length;
+
 function render() {
-  renderNav();
-  const main = $('#main');
-  main.replaceChildren();
-  renderAbout();
-  if (submitted) return renderDone(main);
-  if (current < packet.questions.length) renderQuestion(main, current);
-  else renderOwnRead(main);
-  const n = packet.questions.filter((_, i) => isAnswered(i)).length;
-  $('#h-progress').textContent = `${n} of ${packet.questions.length} answered`;
+  renderHeader();
+  const main = $('#main'), call = $('#call');
+  main.replaceChildren(); call.replaceChildren();
+  if (submitted) { call.hidden = true; return renderDone(main); }
+  call.hidden = false;
+  if (intro) renderIntro(main, call, intro);
+  else if (current < packet.questions.length) renderQuestion(main, call, current);
+  else renderOwnRead(main, call);
   renderLightbox();
 }
 
-function renderNav() {
-  const nav = $('#nav');
-  nav.replaceChildren(...packet.questions.map((q, i) => h('button', {
-    class: isAnswered(i) ? 'done' : '', 'aria-current': i === current && !submitted ? 'true' : 'false',
-    onclick: () => go(i)
-  }, h('span', { class: 'dot' }, isAnswered(i) ? '✓' : String(i + 1)),
-     h('span', { class: 'lbl' }, q.title, h('small', {}, [q.pr?.ref, q.dimension].filter(Boolean).join(' · '))))),
-  h('button', { class: state.ownRead.trim() ? 'done' : '', 'aria-current': current === packet.questions.length && !submitted ? 'true' : 'false', onclick: () => go(packet.questions.length) },
-    h('span', { class: 'dot' }, '✎'), h('span', { class: 'lbl' }, 'Your own read', h('small', {}, 'Anything you noticed'))));
+function renderHeader() {
+  const cur = groupOf(current);
+  $('#chips').replaceChildren(...(groups.length > 1 || groups[0]?.label ? groups : []).map(g => {
+    const done = g.qs.filter(isAnswered).length;
+    return h('button', {
+      class: 'chip' + (done === g.qs.length ? ' complete' : ''), type: 'button', title: `${g.ref}${g.unit?.pr?.title ? ': ' + g.unit.pr.title : ''}`,
+      style: `--c:${g.color}`,
+      'aria-current': g === cur && !submitted ? 'true' : 'false', onclick: () => showIntro(g)
+    }, h('span', { class: 'dot' }), h('span', { class: 'num' }, shortRef(g.ref)), g.label && h('span', {}, g.label), h('span', { class: 'cnt' }, `${done}/${g.qs.length}`));
+  }));
+  const step = i => {
+    const q = packet.questions[i], a = state.answers[i];
+    return h('button', {
+      class: 'step' + (isAnswered(i) ? ' done' : '') + (a.choice === 'defer' ? ' later' : ''), type: 'button',
+      title: `${i + 1}. ${q.title}${isAnswered(i) ? ' (answered)' : ''}`, 'aria-label': `Question ${i + 1}: ${q.title}`,
+      'aria-current': i === current && !submitted ? 'true' : 'false', onclick: () => go(i)
+    });
+  };
+  const nq = packet.questions.length;
+  $('#steps').replaceChildren(
+    ...groups.map(g => h('div', { class: 'grp', style: `--n:${g.qs.length};--c:${g.color}`, title: `${shortRef(g.ref)} ${g.label}` },
+      h('div', { class: 'segs' }, ...g.qs.map(step)),
+      groups.length > 1 && h('div', { class: 'bracket' }),
+      groups.length > 1 && h('div', { class: 'glabel' + (intro === g ? ' on' : '') }, shortRef(g.ref)))),
+    h('div', { class: 'grp', style: '--n:1;flex:0 0 28px' }, h('button', {
+      class: 'step own' + (state.ownRead.trim() ? ' done' : ''), type: 'button', title: 'Your own read, then send',
+      'aria-label': 'Your own read', 'aria-current': current === nq && !submitted ? 'true' : 'false', onclick: () => go(nq)
+    })));
+  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `PR ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
 }
 
-// The "About this review" panel: what ticket and PR the current question comes from, in
-// plain words, so a question makes sense without opening GitHub. One unit per PR; a
-// question finds its unit by its PR ref (or the packet's), and a one-unit packet uses it
-// for every question. The own-read and done pages show every unit.
-function unitsFor(qi) {
-  const units = packet.units || [];
-  if (qi == null || qi >= packet.questions.length || submitted) return units;
-  const ref = packet.questions[qi].pr?.ref || packet.pr?.ref;
-  const match = units.filter(u => u.pr?.ref && u.pr.ref === ref);
-  return match.length ? match : units.length === 1 ? units : [];
+function refLink(r, text) {
+  if (!r?.ref && !text) return null;
+  return /^https?:/i.test(r.url || '') ? h('a', { href: r.url, target: '_blank', rel: 'noopener' }, (text || r.ref) + ' ↗') : (text || r.ref);
 }
 
-function refLink(r) {
-  if (!r?.ref) return null;
-  return /^https?:/i.test(r.url || '') ? h('a', { href: r.url, target: '_blank', rel: 'noopener' }, r.ref + ' ↗') : r.ref;
+// "What this PR is" in two lines, folded inside the context card so it never competes with
+// the question. Open by default on the first question of each PR, since that is where the
+// reviewer switches context.
+function unitCard(u, open) {
+  if (!u) return null;
+  const rows = [
+    u.issue && ['Ticket', h('span', {}, refLink(u.issue, shortRef(u.issue.ref)), u.ask ? ' ' : '', u.ask && h('span', { html: md(u.ask).replace(/^<p>|<\/p>$/g, '') }))],
+    ['PR', h('span', {}, refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [', ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]), u.change ? ' ' : '', u.change && h('span', { html: md(u.change).replace(/^<p>|<\/p>$/g, '') }))],
+    (u.status || u.test) && ['Test', h('span', {}, u.status || '', u.status && u.test ? ' · ' : '', u.test && refLink({ ref: u.test.label, url: u.test.url }))],
+    u.related?.length && ['Related', h('span', {}, ...u.related.flatMap((r, k) => [k ? ' · ' : '', refLink(r, shortRef(r.ref)), r.note ? ` ${r.note}` : '']))],
+  ].filter(Boolean);
+  const d = h('details', { open: open || null }, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted)' }, `About ${shortRef(u.pr.ref)}${u.pr.title ? ': ' + u.pr.title : ''}`),
+    h('dl', { class: 'unitcard' }, ...rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])));
+  return d;
+}
+function prUrl(ref) {
+  const m = String(ref).match(/^([^/]+)\/([^#]+)#(\d+)$/);
+  return m ? `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}` : null;
 }
 
-function renderAbout() {
-  const aside = $('#about'), units = unitsFor(current);
-  $('.layout').classList.toggle('has-about', units.length > 0);
-  aside.hidden = !units.length;
-  if (!units.length) return aside.replaceChildren();
-  const part = (label, ref, title, body) => (ref || title || body) && h('div', { class: 'part' },
-    h('div', { class: 'part-label' }, label),
-    ref && h('div', { class: 'ref' }, refLink(ref)),
-    title && h('div', { class: 'part-title' }, title),
-    body && h('div', { class: 'doc', html: md(body) }));
-  aside.replaceChildren(
-    h('h2', {}, units.length > 1 ? 'About these PRs' : 'About this review'),
-    h('div', { class: 'units' }, ...units.map(u => h('div', { class: 'unit' },
-      part('Ticket', u.issue, u.issue?.title, u.ask),
-      part('Pull request', u.pr, u.pr?.title, u.change),
-      (u.status || u.test) && h('div', { class: 'part' },
-        h('div', { class: 'part-label' }, 'Testing'),
-        u.status && h('div', { class: 'doc', html: md(u.status) }),
-        u.test && h('div', {}, refLink({ ref: u.test.label || 'Where to test', url: u.test.url }))),
-      u.related?.length > 0 && h('div', { class: 'part' },
-        h('div', { class: 'part-label' }, 'Related'),
-        h('ul', { class: 'related' }, ...u.related.map(r => h('li', {}, refLink(r), r.note && h('span', { class: 'note' }, ' ' + r.note)))))))));
+let intro = null;
+function go(i, opts = {}) {
+  const prev = current, g = i < packet.questions.length ? groupOf(i) : null;
+  // A question opened from the recap returns to the recap once it is answered.
+  fromRecap = !!opts.fromRecap;
+  current = i; submitted = false; zoom = null;
+  intro = !opts.skipIntro && g && g.qs[0] === i && (i === prev + 1 || opts.intro) ? g : null;
+  render(); window.scrollTo(0, 0);
+}
+function showIntro(g) { go(g.qs[0], { intro: true }); }
+function back(qi) {
+  const g = groupOf(qi);
+  if (g && g.qs[0] === qi) return showIntro(g);
+  go(qi - 1);
 }
 
-function go(i) { current = i; submitted = false; zoom = null; render(); window.scrollTo(0, 0); }
-
-function renderQuestion(main, qi) {
-  const q = packet.questions[qi], a = state.answers[qi];
+// The lead-in for a PR: what it is for, what it does, and the decisions coming up, so each
+// question after it only has to carry its own context.
+function renderIntro(main, call, g) {
+  const u = g.unit, k = groups.indexOf(g);
+  main.style.setProperty('--c', g.color);
   main.append(
-    h('div', {}, q.pr && h('a', { class: 'tag', href: q.pr.url, target: '_blank', rel: 'noopener' }, q.pr.ref), q.dimension && h('span', { class: 'tag' }, q.dimension), h('span', { class: 'hint' }, `Question ${qi + 1} of ${packet.questions.length}`)),
-    h('h2', { class: 'q-title' }, q.title),
-    h('p', { class: 'q-text' }, q.question));
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `PR ${k + 1} of ${groups.length}`)),
+    h('h2', { class: 'q-title' }, u?.pr?.title || g.label || g.ref));
+  const row = (label, body) => body && h('div', { class: 'i-row' }, h('div', { class: 'i-label' }, label), h('div', { class: 'i-body' }, body));
+  const inline = t => t && h('span', { html: md(t).replace(/^<p>|<\/p>$/g, '') });
+  const links = u ? h('span', {},
+    refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [' · ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]),
+    u.issue && [' · ticket ', refLink(u.issue, shortRef(u.issue.ref))],
+    u.test && [' · ', refLink({ ref: u.test.label, url: u.test.url })]) : null;
+  const facts = h('div', { class: 'brief intro' },
+    row('What it is for', inline(u?.ask)),
+    row('What it does', inline(u?.change)),
+    row('Testing', u?.status && inline(u.status)),
+    row('Links', links),
+    u?.related?.length && row('Related', h('span', {}, ...u.related.flatMap((r, j) => [j ? ' · ' : '', refLink(r, shortRef(r.ref)), r.note ? ` ${r.note}` : '']))),
+    u?.notAsked?.length && row('Not asked', h('ul', { class: 'not-asked' }, ...u.notAsked.map(n => h('li', { html: md(n).replace(/^<p>|<\/p>$/g, '') })))));
+  if (facts.children.length) main.append(facts);
+  main.append(h('h3', { class: 'evidence-h' }, `You will decide (${g.qs.length})`),
+    h('ol', { class: 'coming' }, ...g.qs.map(i => {
+      const q = packet.questions[i];
+      return h('li', { class: isAnswered(i) ? 'done' : '' }, h('button', { type: 'button', onclick: () => go(i, { skipIntro: true }) }, q.ask || q.title),
+        q.dimension && h('span', { class: 'tag' }, q.dimension));
+    })));
+  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `PR ${k + 1} of ${groups.length}` : 'This review'),
+    h('p', { class: 'ask' }, `${g.qs.length} decision${g.qs.length > 1 ? 's' : ''} on ${shortRef(g.ref)}`));
+  const start = () => go(g.qs.find(i => !isAnswered(i)) ?? g.qs[0], { skipIntro: true });
+  keyNext = start; keyPick = null;
+  const prevG = groups[k - 1];
+  call.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', style: k === 0 ? 'visibility:hidden' : '', onclick: () => go(prevG.qs.at(-1), { skipIntro: true }) }, '← Back'),
+    h('button', { class: 'btn primary', onclick: start }, 'Start →')),
+    h('div', { class: 'keys' }, 'Keys: → or Enter to start'));
+}
 
+function renderQuestion(main, call, qi) {
+  const q = packet.questions[qi], a = state.answers[qi], g = groupOf(qi), u = g?.unit;
+  const firstOfPr = g && g.qs[0] === qi;
+
+  // Main column: what this is about, then the evidence.
+  main.style.setProperty('--c', g?.color || '');
+  main.append(
+    h('div', { class: 'q-meta' },
+      q.pr && h('a', { class: 'tag pr', href: q.pr.url, target: '_blank', rel: 'noopener', title: q.pr.ref }, shortRef(q.pr.ref)),
+      q.dimension && h('span', { class: 'tag' }, q.dimension),
+      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this PR`)),
+    h('h2', { class: 'q-title' }, q.title));
+  const brief = h('div', { class: 'brief' }, h('div', { class: 'b-head' }, h('span', {}, 'Context')));
+  if (q.brief?.length) {
+    brief.append(h('ul', {}, ...q.brief.map(b => h('li', { html: md(b).replace(/^<p>|<\/p>$/g, '') }))));
+    const full = h('details', {}, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted);margin-top:8px' }, 'Full write-up'), h('p', { class: 'full' }, q.question));
+    brief.append(full);
+  } else {
+    brief.append(h('p', { style: 'margin:0' }, q.question));
+  }
+  if (u) brief.append(h('div', { style: 'margin-top:10px' }, unitCard(u, false)));
+  main.append(brief);
+  if (q.context?.length) main.append(h('h3', { class: 'evidence-h' }, 'Evidence'));
   (q.context || []).forEach((ctx, ci) => main.append(renderContext(qi, ctx, ci)));
 
-  main.append(h('h3', { class: 'section' }, 'Your call'));
+  // Sticky panel: the one question and the answers.
+  call.append(h('p', { class: 'kicker' }, 'Your call'), h('p', { class: 'ask' }, q.ask || q.title));
   const opts = h('div', { class: 'options', role: 'group', 'aria-label': 'Options' });
   const err = h('div', { class: 'err', hidden: true }, 'Pick an option first, or describe something else.');
   const otherBox = h('textarea', { placeholder: 'Describe what you want instead', hidden: a.choice !== '__other' });
   otherBox.value = a.other;
-  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; save(); renderNav(); });
+  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; clearOverride(qi); save(); renderHeader(); });
   const choices = [...(q.options || []), { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
-  for (const o of choices) {
-    opts.append(h('button', {
-      class: 'opt', type: 'button', 'aria-pressed': a.choice === o.value ? 'true' : 'false',
-      onclick: e => {
-        a.choice = o.value; err.hidden = true; save();
-        opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === e.currentTarget ? 'true' : 'false'));
-        otherBox.hidden = o.value !== '__other';
-        if (!otherBox.hidden) otherBox.focus();
-        renderNav(); $('#h-progress').textContent = `${packet.questions.filter((_, i) => isAnswered(i)).length} of ${packet.questions.length} answered`;
-      }
-    }, o.recommended && h('span', { class: 'rec' }, 'Recommended'),
-       h('span', { class: 'o-label' }, o.label),
-       o.detail && h('span', { class: 'o-detail' }, o.detail)));
-  }
-  main.append(opts, h('div', { style: 'margin-top:12px' }, otherBox), err);
+  const pick = (o, btn) => {
+    if (a.choice !== o.value) clearOverride(qi);
+    a.choice = o.value; err.hidden = true; save();
+    opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+    otherBox.hidden = o.value !== '__other';
+    if (!otherBox.hidden) otherBox.focus();
+    renderHeader();
+    // Picking a listed option moves on by itself, after a beat so the choice is visible.
+    // "Something else" stays, since it needs typing.
+    // Opened from the recap, it goes back to the recap instead.
+    const back = fromRecap;
+    if (o.value !== '__other') setTimeout(() => { if (current === qi && !zoom) go(back ? packet.questions.length : qi + 1); }, 350);
+  };
+  choices.forEach((o, k) => {
+    const btn = h('button', {
+      class: 'opt' + (o.value === 'defer' ? ' defer' : ''), type: 'button', 'aria-pressed': a.choice === o.value ? 'true' : 'false',
+      'aria-keyshortcuts': String(k + 1), onclick: e => pick(o, e.currentTarget)
+    }, h('span', { class: 'key' }, String(k + 1)),
+       h('span', { class: 'o-body' }, o.recommended && h('span', { class: 'rec' }, 'Recommended'),
+         h('span', { class: 'o-label' }, o.label), o.detail && h('span', { class: 'o-detail' }, o.detail)));
+    opts.append(btn);
+  });
+  keyPick = n => { const b = opts.querySelectorAll('.opt')[n - 1]; if (b) pick(choices[n - 1], b); };
+  call.append(opts, h('div', { style: 'margin-top:8px' }, otherBox), err);
 
-  main.append(h('h3', { class: 'section' }, 'Notes for the developer (optional)'));
-  const notes = h('textarea', { placeholder: 'Anything to add: why, edge cases, wording you want' });
+  const notes = h('textarea', { placeholder: 'Note for the developer: why, edge cases, wording you want', hidden: !a.notes || null });
   notes.value = a.notes;
   notes.addEventListener('input', () => { a.notes = notes.value; save(); });
-  main.append(notes);
+  const addNote = h('button', { class: 'notes-toggle', type: 'button', hidden: !!a.notes || null, onclick: () => { addNote.hidden = true; notes.hidden = false; notes.focus(); } }, '+ Add a note for the developer');
+  call.append(addNote, h('div', { style: 'margin-top:12px' }, notes));
 
-  main.append(h('div', { class: 'pager' },
-    h('button', { class: 'btn', onclick: () => go(qi - 1), disabled: qi === 0 || null, style: qi === 0 ? 'visibility:hidden' : '' }, '← Back'),
-    h('button', { class: 'btn primary', onclick: () => {
-      if (!isAnswered(qi)) { err.hidden = false; err.scrollIntoView({ block: 'center', behavior: 'smooth' }); return; }
-      go(qi + 1);
-    } }, qi === packet.questions.length - 1 ? 'Next: your own read →' : 'Next question →')));
+  const next = () => {
+    if (!isAnswered(qi)) { err.hidden = false; return; }
+    go(fromRecap ? packet.questions.length : qi + 1);
+  };
+  keyNext = next;
+  const nextLabel = fromRecap ? 'Back to your rulings →' : qi === packet.questions.length - 1 ? 'Last: your own read →'
+    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next PR: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
+  call.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => back(qi) }, '← Back'),
+    h('button', { class: 'btn primary', onclick: next }, nextLabel)),
+    h('div', { class: 'keys' }, `Picking an answer moves to the next question. Keys: 1 to ${choices.length} pick, ← → move`));
 }
+
+// Keyboard: number keys pick an option, arrows move. Off while typing or in the lightbox.
+let keyPick = null, keyNext = null;
+document.addEventListener('keydown', e => {
+  if (zoom || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target instanceof Element && e.target.matches('input, textarea, select, [contenteditable]')) return;
+  if (document.body.classList.contains('uin-on')) return;
+  if (/^[1-9]$/.test(e.key) && !intro && current < packet.questions.length && keyPick) { e.preventDefault(); keyPick(Number(e.key)); }
+  else if ((e.key === 'ArrowRight' || (intro && e.key === 'Enter')) && (intro || current < packet.questions.length) && keyNext) { e.preventDefault(); keyNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (intro) { const k = groups.indexOf(intro); if (k > 0) go(groups[k - 1].qs.at(-1), { skipIntro: true }); } else if (current >= packet.questions.length) go(current - 1); else back(current); }
+});
 
 function openLink(url) { return /^https?:/i.test(url || '') ? h('a', { href: url, target: '_blank', rel: 'noopener' }, 'Open ↗') : null; }
 
@@ -557,19 +754,51 @@ function renderDoc(qi, ci, ctx, list) {
   return holder;
 }
 
-function renderOwnRead(main) {
+function renderOwnRead(main, call) {
   main.append(
-    h('div', {}, h('span', { class: 'tag' }, 'Your read')),
-    h('h2', { class: 'q-title' }, 'What did you notice?'),
-    h('p', { class: 'q-text' }, packet.ownReadPrompt || 'Anything from your own testing, a meeting, or a gut reaction that the questions above did not cover. Leave it blank if nothing comes to mind.'));
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag' }, 'Your read')),
+    h('h2', { class: 'q-title' }, 'Anything else you noticed?'),
+    h('p', { class: 'q-text' }, packet.ownReadPrompt || 'Anything from your own testing, a meeting, or a gut reaction that the questions did not cover. Leave it blank if nothing comes to mind.'));
   const ta = h('textarea', { style: 'min-height:220px', placeholder: 'I tried it on my phone and…' });
   ta.value = state.ownRead;
-  ta.addEventListener('input', () => { state.ownRead = ta.value; save(); });
+  ta.addEventListener('input', () => { state.ownRead = ta.value; save(); renderHeader(); });
   main.append(ta);
+  // A recap of every ruling, grouped by PR, so a misclick is caught before sending.
+  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Your rulings'),
+    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'));
+  for (const g of rulingGroups) {
+    const v = verdictFor(g);
+    const seg = h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
+      ...Object.entries(VERDICTS).map(([k, label]) => h('button', {
+        type: 'button', class: 'btn', 'aria-pressed': v.verdict === k ? 'true' : 'false',
+        onclick: () => { (state.verdicts ||= {})[g.key] = k === v.inferred ? undefined : k; save(); rerenderCurrent(); }
+      }, label)));
+    const why = g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
+      : !v.verdict && !v.open ? `Pick a ruling. Your answer${v.unread.length > 1 ? 's' : ''} on question ${v.unread.join(', ')} do${v.unread.length > 1 ? '' : 'es'} not say what ${v.unread.length > 1 ? 'they mean' : 'it means'} for the PR.`
+      : g.quiet ? 'Your ruling. Nothing was held for you on this PR.'
+      : v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
+      : v.overridden ? `You changed this. Your answers pointed to ${VERDICTS[v.inferred]}.`
+      : v.verdict === 'approve' ? 'From your answers: nothing needs to change.'
+      : `From your answers on question ${v.because.join(', ')}.`;
+    const onSend = v.verdict && !v.open ? h('div', { class: 'hint', style: 'margin:0 0 8px' }, h('strong', {}, 'On send: '), ON_SEND[v.verdict]) : null;
+    main.append(h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
+      h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, shortRef(g.ref)), g.label ? ` ${g.label}` : '')),
+      h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
+      g.quiet && unitCard(g.unit, false),
+      !g.quiet && h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
+        const q = packet.questions[i], a = state.answers[i];
+        const label = a.choice === '__other' ? a.other.trim() : (q.options || []).find(o => o.value === a.choice)?.label;
+        return h('li', {}, h('button', { class: 'n t', type: 'button', onclick: () => go(i, { fromRecap: true }), title: 'Change' }, String(i + 1)),
+          h('span', {}, q.ask || q.title, h('br'), label ? h('strong', {}, label) : h('span', { class: 'err' }, 'Not answered')), h('span'));
+      }))));
+  }
+  call.append(h('p', { class: 'kicker' }, 'Send'), h('p', { class: 'ask' }, `${answeredCount()} of ${packet.questions.length} answered`));
   const err = h('div', { class: 'err', hidden: true });
   const send = h('button', { class: 'btn primary', onclick: async () => {
     const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
     if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
+    const unruled = rulingGroups.find(g => !verdictFor(g).verdict);
+    if (unruled) { err.textContent = `${shortRef(unruled.ref)} still needs a ruling.`; err.hidden = false; return; }
     send.disabled = true; send.textContent = 'Sending…';
     try {
       const res = await fetch(`api/answers?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildAnswers()) });
@@ -577,10 +806,10 @@ function renderOwnRead(main) {
       submitted = true; render();
     } catch (e) {
       err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
-      err.hidden = false; send.disabled = false; send.textContent = 'Send to Claude';
+      err.hidden = false; send.disabled = false; send.textContent = 'Send and post reviews';
     }
-  } }, 'Send to Claude');
-  main.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
+  } }, 'Send and post reviews');
+  call.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
 }
 
 function buildAnswers() {
@@ -601,14 +830,55 @@ function buildAnswers() {
         })
       };
     }),
+    // The per-PR ruling, so the review posts without a second approve/request-changes ask in chat.
+    verdicts: rulingGroups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
     ownRead: state.ownRead.trim() || null
   };
 }
 
+// Approve / Request changes / Comment per PR, inferred from the answers. An option says what it
+// means with `verdict`. Any "changes" answer wins, then "comment", else approve. An option with no
+// `verdict` (an older packet) is not guessed from its label: unless another answer already asks
+// for changes, the PR gets no inferred ruling and the reviewer picks one on the last page.
+// "Something else" counts as comment; Step 6 still reads its text for a before-merge edit.
+// test:begin verdicts
+const VERDICTS = { approve: 'Approve', changes: 'Request changes', comment: 'Comment, no ruling yet' };
+// What Send does for each ruling. Finishing the board finishes the review: nothing is asked again in chat.
+const ON_SEND = { approve: 'Posts an approval and labels it ready to merge.', changes: 'Posts a changes request to the developer and swaps needs review for needs work.', comment: 'Posts your open decision as a comment. Labels stay as they are.' };
+function optionVerdict(q, a) {
+  if (a.choice === '__other') return a.other.trim() ? 'comment' : null;
+  const o = (q.options || []).find(x => x.value === a.choice);
+  if (!o) return null;
+  return VERDICTS[o.verdict] ? o.verdict : 'unknown';
+}
+function verdictFor(g) {
+  const rank = { changes: 3, comment: 2, approve: 1 };
+  let best = null, because = [];
+  const unread = [];
+  for (const i of g.qs) {
+    const v = optionVerdict(packet.questions[i], state.answers[i]);
+    if (!v) continue;
+    if (v === 'unknown') { unread.push(i + 1); continue; }
+    if (!best || rank[v] > rank[best]) { best = v; because = []; }
+    if (v === best && v !== 'approve') because.push(i);
+  }
+  if (unread.length && best !== 'changes') best = null;
+  const open = g.qs.filter(i => !isAnswered(i)).length;
+  const over = state.verdicts?.[g.key];
+  return { verdict: over || best, inferred: best, overridden: !!over && over !== best, because: because.map(i => i + 1), unread, open };
+}
+// A manual ruling was made against the answers as they stood. Changing any answer for that PR
+// drops it, so the ruling goes back to what the answers say.
+function clearOverride(qi) {
+  const g = groupOf(qi);
+  if (g && state.verdicts?.[g.key] !== undefined) delete state.verdicts[g.key];
+}
+// test:end
+
 function renderDone(main) {
   main.append(h('div', { class: 'done-card' },
     h('h2', {}, 'Sent to Claude'),
-    h('p', {}, 'Head back to the chat. Claude picks your answers up from here and turns them into feedback for the developer.'),
+    h('p', {}, 'Claude posts each review with the ruling you saw, plus any follow-up tickets you asked for. There is nothing more to answer.'),
     h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
   $('#h-progress').textContent = 'Submitted';
 }
