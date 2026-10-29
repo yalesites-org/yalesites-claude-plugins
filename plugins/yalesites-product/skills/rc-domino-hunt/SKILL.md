@@ -70,6 +70,13 @@ Follow `references/rc-sites.md`. In short:
 
 If there is no open release PR and no `--dry-run`, say so and stop. In `--drain`, exit quietly, so the routine's fallback drain list runs.
 
+**`--hotfix <PR>` has its own Step 1**, because a hotfix skips the RC and can run when no RC is open. Skip the release PR lookup, `RELEASE_SITES`, and every RC-site preflight row. Instead:
+
+- Read the PR (`gh pr view <N> -R yalesites-org/yalesites-project --json number,headRefName,headRefOid,baseRefName,state`). It must be open. Stop if it is merged or closed.
+- Confirm its `pr-<N>` multidev on `yalesites-platform` exists, loads, and runs the PR head, with the checks in `pr-feedback/references/drive-it.md`, Step D0, plus the Node and browser rows from `references/rc-sites.md`.
+- Write `~/.claude/yalesites/rc-domino-hunt/hotfix-<N>/hotfix.json` (PR number, head SHA, multidev URL) instead of `release.json`. The rest of the state layout is the same under `hotfix-<N>/`.
+- Phase 1 maps that one PR's diff (`gh pr diff <N>`), not the `master..<branch>` range, and refreshes when the PR head SHA moves.
+
 ## Step 2: Impact map
 
 Mechanical, not judgment. See `references/impact-map.md`. The output is a list of **changed surfaces**: blocks, templates, content types, settings, update hooks, and contrib modules. Each surface has the PRs that touched it, how it was reached (the trace), and how many live sites use it. Pairs of PRs that touch the same surface are **overlaps**. Changes to global tokens, theme-wide CSS, or shared Twig includes are **wide triggers**, which mark every block as touched.

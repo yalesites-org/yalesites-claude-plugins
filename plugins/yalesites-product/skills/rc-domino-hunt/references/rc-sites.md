@@ -31,6 +31,8 @@ Do not rely on the "Environments ready for review" comment on the release PR. It
 
 ## Preflight
 
+With `--hotfix`, none of this file's RC-site checks apply. Run the Node and browser rows below, then follow the `--hotfix` path in `SKILL.md`, Step 1.
+
 Finish every check before the first charter. If one fails, say which one in one line and stop. In `--drain`, write that line as the report's first line.
 
 | Check | Command | If it fails |

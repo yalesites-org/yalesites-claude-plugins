@@ -11,6 +11,8 @@ git -C <yalesites-project checkout> fetch origin master <branch>
 git -C <yalesites-project checkout> log --merges --format='%H %s' origin/master..origin/<branch>
 ```
 
+With `--hotfix <PR>`, skip this range: the one PR is the whole list, and its diff comes from `gh pr diff <N>`. Save the PR head SHA in `impact-map.json` instead of the release branch head.
+
 Pull the PR numbers from the merge commit subjects (`Merge pull request #<N> from <owner>/<head branch>`). Drop merges whose head branch is `develop`, `master`, or another `v<NNNN>` branch: those are syncs between branches (an RC update, a hotfix sync), not feature PRs. Their contents are already counted through the feature PRs they carry.
 
 **On a `--dry-run`** the release branch is already merged into master, so `origin/master..origin/<branch>` is empty. Use the release PR's merge commit instead: `git log --merges <mergeCommit>^1..origin/<branch>`, with `mergeCommit` from `gh pr view <release PR> --json mergeCommit`. Then, for each PR, use `gh pr view <N> -R yalesites-org/yalesites-project --json title,body,files,closingIssuesReferences`. Read a local checkout that is up to date with the release branch. If the user's checkout is not clean, use a fetch plus `git show origin/<branch>:<path>`, and do not switch their branch.
