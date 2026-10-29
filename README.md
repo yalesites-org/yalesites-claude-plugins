@@ -15,6 +15,8 @@ A Claude Code plugin marketplace for the Yale ITS Digital Experiences team.
 | [yalesites-dev](plugins/yalesites-dev/) | Git, PR, and GitHub-issue workflow skills for developers | `/plugin install yalesites-dev@yalesites-claude-plugins` |
 | [yalesites-security](plugins/yalesites-security/) | Security tooling — dependency supply-chain auditing (live OSV + GitHub malware advisories) | `/plugin install yalesites-security@yalesites-claude-plugins` |
 
+New to Claude Code and the terminal? Install `yalesites-product`, then run `/yalesites-product:onboard` and Claude walks you through setup. A plain-language guide is in [plugins/yalesites-product/skills/onboard/README.md](plugins/yalesites-product/skills/onboard/README.md).
+
 ## Installation
 
 ### 1. Register this marketplace (once per machine)
