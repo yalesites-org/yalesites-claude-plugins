@@ -34,9 +34,9 @@ In board order. **Capitalization matters:** `--value` is matched against the con
 | `Blocked` | Work is blocked and cannot move forward |
 | `In progress` | This is actively being worked on |
 | `In review` | This item is in review |
-| `Done` | Merged to `develop`, or a hotfix merged to `master`. Stays open until the release ships |
+| `Done` | Review is finished and the work is merged: to `develop`, to the release staging branch (`after-2260` and its successors), to an epic branch, or a hotfix to `master`. Stays open until the release ships |
 
-**`Done` is not closed.** A ticket moves to `Done` when its work merges. It stays open, and visible on the Board view, until `release-prep` Phase 7 confirms the release shipped and closes it. The milestone says which release that is.
+**`Done` is not closed.** A ticket moves to `Done` when its work merges, including a merge into the release staging branch or an epic branch. `In review` means a reviewer still has something to do, so merged work does not wait there for the branch to reach `develop` (decided 2026-10-14). It stays open, and visible on the Board view, until `release-prep` Phase 7 confirms the release shipped and closes it. The milestone says which release that is.
 
 **Retired statuses.** `Ready for Release (in dev)` was retired on 2026-09-23 (YaleSites-Internal#1778), because milestones now mark the release. `Ready For Work` is not a board status either. It survives only as a catch-all *milestone* name. Setting either as a Status fails.
 
