@@ -178,11 +178,14 @@ from `beyond-ac-checks.md` the same way `SKILL.md` Step 3 does: after its AC ste
 whose trigger matches, with any skip named and explained up front. Batching changes how the
 steps are grouped, not which steps exist.
 
-**The `yalesites-project` group is driven, not handed off.** Batching does not change
-`SKILL.md` Step 3's rule: every `yalesites-project` unit gets a browser run per
-`drive-it.md`, one PR at a time in the sitting's order, with its own screenshots folder. The
-walkthrough below is what the user clicks through for everything else, plus any
-`yalesites-project` unit whose drive-it preflight failed, named as such.
+**The `yalesites-project` and `yale-ui-cl` groups are driven, not handed off.** Batching does
+not change `SKILL.md` Step 3's rule: every `yalesites-project` unit gets a browser run per
+`drive-it.md`, and every `yale-ui-cl` unit gets one per its "The `yale-ui-cl` path", one PR at a
+time in the sitting's order, each with its own screenshots folder. UICL units can share the
+skill's clone but each gets its own worktree and its own Storybook port, and each server is
+stopped before the next unit starts. The walkthrough below is what the user clicks through for
+everything else, plus any driven unit whose preflight failed, named as such with the failing
+check ("no `YALESITES_BUILD_TOKEN`", "`npm ci` failed", "no multidev pr-1605").
 
 ### Every block leads with its own full URL
 
@@ -204,8 +207,14 @@ is not, and "open the multidev" is useless when there are four different multide
   **and name that sibling PR**, so it is clear why the number in the URL does not match the PR
   under review.
 - **`tokens`:** same, through the sibling `component-library-twig` preview.
-- **`yale-ui-cl`:** no PR preview. Its GitHub Pages Storybook builds from `main` only, so say
-  the branch is local-only and never link the Pages site as the PR's environment.
+- **`yale-ui-cl`:** the PR's deployed Storybook preview if `drive-it.md` Step U0 found one.
+  Otherwise the run drove a local Storybook built from the PR head, which is gone once the run
+  ends: link each step to the published story on `main`
+  (`https://yalesites-org.github.io/yale-ui-cl/?path=/story/{id}`) as the baseline, labelled
+  as `main`, and point at the run's screenshots and clips for what the PR shows. Never present
+  the Pages site as the PR's environment. For a hand-off after a failed local preflight, give
+  the reviewer the commands to see it themselves: `gh pr checkout {NUMBER}`, `npm ci`,
+  `npm run storybook`.
 - **No sibling, or a probe that did not answer:** say there is no deployed way to see this and
   that it is local-only. Never print a link that failed its probe.
 

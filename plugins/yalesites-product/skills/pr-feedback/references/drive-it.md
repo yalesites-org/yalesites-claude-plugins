@@ -5,11 +5,14 @@ the user to click through, Claude runs it in a visible browser on the user's mac
 Playwright, while the user watches. Every step ends with a screenshot, pass or fail, so the
 review rests on evidence rather than on a claim that something was checked.
 
-**Scope today: every `yalesites-project` review, on its multidev.** It is required, not
-offered, and it runs whether the brief came from the scheduled pre-review pass or was written
-at the start of the session. Storybook previews (`component-library-twig`) need no login and
-would work the same way, but that path is not written yet. For every other case, hand the plan
-to the user as `SKILL.md` Step 3 describes.
+**Scope today: every `yalesites-project` review, on its multidev, and every `yale-ui-cl`
+(UICL) review, on its Storybook.** Both are required, not offered, and run whether the brief
+came from the scheduled pre-review pass or was written at the start of the session.
+`yalesites-project` follows Steps D0 to D5 below. UICL has no multidev, no login, and no test
+content, so it follows its own steps instead: "The `yale-ui-cl` path" near the end of this
+file, which reuses D0b, D3's screenshot and clip rules, and the hand-off at the end. Storybook
+previews for `component-library-twig` would work the same way as UICL, but that path is not
+written yet. For every other case, hand the plan to the user as `SKILL.md` Step 3 describes.
 
 **Prep mode changes some of this.** When this runs under `/pr-feedback --prep`
 (`references/prep-mode.md`), no one is watching: sessions are headless, nothing is installed,
@@ -500,6 +503,145 @@ reverted, say which item and why. Do not report cleanup as done while `.created`
 setting that has not been reverted, or, anywhere other than the reviewed PR's own multidev,
 anything still in place. Leave the screenshots, clips, and `results.md`: they are the evidence
 for the review.
+
+## The `yale-ui-cl` path: drive the PR's Storybook
+
+UICL has no per-PR preview today. Its GitHub Pages Storybook
+(`https://yalesites-org.github.io/yale-ui-cl/`) builds from `main` only, so it never shows the
+PR. Until UICL gets a deployed preview, the run builds Storybook locally from the PR head and
+drives that. The first check looks for a deployed preview, so the day one exists the run uses
+it and skips the local build.
+
+Steps D0b (brief and plan first), D3 (driving, screenshots, clips, `results.md`, show as you
+go), and the hand-off below all apply as written. Steps D1, D2, D4, and D5 do not: there is no
+multidev, no login, no test content, and no Drupal log. U0 to U3 replace them.
+
+### Step U0: Preflight, deployed preview first
+
+**1. Look for a deployed preview.** Any one of these three is enough:
+
+```bash
+# A bot posted a preview link: look for deploy-preview, netlify.app, vercel.app, pages.dev, or "preview"
+gh api repos/yalesites-org/yale-ui-cl/issues/<N>/comments --paginate \
+  --jq '.[] | select(.user.type == "Bot") | .body'
+# A deployment for the PR branch other than GitHub Pages: read its latest status's environment_url
+gh api "repos/yalesites-org/yale-ui-cl/deployments?ref=<headRefName>" \
+  --jq '.[] | select(.environment != "github-pages") | .statuses_url'
+# The Netlify pattern answers
+curl -s -o /dev/null -w '%{http_code}' https://deploy-preview-<N>--yale-ui-cl.netlify.app/index.json
+```
+
+A candidate counts only when its `index.json` returns 200 and the preview was built from the PR
+head (a bot comment or deployment newer than the head commit, or a commit SHA on the page that
+matches `headRefOid`). If one passes, drive that URL, record it in `results.md` as the
+environment, and skip to Step U2. As of 2026-10-30 none of these exist for UICL, and every check
+comes back empty; that is expected and costs a few seconds. When UICL gets a real preview, add
+its exact pattern here and in `pr-prereview`'s `references/preview-environments.md`.
+
+**2. No preview: check the machine can build it locally.** Finish all of these before
+installing anything. If one fails, name it in one line and fall back to the hand-off
+walkthrough (`SKILL.md` Step 3) with that check named.
+
+| Check | Command | If it fails |
+|---|---|---|
+| Node and npm | `command -v node npm` | Hand off: "no Node". |
+| The package token | `[ -n "$YALESITES_BUILD_TOKEN" ]`, and if empty, `bash -lc '[ -n "$YALESITES_BUILD_TOKEN" ]'` (it often lives in `~/.bash_profile`, which zsh never reads) | Hand off: "no `YALESITES_BUILD_TOKEN`". `@yalesites-org/tokens` comes from GitHub Packages, so `npm ci` cannot run without it. Never print the token, never ask for it in chat, never write it to a file |
+| This is a machine the user can see | Same as D0. Prep mode keeps "this is the user's own machine" instead | Hand off. |
+| The CLI can launch a browser | Same as D0, including "Browsers" | Same as D0. |
+
+**3. Get the PR head into a checkout the skill owns.** Never use the user's own UICL clone
+(often `~/code/yale-ui-cl`): it may be on another branch with work in progress. The skill keeps
+its own clone and adds one throwaway worktree per PR head:
+
+```bash
+C=~/.claude/yalesites/pr-feedback/checkouts
+[ -d $C/yale-ui-cl ] || git clone -q https://github.com/yalesites-org/yale-ui-cl.git $C/yale-ui-cl
+git -C $C/yale-ui-cl fetch -q origin main "pull/<N>/head"
+SHA=$(git -C $C/yale-ui-cl rev-parse FETCH_HEAD)      # must equal the PR's headRefOid
+W=$C/yale-ui-cl-<N>-${SHA:0:7}
+git -C $C/yale-ui-cl worktree add -q --detach $W $SHA
+(cd $W && bash -lc 'npm ci --no-audit --no-fund')    # bash -lc picks up the token from the profile
+```
+
+A worktree per PR head keeps two runs (a live review and a prep run, or two units in one prep
+run) from switching each other's branch. If `$W` already exists, another run may be using it:
+check `$W/.storybook.pid` (Step U1) and, if that process is alive, wait for it or skip the unit;
+never share a worktree. If the SHA does not match `headRefOid`, stop: the run would test the
+wrong code. If `npm ci` fails, hand off with "install failed" and the last lines of its output.
+
+### Step U1: Start Storybook in the background
+
+Use a free port, never 6006: that is the port the user's own `npm run storybook` takes, and a
+reviewer often has one running.
+
+```bash
+PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1])')
+cd $W && nohup npx storybook dev -p $PORT --ci --no-open > <run folder>/storybook.log 2>&1 &
+echo $! > $W/.storybook.pid
+```
+
+Run it as a background job and poll `http://localhost:$PORT/index.json` until it returns 200
+(it takes a few seconds on a warm cache, up to a couple of minutes cold). If it has not answered
+in 3 minutes, or the log shows a build error, stop the server and hand off with "Storybook did
+not build", quoting the error. A PR that does not build is also a finding for the developer.
+
+### Step U2: Drive the stories
+
+**Find the stories from `index.json`,** not by guessing ids:
+`curl -s http://localhost:$PORT/index.json | jq -r '.entries | keys[]'`. Drive each story
+through its isolated frame, `http://localhost:$PORT/iframe.html?id=<story id>&viewMode=story`,
+so screenshots show the component and not the Storybook chrome. Use the full Storybook UI
+(`?path=/story/<id>`) only for a step about the controls panel or docs page.
+
+**Every plan step gets a screenshot, pass, fail, ask, or blocked,** named and checked exactly as
+D3 says, at every width the plan names (`resize <w> <h>`, then wait for layout to settle). Size
+the viewport to the component, not to a full page: a 360x640 frame around a two-row table is
+mostly white space. Use `anon` as the role in file names: Storybook has no roles.
+
+**Record a clip** (D3, "Clips") for behavior over time: focus order and keyboard paths, menus
+and selects opening, tabs and accordions, pagers and carousels, hover states, anything that
+animates. The same "most runs need two or three" limit applies.
+
+**Capture a side-by-side for parity and change questions.** When a step asks "does it match
+YaleSites" or "did this PR change it", take the same story at the same viewport on:
+
+| Side | Where | Label |
+|---|---|---|
+| Published (`main`) | `https://yalesites-org.github.io/yale-ui-cl/iframe.html?id=<id>&viewMode=story` | `Published:` |
+| This PR | the local or deployed Storybook | `This PR:` |
+| The matching CLT story | `https://yalesites-org.github.io/component-library-twig/iframe.html?id=<id>&viewMode=story` (look the id up in that site's `index.json`) | `CLT:` |
+
+Name them `<NN>-compare-<side>-<slug>.png`. A story the PR adds has no Published side; compare
+against CLT alone. The brief's parity map (from `pr-prereview`) usually names the CLT story.
+
+**UICL components are web components, some with closed shadow roots.** Playwright locators,
+`querySelector`, and `element.shadowRoot` cannot see inside a closed root, and
+`document.activeElement` returns the host element. Measure through what the component exposes
+(for example `yc-table`'s `wrapper` property), the accessibility `snapshot`, or the host's
+bounding box and computed styles. Keyboard steps still work: `press Tab` moves real focus, and
+the focus ring shows in screenshots and clips.
+
+**Link each image to its story.** Every `image`, `compare`, and `video` block in the packet
+(`review-board.md`) gets a `url` to the published story on `main` where one exists, so the
+reviewer can open it. A local Storybook is gone after the run, so never link `localhost`: say
+"This PR, local, at `<sha7>`" in the caption instead. A deployed preview is linked directly.
+
+### Step U3: Clean up
+
+Stop the Storybook server, remove the worktree, and close the browser sessions:
+
+```bash
+kill $(cat $W/.storybook.pid) 2>/dev/null; pkill -f "storybook dev -p $PORT"
+git -C $C/yale-ui-cl worktree remove --force $W && git -C $C/yale-ui-cl worktree prune
+npx -y @playwright/cli@0.1.22 -s=<session> close
+```
+
+Confirm nothing listens on `$PORT` any more (`lsof -iTCP:$PORT -sTCP:LISTEN` prints nothing)
+and the worktree is gone (`git worktree list`). Keep the skill's `yale-ui-cl` clone and its
+`node_modules` cache; only the per-PR worktree goes. A run that died leaves a worktree with a
+`.storybook.pid` behind: the next run kills that process if its command line is still
+`storybook dev`, then removes the worktree. Report cleanup in one line. Leave the screenshots,
+clips, `results.md`, and `storybook.log` in the run folder.
 
 ## Handing results to the rest of the skill
 
