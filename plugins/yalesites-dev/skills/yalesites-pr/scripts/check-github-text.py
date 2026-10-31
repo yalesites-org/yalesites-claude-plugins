@@ -28,6 +28,7 @@ Usage:
     python3 check-github-text.py draft.md --surface page-draft
 
 Surfaces: ticket, pr-body, pr-review, release-notes, report, page-draft
+The pr-body surface also requires the template headings (ADR PR bodies exempt).
 Exit codes: 0 clean, 1 issues found, 2 bad invocation or unreadable input.
 """
 
@@ -308,6 +309,23 @@ def check_page_draft(text, masked, add):
             add("banned_word", 0, f'"{word}" -> "{better}"')
 
 
+PR_REQUIRED_HEADINGS = ("### Description of work", "### Functional testing steps:")
+# An ADR PR (YaleSites-Internal) has its own body shape: TL;DR, a link to the
+# ADR file, and a References line. It is recognised by that link.
+ADR_PR_LINK = re.compile(r"\]\([^)\s]*/docs/adr/[^)\s]*\)")
+
+
+def check_pr_headings(text, masked, add):
+    """The PR template's two headings must appear verbatim, one per line."""
+    if ADR_PR_LINK.search(masked):
+        return
+    lines = [ln.rstrip() for ln in masked.splitlines()]
+    for required in PR_REQUIRED_HEADINGS:
+        if required not in lines:
+            add("pr_heading_missing", 0,
+                f"Missing '{required}' heading. See references/pr-template.md.")
+
+
 def check(path, surface):
     try:
         with open(path, encoding="utf-8") as fh:
@@ -335,6 +353,9 @@ def check(path, surface):
         return issues
 
     tldr_cap, visible_cap = SURFACES[surface]
+
+    if surface == "pr-body":
+        check_pr_headings(text, masked, add)
 
     for m in re.finditer(r"<details\b", masked, re.I):
         rest = masked[m.end():]
@@ -428,6 +449,7 @@ def check(path, surface):
 ORDER = [
     "em_dash", "section_missing", "teaser_missing", "teaser_too_long",
     "teaser_count_wrong", "absolute_internal_link",
+    "pr_heading_missing",
     "tldr_missing", "tldr_too_long", "visible_too_long",
     "no_collapsed_layer", "details_blank_line", "nested_details",
     "vague_summary", "agent_block_position", "agent_block_duplicate",
