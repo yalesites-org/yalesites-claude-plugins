@@ -1,6 +1,6 @@
 ---
 name: ticket-sync
-description: "Check whether a GitHub issue still matches how the work actually turned out, and either edit it or comment on it to catch it up. Use standalone when someone asks 'does this ticket need updating,' 'is the ticket still accurate,' 'sync the ticket to the PR,' or 'does the epic need to reflect this.' Also invoked mid-flow by the pr-feedback, ticket, and yalesites-pr skills at the moments where drift is easiest to catch — after a PR review surfaces a scope question, while grooming a ticket that already has history, and before moving an issue to In review. Distinguishes context worth a comment from an actual scope/acceptance-criteria change worth an edit, and never posts either without confirmation. Most useful on epics and other long-running tickets, where scope gets resolved in conversation and never written back to the issue."
+description: "Check whether a GitHub issue still matches how the work actually turned out, and either edit it or comment on it to catch it up. Use standalone when someone asks 'does this ticket need updating,' 'is the ticket still accurate,' 'sync the ticket to the PR,' or 'does the epic need to reflect this.' Also invoked mid-flow by the pr-feedback, ticket, and yalesites-pr skills at the moments where drift is easiest to catch — after a PR review surfaces a scope question, while grooming a ticket that already has history, and before moving an issue to In review. Distinguishes context worth a comment from an actual scope/acceptance-criteria change worth an edit, and never posts either without confirmation. Most useful on epics and other long-running tickets, where scope gets resolved in conversation and never written back to the issue. Also catches open tickets left stale when a ticket they depend on closes (\"until #X lands,\" \"today it's v1.86.0\")."
 ---
 
 # YaleSites Ticket Sync Skill
@@ -30,6 +30,23 @@ This skill exists to catch that gap at the moments it's cheapest to catch it: ri
 Start with the ticket directly under discussion. Then check: **is it a child ticket under an epic?** Look for a "Part of #XXXX" reference, or check whether it's checklisted in a parent issue's `Child Tickets` section. If so, the parent epic is in scope too — epic staleness is exactly where this matters most, because the epic's `Scope` and `Child Tickets` sections are written once at kickoff and rarely revisited as child tickets actually complete.
 
 Pull the current body of every ticket in scope with `mcp__github__get_issue` (or `gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json title,body`).
+
+### Related tickets that lean on this one
+
+Epics are not the only tickets that go stale when another one moves. A ticket often says "until #X lands," "#X releases the fix," or "today it's v1.86.0" about a sibling it is waiting on. When #X closes, nothing goes back to that ticket. Check both directions:
+
+- **Forward: this ticket is closing.** When the ticket under discussion is closed, or the work handed to you closes it (a PR with `Closes #X` that is approved or merged), list the open issues that cross-reference it:
+
+  ```bash
+  gh api repos/yalesites-org/YaleSites-Internal/issues/{NNN}/timeline --paginate \
+    -q '.[] | select(.event=="cross-referenced") | .source.issue | select(.state=="open" and .pull_request==null) | "\(.number) \(.title)"'
+  ```
+
+- **Backward: this ticket depends on others.** When checking a ticket directly or during grooming, collect the issues its body names (`#NNN` and `owner/repo#NNN`) and check which of them have closed since this ticket was last edited (`gh issue view {NNN} --json state,closedAt`).
+
+For each pair, read the open ticket only for wording that assumed the other ticket was still open: future tense about its fix ("releases," "once it lands"), "until," "today," "currently," or version numbers and pins that the closed ticket changed. Unrelated mentions need nothing. Don't re-review the whole related ticket.
+
+A hit is usually an **edit**. The stale sentence is in the Description or Background, and a reader would act on it. Acceptance Criteria rarely change, because the related ticket was a dependency, not this ticket's scope. Confirm and write each related ticket separately, the same way as a parent epic (Steps 5 and 6). When `pr-feedback` or `yalesites-pr` invokes this skill, list any hits after the main ticket's result. If there are none, say nothing.
 
 ## Step 2: Gather what actually happened
 
