@@ -374,6 +374,46 @@ def find_features():
     return sorted(out, key=lambda f: (f["due"], f["done"] / f["total"]))
 
 
+BLOCKER = re.compile(r"\b(blocked by|blocked on|depends on|waiting on|wait for|do(?:n't| not) start\b[^.]*?\buntil)\b", re.I)
+ISSUE_REF = re.compile(r"(?:(?<![\w/])|%s/%s)#(\d{2,5})\b|github\.com/%s/%s/issues/(\d{2,5})\b"
+                       % (ORG, ISSUES_REPO, ORG, ISSUES_REPO), re.I)
+
+
+def blocker_refs(body):
+    """Ticket numbers named on a line that also says the ticket is blocked by or waiting on them."""
+    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.S)
+    out = set()
+    for line in body.splitlines():
+        if BLOCKER.search(line):
+            out |= {int(a or b) for a, b in ISSUE_REF.findall(line)}
+    return out
+
+
+def find_unblocked():
+    """Open tickets whose body says they are blocked by a ticket that closed after the body was last edited.
+    The router only lists these. Native blocked-by links on phase children are handled by find_promotions."""
+    fields = "number title url state lastEditedAt createdAt body repository{nameWithOwner} issueType{name}"
+    candidates = []
+    for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open', fields, include_prs=False):
+        refs = blocker_refs(n["body"]) - {n["number"]}
+        if refs:
+            candidates.append((n, refs))
+    wanted = sorted({r for _, refs in candidates for r in refs})
+    closed = {}
+    for i in range(0, len(wanted), 100):
+        aliases = " ".join(f"i{r}: issue(number:{r}){{number state closedAt stateReason}}" for r in wanted[i:i + 100])
+        d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, aliases))["repository"]
+        closed.update({v["number"]: v for v in d.values() if v and v["state"] == "CLOSED"})
+    out = []
+    for n, refs in candidates:
+        edited = n["lastEditedAt"] or n["createdAt"]
+        hits = sorted((closed[r] for r in refs if r in closed and closed[r]["closedAt"] > edited),
+                      key=lambda c: c["number"])
+        if hits:
+            out.append({"node": n, "blockers": hits})
+    return sorted(out, key=lambda u: max(b["closedAt"] for b in u["blockers"]), reverse=True)
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login} issueType{name}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -421,13 +461,16 @@ def find_stuck(groomers=frozenset()):
 
 # --- 4. brief --------------------------------------------------------------
 
-def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None):
+def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None,
+                unblocked=None):
+    unblocked = unblocked or []
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
-            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck.")
+            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck"
+            + (f", {len(unblocked)} may be unblocked." if unblocked else "."))
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
 
     if TODAY.weekday() == 0:
@@ -516,6 +559,15 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
         lines += ["", "</details>", ""]
 
+    if unblocked:
+        lines += ["<details>", f"<summary><b>May be unblocked: the ticket says it is blocked by one that has since closed "
+                  f"({len(unblocked)})</b></summary>", ""]
+        for u in unblocked:
+            done = ", ".join(f"#{b['number']} closed {parse_date(b['closedAt']):%b %-d}"
+                             + (" as not planned" if b["stateReason"] == "NOT_PLANNED" else "") for b in u["blockers"])
+            lines.append(f"- {link(u['node'])} {quiet(u['node']['title'])}: {done}")
+        lines += ["", "Check each one and update the ticket. The router does not change them.", "", "</details>", ""]
+
     if features:
         lines += ["<details>", f"<summary><b>Features in flight ({len(features)})</b></summary>", "",
                   "| Feature | Milestone | Done |", "|---|---|---|"]
@@ -549,6 +601,7 @@ def main():
     owed = find_owed()
     intake = find_intake()
     stuck, no_priority, board = find_stuck(load_groomers())
+    unblocked = find_unblocked()
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -570,6 +623,10 @@ def main():
                         "created": n["createdAt"][:10]} for n in intake],
             "needs_priority": [{**item(n), "number": n["number"], "author": (n.get("author") or {}).get("login"),
                                 "created": n["createdAt"][:10]} for n in no_priority],
+            "unblocked": [{**item(u["node"]), "number": u["node"]["number"],
+                           "blockers": [{"number": b["number"], "closed": b["closedAt"][:10],
+                                         "not_planned": b["stateReason"] == "NOT_PLANNED"} for b in u["blockers"]]}
+                          for u in unblocked],
         }, indent=2))
         return
 
@@ -596,7 +653,7 @@ def main():
 
     features = find_features() if TODAY.weekday() == 0 else None
     brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases,
-                        dry=not a.apply, features=features)
+                        dry=not a.apply, features=features, unblocked=unblocked)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

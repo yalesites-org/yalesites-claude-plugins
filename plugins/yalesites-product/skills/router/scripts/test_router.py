@@ -57,7 +57,33 @@ class WorkingDaysTest(unittest.TestCase):
         self.assertEqual(router.add_working_days(fri, 1), mon)
 
 
+class BlockerRefsTest(unittest.TestCase):
+    def test_blocker_line_forms(self):
+        body = ("> **Blocked by** yalesites-org/YaleSites-Internal#1161, the Views rework.\n"
+                "Do not start this until #1561 reaches a recommendation.\n"
+                "Depends on https://github.com/yalesites-org/YaleSites-Internal/issues/1593 landing.")
+        self.assertEqual(router.blocker_refs(body), {1161, 1561, 1593})
+
+    def test_ignores_lines_without_blocker_wording(self):
+        body = "Related: #1754, #1099.\nFixed in #1827 last month."
+        self.assertEqual(router.blocker_refs(body), set())
+
+    def test_ignores_other_repos_and_agent_block(self):
+        body = ("Blocked by yalesites-org/component-library-twig#728.\n"
+                "<!-- yalesites:agent\nblocked by #999\n-->")
+        self.assertEqual(router.blocker_refs(body), set())
+
+
 class BriefTest(unittest.TestCase):
+    def test_unblocked_section(self):
+        u = [{"node": node(1842, "Card size"), "blockers": [
+            {"number": 1161, "closedAt": "2026-10-29T12:00:00Z", "stateReason": "COMPLETED"},
+            {"number": 1681, "closedAt": "2026-09-24T12:00:00Z", "stateReason": "NOT_PLANNED"}]}]
+        brief = router.build_brief([], [], {}, [], [], [], [], [], {}, dry=True, unblocked=u)
+        self.assertIn("1 may be unblocked.", brief)
+        self.assertIn("#1161 closed Oct 29, #1681 closed Sep 24 as not planned", brief)
+        self.assertNotIn("May be unblocked", router.build_brief([], [], {}, [], [], [], [], [], {}, dry=True))
+
     def test_brief_never_mentions_anyone(self):
         loud = "Ping @miketullo95 about this"
         owed = [{"node": node(1, loud), "kind": "follow-up", "legacy": False, "who": "atiddei",
