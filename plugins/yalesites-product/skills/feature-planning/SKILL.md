@@ -15,6 +15,9 @@ GitHub without the user seeing the draft first.
 
 ## Ground rules
 
+- **Sibling paths go through `realpath`.** Paths like `../ticket/...` and `../pr-feedback/...`
+  point at sibling skills in this plugin. If this skill is symlinked (into `~/.claude/skills`
+  for testing, say), resolve its folder with `realpath <skill-dir>` first, or those paths miss.
 - **The PM decides product calls. Nobody here decides architecture.** Questions about
   implementation approach, data model, refactoring, or system design are not asked as PM
   questions. They are listed on the board under **Not asked** as "for our lead developer"
