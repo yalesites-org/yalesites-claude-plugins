@@ -1,0 +1,876 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review board</title>
+<style>
+  :root {
+    --bg: #f7f7f5; --surface: #ffffff; --text: #1f1e1c; --muted: #6b6a66; --faint: #9a9893;
+    --border: rgba(0,0,0,.12); --border-strong: rgba(0,0,0,.24);
+    --accent: #185fa5; --accent-bg: #e6f1fb; --accent-text: #0c447c;
+    --mine: #c2410c; --mine-bg: #fdeee6; --mine-text: #7c2d12;
+    --ok: #3b6d11; --ok-bg: #eaf3de; --danger: #a32d2d; --mark: rgba(239,159,39,.35);
+    --radius: 8px; --pin: #185fa5; --pin-mine: #c2410c;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a19; --surface: #242423; --text: #ecebe8; --muted: #a8a7a2; --faint: #7a7975;
+      --border: rgba(255,255,255,.12); --border-strong: rgba(255,255,255,.26);
+      --accent: #85b7eb; --accent-bg: #0c2e52; --accent-text: #b5d4f4;
+      --mine: #f0997b; --mine-bg: #4a1b0c; --mine-text: #f5c4b3;
+      --ok: #97c459; --ok-bg: #1f3608; --danger: #f09595; --mark: rgba(239,159,39,.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  a { color: var(--accent); }
+  button, textarea, input { font: inherit; color: inherit; }
+  /* v2 header: one line of title + PR chips, then the stepper. */
+  header { position: sticky; top: 0; z-index: 5; background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 24px 12px; }
+  .h-row { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+  .h-row h1 { font-size: 16px; font-weight: 600; margin: 0; white-space: nowrap; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; min-width: 0; }
+  .chip { display: inline-flex; gap: 6px; align-items: baseline; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 99px; padding: 3px 11px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+  .chip .num { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .chip .cnt { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .chip:hover { border-color: var(--accent); }
+  .chip[aria-current="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+  .chip.complete .cnt { color: var(--ok); }
+  .details-btn { border: none; background: none; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 4px; text-decoration: underline dotted; }
+  .legend { font-size: 13px; color: var(--muted); margin: 8px 0 0; display: grid; gap: 2px; }
+  .stepper { display: flex; gap: 10px; align-items: center; margin-top: 10px; }
+  /* Each PR gets a color (--c): its chip dot, its bracket under the stepper, its segments.
+     Pale segment = open, solid = answered. */
+  .chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c); align-self: center; flex: none; }
+  .chip[aria-current="true"] { background: color-mix(in srgb, var(--c) 16%, var(--surface)); border-color: var(--c); color: var(--text); }
+  .steps { display: flex; gap: 10px; flex: 1; min-width: 0; align-items: flex-start; }
+  .grp { display: flex; flex-direction: column; gap: 4px; flex: var(--n); min-width: 0; }
+  .grp .segs { display: flex; gap: 3px; }
+  .grp .bracket { height: 6px; border: 2px solid var(--c); border-top: none; border-radius: 0 0 3px 3px; }
+  .grp .glabel { font-size: 11px; line-height: 1; color: var(--c); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
+  .step { height: 10px; min-width: 12px; flex: 1; border: none; border-radius: 3px; background: color-mix(in srgb, var(--c, var(--faint)) 28%, transparent); cursor: pointer; padding: 0; position: relative; }
+  .step:hover { background: color-mix(in srgb, var(--c, var(--faint)) 55%, transparent); }
+  .step.done { background: var(--c, var(--ok)); }
+  .step.done.later { background: repeating-linear-gradient(45deg, var(--c) 0 3px, transparent 3px 6px); }
+  .q-meta .tag.pr { background: color-mix(in srgb, var(--c) 18%, var(--surface)); color: var(--text); box-shadow: inset 3px 0 0 var(--c); border-radius: 4px; }
+  .brief { border-left: 4px solid var(--c, var(--border)); }
+  .step[aria-current="true"] { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .step.own { background: transparent; border: 1.5px dashed var(--border-strong); height: 10px; }
+  .step.own.done { background: var(--ok); border-style: solid; border-color: var(--ok); }
+  .progress { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 0; max-width: 1680px; margin: 0 auto; }
+  main { padding: 24px 40px 80px; min-width: 0; }
+  aside.call { position: sticky; top: var(--hh, 96px); align-self: start; max-height: calc(100vh - var(--hh, 96px)); overflow: auto; padding: 24px 24px 32px; border-left: 1px solid var(--border); background: var(--surface); min-height: calc(100vh - var(--hh, 96px)); }
+  .call .kicker { font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+  .call .ask { font-size: 21px; line-height: 1.35; font-weight: 600; margin: 0 0 18px; }
+  .call .options { grid-template-columns: 1fr; gap: 8px; }
+  .call .opt { padding: 11px 14px; flex-direction: row; gap: 12px; align-items: flex-start; border-radius: 10px; }
+  .call .opt .key { flex: none; width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--border-strong); font-size: 12px; display: grid; place-items: center; color: var(--muted); margin-top: 1px; font-variant-numeric: tabular-nums; }
+  .call .opt[aria-pressed="true"] .key { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+  .call .opt .o-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .call .opt .o-label { font-size: 16px; }
+  .call .opt .o-detail { font-size: 13px; }
+  .call .opt.defer { border-style: dashed; }
+  .call textarea { min-height: 80px; font-size: 15px; }
+  .call .pager { margin-top: 18px; padding-top: 16px; }
+  .call .keys { font-size: 12px; color: var(--faint); margin-top: 10px; }
+  .call .notes-toggle { border: none; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 14px; margin-top: 14px; }
+  /* Question header in the main column. */
+  .q-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  h2.q-title { font-size: 24px; font-weight: 600; margin: 8px 0 12px; line-height: 1.3; }
+  .brief { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin: 0 0 22px; }
+  .brief .b-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .brief ul { margin: 0; padding-left: 20px; font-size: 16px; line-height: 1.5; }
+  .brief li + li { margin-top: 3px; }
+  .brief .full { font-size: 14px; color: var(--muted); margin: 10px 0 0; border-top: 1px solid var(--border); padding-top: 10px; }
+  .unitcard { font-size: 14px; line-height: 1.5; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; }
+  .unitcard dt { color: var(--muted); }
+  .unitcard dd { margin: 0; }
+  .v-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 0 0 6px; }
+  .verdict { display: inline-flex; }
+  .verdict .btn { border-radius: 0; padding: 5px 12px; font-size: 14px; margin-left: -1px; }
+  .verdict .btn:first-child { border-radius: 6px 0 0 6px; margin-left: 0; }
+  .verdict .btn:last-child { border-radius: 0 6px 6px 0; }
+  .intro .i-row { display: grid; grid-template-columns: 130px 1fr; gap: 14px; padding: 6px 0; font-size: 16px; line-height: 1.5; }
+  .intro .i-row + .i-row { border-top: 1px solid var(--border); }
+  .intro .i-label { color: var(--muted); font-size: 14px; padding-top: 1px; }
+  ol.coming { margin: 0; padding-left: 24px; display: grid; gap: 8px; font-size: 17px; }
+  ol.coming li::marker { color: var(--c); font-weight: 600; }
+  ol.coming button { border: none; background: none; padding: 0; cursor: pointer; text-align: left; font-size: 17px; color: var(--text); }
+  ol.coming button:hover { color: var(--accent); text-decoration: underline; }
+  ol.coming li.done button { color: var(--muted); }
+  ol.coming li.done button::after { content: ' ✓'; color: var(--ok); }
+  ol.coming .tag { margin-left: 8px; vertical-align: 2px; }
+  .intro ul.not-asked { margin: 0; padding-left: 18px; color: var(--muted); font-size: 15px; }
+  .grp .glabel.on { text-decoration: underline; text-underline-offset: 3px; }
+  .evidence-h { font-size: 13px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr; }
+    aside.call { position: static; max-height: none; min-height: 0; border-left: none; border-top: 1px solid var(--border); }
+  }
+  .tag { display: inline-block; text-decoration: none; font-size: 12px; padding: 2px 10px; border-radius: 99px; background: var(--accent-bg); color: var(--accent-text); margin-right: 6px; }
+  p.q-text { font-size: 19px; color: var(--text); margin: 0 0 24px; max-width: 70ch; }
+  section.block { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 18px; margin: 0 0 20px; }
+  .block-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 10px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare .cap { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
+  .compare .cap a { margin-left: 8px; white-space: nowrap; }
+  .shot { position: relative; user-select: none; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; cursor: crosshair; line-height: 0; }
+  .shot img { width: 100%; display: block; pointer-events: none; }
+  .pin { position: absolute; width: 28px; height: 28px; margin: -14px 0 0 -14px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 600; line-height: 1; color: #fff; background: var(--pin); border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+  .pin.mine { background: var(--pin-mine); }
+  .box { position: absolute; border: 2.5px solid var(--pin); box-shadow: 0 0 0 1px rgba(255,255,255,.6); background: rgba(24,95,165,.08); border-radius: 3px; }
+  .box.mine { border-color: var(--pin-mine); background: rgba(194,65,12,.1); }
+  .box .pin { left: 0; top: 0; }
+  .box.drawing { border-style: dashed; }
+  .hint { font-size: 13px; color: var(--faint); margin-top: 8px; }
+  .notes-list { list-style: none; padding: 0; margin: 12px 0 0; display: grid; gap: 8px; }
+  .notes-list li { display: grid; grid-template-columns: minmax(28px, auto) 1fr auto; gap: 10px; align-items: start; font-size: 15px; }
+  .notes-list .n { width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 600; color: #fff; background: var(--pin); margin-top: 2px; }
+  .notes-list .n.mine { background: var(--pin-mine); }
+  .notes-list .n.t { width: auto; border-radius: 99px; padding: 0 8px; border: none; cursor: pointer; font-variant-numeric: tabular-nums; }
+  .clip video { width: 100%; display: block; border: 1px solid var(--border); border-radius: 6px; background: #000; }
+  .clip-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+  .clip-bar .btn { padding: 5px 12px; font-size: 14px; }
+  .clip-bar .spacer { flex: 1; }
+  .notes-list input { width: 100%; border: 1px solid var(--border-strong); border-radius: 6px; padding: 6px 10px; background: var(--surface); }
+  .notes-list blockquote { margin: 0 0 4px; padding-left: 10px; border-left: 3px solid var(--mine); color: var(--muted); font-size: 14px; }
+  .icon-btn { border: none; background: none; color: var(--faint); cursor: pointer; padding: 2px 6px; font-size: 18px; line-height: 1; }
+  .icon-btn:hover { color: var(--danger); }
+  .doc { font-size: 16px; max-height: 420px; overflow: auto; padding-right: 8px; }
+  .doc h3, .doc h4 { font-size: 16px; font-weight: 600; margin: 14px 0 4px; }
+  .doc p { margin: 0 0 10px; }
+  .doc ul { margin: 0 0 10px; padding-left: 22px; }
+  .doc code { font: 14px ui-monospace, Menlo, monospace; background: var(--bg); padding: 1px 5px; border-radius: 4px; }
+  .doc mark { background: var(--mark); color: inherit; padding: 1px 2px; border-radius: 3px; }
+  .doc mark.mine { background: var(--mine-bg); outline: 1px solid var(--mine); }
+  .sel-btn { position: absolute; z-index: 10; border: 1px solid var(--mine); background: var(--mine-bg); color: var(--mine-text); border-radius: 99px; font-size: 13px; padding: 4px 12px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+  h3.section { font-size: 15px; font-weight: 500; color: var(--muted); margin: 28px 0 10px; }
+  .options { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  .opt { text-align: left; background: var(--surface); border: 1.5px solid var(--border-strong); border-radius: 12px; padding: 16px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 6px; }
+  .opt:hover { border-color: var(--accent); }
+  .opt[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-bg); box-shadow: 0 0 0 2px var(--accent) inset; }
+  .opt .o-label { font-size: 17px; font-weight: 500; }
+  .opt .o-detail { font-size: 14px; color: var(--muted); line-height: 1.5; }
+  .opt[aria-pressed="true"] .o-detail { color: var(--accent-text); }
+  .rec { align-self: flex-start; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); }
+  textarea { width: 100%; min-height: 120px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 12px 14px; background: var(--surface); font-size: 16px; resize: vertical; }
+  textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .err { color: var(--danger); font-size: 14px; margin-top: 8px; }
+  .pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); }
+  .btn { border: 1px solid var(--border-strong); background: var(--surface); border-radius: var(--radius); padding: 9px 18px; cursor: pointer; font-size: 15px; }
+  .btn:hover { background: var(--bg); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); font-weight: 500; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .shot-holder { position: relative; }
+  .zoom-btn { position: absolute; top: 8px; right: 8px; z-index: 2; border: 1px solid rgba(255,255,255,.7); background: rgba(20,20,20,.75); color: #fff; border-radius: 6px; padding: 3px 10px; font-size: 13px; cursor: zoom-in; }
+  .zoom-btn:hover { background: rgba(20,20,20,.9); }
+  .lb { position: fixed; inset: 0; z-index: 50; background: var(--bg); display: grid; grid-template-rows: auto minmax(0, 1fr); }
+  .lb-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); }
+  .lb-bar .lb-title { flex: 1; min-width: 0; font-size: 14px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-bar .btn { padding: 5px 12px; font-size: 14px; }
+  .btn[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+  .lb-main { display: grid; grid-template-columns: minmax(0, 1fr) 320px; min-height: 0; }
+  .lb-body { overflow: auto; padding: 20px; display: flex; justify-content: center; align-items: flex-start; }
+  .lb-body.actual { justify-content: flex-start; }
+  .lb-body .shot { flex: none; }
+  .lb-side { background: var(--surface); overflow: auto; padding: 16px; border-left: 1px solid var(--border); }
+  .lb-side .hint { margin: 0 0 8px; }
+  @media (max-width: 860px) { .lb-main { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr) auto; } .lb-side { max-height: 35vh; border-left: none; border-top: 1px solid var(--border); } }
+  .done-card { max-width: 560px; margin: 60px auto; text-align: center; }
+  .done-card h2 { font-size: 26px; font-weight: 500; }
+  .done-card p { color: var(--muted); font-size: 17px; }
+  @media (max-width: 860px) {
+    main { padding: 20px; } .compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header id="hdr">
+  <div class="h-row">
+    <h1 id="h-title">Loading plan…</h1>
+    <nav class="chips" id="chips" aria-label="Parts of this plan"></nav>
+    <button class="details-btn" id="h-details" type="button" aria-expanded="false">Details</button>
+  </div>
+  <div class="legend" id="h-legend" hidden></div>
+  <div class="stepper">
+    <nav class="steps" id="steps" aria-label="Questions"></nav>
+    <div class="progress" id="h-progress"></div>
+  </div>
+</header>
+<div class="layout">
+  <main id="main"></main>
+  <aside id="call" class="call" aria-label="Your call"></aside>
+</div>
+<script>
+// Planning board: a copy of pr-feedback's review board (scripts/review-board/index.html),
+// grouped by plan part instead of by PR, with a decision recap in place of PR rulings.
+// Served by pr-feedback's server.py with --board-dir. See references/planning-board.md.
+const params = new URLSearchParams(location.search);
+const packetId = params.get('packet') || 'demo';
+const base = `packets/${encodeURIComponent(packetId)}/`;
+const storeKey = `planning-board:${packetId}`;
+let packet, state, current = 0, submitted = false, zoom = null, fromRecap = false;
+const clips = {};
+
+const $ = (sel, el = document) => el.querySelector(sel);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const h = (tag, attrs = {}, ...kids) => {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else if (k === 'html') el.innerHTML = v;
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(kid));
+  return el;
+};
+
+function md(src, highlights = [], quotes = []) {
+  const inline = t => {
+    let s = esc(t).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+    for (const hl of highlights) s = s.split(esc(hl)).join(`<mark>${esc(hl)}</mark>`);
+    for (const q of quotes) s = s.split(esc(q)).join(`<mark class="mine">${esc(q)}</mark>`);
+    return s;
+  };
+  const out = []; let list = null;
+  for (const raw of String(src).split('\n')) {
+    const line = raw.trimEnd();
+    const li = line.match(/^\s*[-*] (?:\[[ x]\] )?(.*)$/);
+    if (li) { (list ??= []).push(`<li>${inline(li[1])}</li>`); continue; }
+    if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
+    const hd = line.match(/^(#{1,4}) (.*)$/);
+    if (hd) out.push(`<h4>${inline(hd[2])}</h4>`);
+    else if (line.trim()) out.push(`<p>${inline(line)}</p>`);
+  }
+  if (list) out.push(`<ul>${list.join('')}</ul>`);
+  return out.join('');
+}
+
+function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
+function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+// test:begin isAnswered
+function isAnswered(i) {
+  const a = state.answers[i];
+  return a.choice && (a.choice !== '__other' || a.other.trim());
+}
+// test:end
+const totalSteps = () => packet.questions.length + 1;
+
+async function init() {
+  try {
+    const res = await fetch(base + 'packet.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error(res.status);
+    packet = await res.json();
+  } catch (e) {
+    $('#h-title').textContent = `Couldn't load packet "${packetId}"`;
+    return;
+  }
+  // A planning packet groups questions by part (`unit.key`, `question.part`), not by PR.
+  // Map those onto the ref fields the board groups on, so the grouping code stays shared.
+  for (const u of packet.units || []) u.pr ||= { ref: u.key, title: u.title };
+  for (const q of packet.questions) if (q.part && !q.pr) q.pr = { ref: q.part };
+  document.title = `Plan: ${packet.shortTitle || packet.title}`;
+  const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
+  state = saved && saved.answers?.length === packet.questions.length
+    ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
+  groups = buildGroups();
+  rulingGroups = [...groups, ...quietGroups()];
+  const pr = packet.pr || {};
+  // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
+  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'Feature plan'} · ${rulingGroups.length} parts` : (packet.shortTitle || packet.title);
+  $('#h-title').textContent = title;
+  $('#h-title').title = packet.title;
+  // The long subtitle (environments, legends) moves behind Details.
+  const legend = $('#h-legend'), det = $('#h-details');
+  const bits = String(packet.subtitle || '').split(' | ').filter(Boolean);
+  legend.replaceChildren(...bits.map(b => h('div', {}, b)));
+  det.hidden = !bits.length;
+  det.onclick = () => { legend.hidden = !legend.hidden; det.setAttribute('aria-expanded', String(!legend.hidden)); det.textContent = legend.hidden ? 'Details' : 'Hide details'; };
+  new ResizeObserver(() => document.documentElement.style.setProperty('--hh', $('#hdr').offsetHeight + 'px')).observe($('#hdr'));
+  intro = groups[0] || null;
+  render();
+}
+
+// Questions grouped by the PR (unit) they come from, in packet order. A question finds its
+// unit by its PR ref, or one of the unit's extraPrs (a multi-repo change reviewed as one).
+let groups = [];
+// Mid-tone hues that read on both the light and dark surfaces.
+const PR_COLORS = ['#3b82d6', '#9b5de5', '#e07a2e', '#1fa08a', '#d14d86', '#8a9a1f'];
+const REPO_SHORT = { 'yalesites-project': 'ysp', 'component-library-twig': 'clt', 'atomic': 'atomic', 'tokens': 'tokens', 'YaleSites-Internal': 'internal' };
+function shortRef(ref) {
+  const m = String(ref || '').match(/^[^/]+\/([^#]+)#(\d+)$/);
+  return m ? `${REPO_SHORT[m[1]] || m[1]}#${m[2]}` : (ref || '');
+}
+function unitOf(q) {
+  const units = packet.units || [], ref = q.pr?.ref || packet.pr?.ref;
+  return units.find(u => u.pr?.ref === ref || (u.extraPrs || []).includes(ref)) || (units.length === 1 ? units[0] : null);
+}
+function buildGroups() {
+  const out = [];
+  packet.questions.forEach((q, i) => {
+    const u = unitOf(q), key = u ? u.pr.ref : (q.pr?.ref || packet.pr?.ref || 'review');
+    let g = out.find(x => x.key === key);
+    if (!g) out.push(g = { key, unit: u, label: u?.short || u?.pr?.title || '', ref: u?.pr?.ref || key, qs: [], color: PR_COLORS[out.length % PR_COLORS.length] });
+    g.qs.push(i);
+  });
+  return out;
+}
+// A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
+// ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
+let rulingGroups = [];
+// test:begin quietGroups
+function quietGroups() {
+  return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
+    .map((u, k) => ({ key: u.pr.ref, unit: u, label: u.short || u.pr.title || '', ref: u.pr.ref, qs: [], quiet: true, color: PR_COLORS[(groups.length + k) % PR_COLORS.length] }));
+}
+// test:end
+const groupOf = qi => groups.find(g => g.qs.includes(qi));
+const answeredCount = () => packet.questions.filter((_, i) => isAnswered(i)).length;
+
+function render() {
+  renderHeader();
+  const main = $('#main'), call = $('#call');
+  main.replaceChildren(); call.replaceChildren();
+  if (submitted) { call.hidden = true; return renderDone(main); }
+  call.hidden = false;
+  if (intro) renderIntro(main, call, intro);
+  else if (current < packet.questions.length) renderQuestion(main, call, current);
+  else renderOwnRead(main, call);
+  renderLightbox();
+}
+
+function renderHeader() {
+  const cur = groupOf(current);
+  $('#chips').replaceChildren(...(groups.length > 1 || groups[0]?.label ? groups : []).map(g => {
+    const done = g.qs.filter(isAnswered).length;
+    return h('button', {
+      class: 'chip' + (done === g.qs.length ? ' complete' : ''), type: 'button', title: `${g.ref}${g.unit?.pr?.title ? ': ' + g.unit.pr.title : ''}`,
+      style: `--c:${g.color}`,
+      'aria-current': g === cur && !submitted ? 'true' : 'false', onclick: () => showIntro(g)
+    }, h('span', { class: 'dot' }), h('span', {}, g.label || g.ref), h('span', { class: 'cnt' }, `${done}/${g.qs.length}`));
+  }));
+  const step = i => {
+    const q = packet.questions[i], a = state.answers[i];
+    return h('button', {
+      class: 'step' + (isAnswered(i) ? ' done' : '') + (a.choice === 'defer' ? ' later' : ''), type: 'button',
+      title: `${i + 1}. ${q.title}${isAnswered(i) ? ' (answered)' : ''}`, 'aria-label': `Question ${i + 1}: ${q.title}`,
+      'aria-current': i === current && !submitted ? 'true' : 'false', onclick: () => go(i)
+    });
+  };
+  const nq = packet.questions.length;
+  $('#steps').replaceChildren(
+    ...groups.map(g => h('div', { class: 'grp', style: `--n:${g.qs.length};--c:${g.color}`, title: `${shortRef(g.ref)} ${g.label}` },
+      h('div', { class: 'segs' }, ...g.qs.map(step)),
+      groups.length > 1 && h('div', { class: 'bracket' }),
+      groups.length > 1 && h('div', { class: 'glabel' + (intro === g ? ' on' : '') }, shortRef(g.ref)))),
+    h('div', { class: 'grp', style: '--n:1;flex:0 0 28px' }, h('button', {
+      class: 'step own' + (state.ownRead.trim() ? ' done' : ''), type: 'button', title: 'Your own read, then send',
+      'aria-label': 'Your own read', 'aria-current': current === nq && !submitted ? 'true' : 'false', onclick: () => go(nq)
+    })));
+  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `Part ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
+}
+
+function refLink(r, text) {
+  if (!r?.ref && !text) return null;
+  return /^https?:/i.test(r.url || '') ? h('a', { href: r.url, target: '_blank', rel: 'noopener' }, (text || r.ref) + ' ↗') : (text || r.ref);
+}
+
+// "What this PR is" in two lines, folded inside the context card so it never competes with
+// the question. Open by default on the first question of each PR, since that is where the
+// reviewer switches context.
+function unitCard(u, open) {
+  if (!u) return null;
+  const rows = [
+    u.issue && ['Ticket', h('span', {}, refLink(u.issue, shortRef(u.issue.ref)), u.ask ? ' ' : '', u.ask && h('span', { html: md(u.ask).replace(/^<p>|<\/p>$/g, '') }))],
+    u.change && ['Found', h('span', { html: md(u.change).replace(/^<p>|<\/p>$/g, '') })],
+    (u.status || u.test) && ['Sources', h('span', {}, u.status || '', u.status && u.test ? ' · ' : '', u.test && refLink({ ref: u.test.label, url: u.test.url }))],
+    u.related?.length && ['Related', h('span', {}, ...u.related.flatMap((r, k) => [k ? ' · ' : '', refLink(r, shortRef(r.ref)), r.note ? ` ${r.note}` : '']))],
+  ].filter(Boolean);
+  const d = h('details', { open: open || null }, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted)' }, `About this part${u.pr.title ? ': ' + u.pr.title : ''}`),
+    h('dl', { class: 'unitcard' }, ...rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])));
+  return d;
+}
+function prUrl(ref) {
+  const m = String(ref).match(/^([^/]+)\/([^#]+)#(\d+)$/);
+  return m ? `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}` : null;
+}
+
+let intro = null;
+function go(i, opts = {}) {
+  const prev = current, g = i < packet.questions.length ? groupOf(i) : null;
+  // A question opened from the recap returns to the recap once it is answered.
+  fromRecap = !!opts.fromRecap;
+  current = i; submitted = false; zoom = null;
+  intro = !opts.skipIntro && g && g.qs[0] === i && (i === prev + 1 || opts.intro) ? g : null;
+  render(); window.scrollTo(0, 0);
+}
+function showIntro(g) { go(g.qs[0], { intro: true }); }
+function back(qi) {
+  const g = groupOf(qi);
+  if (g && g.qs[0] === qi) return showIntro(g);
+  go(qi - 1);
+}
+
+// The lead-in for a PR: what it is for, what it does, and the decisions coming up, so each
+// question after it only has to carry its own context.
+function renderIntro(main, call, g) {
+  const u = g.unit, k = groups.indexOf(g);
+  main.style.setProperty('--c', g.color);
+  main.append(
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `Part ${k + 1} of ${groups.length}`)),
+    h('h2', { class: 'q-title' }, u?.pr?.title || g.label || g.ref));
+  const row = (label, body) => body && h('div', { class: 'i-row' }, h('div', { class: 'i-label' }, label), h('div', { class: 'i-body' }, body));
+  const inline = t => t && h('span', { html: md(t).replace(/^<p>|<\/p>$/g, '') });
+  const links = u && (u.issue || u.test) ? h('span', {},
+    u.issue && ['Ticket ', refLink(u.issue, shortRef(u.issue.ref))],
+    u.test && [' · ', refLink({ ref: u.test.label, url: u.test.url })]) : null;
+  const facts = h('div', { class: 'brief intro' },
+    row('What we are deciding', inline(u?.ask)),
+    row('What research found', inline(u?.change)),
+    row('Sources', u?.status && inline(u.status)),
+    row('Links', links),
+    u?.related?.length && row('Related', h('span', {}, ...u.related.flatMap((r, j) => [j ? ' · ' : '', refLink(r, shortRef(r.ref)), r.note ? ` ${r.note}` : '']))),
+    u?.notAsked?.length && row('Not asked', h('ul', { class: 'not-asked' }, ...u.notAsked.map(n => h('li', { html: md(n).replace(/^<p>|<\/p>$/g, '') })))));
+  if (facts.children.length) main.append(facts);
+  main.append(h('h3', { class: 'evidence-h' }, `You will decide (${g.qs.length})`),
+    h('ol', { class: 'coming' }, ...g.qs.map(i => {
+      const q = packet.questions[i];
+      return h('li', { class: isAnswered(i) ? 'done' : '' }, h('button', { type: 'button', onclick: () => go(i, { skipIntro: true }) }, q.ask || q.title),
+        q.dimension && h('span', { class: 'tag' }, q.dimension));
+    })));
+  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `Part ${k + 1} of ${groups.length}` : 'This plan'),
+    h('p', { class: 'ask' }, `${g.qs.length} decision${g.qs.length > 1 ? 's' : ''} on ${g.label || g.ref}`));
+  const start = () => go(g.qs.find(i => !isAnswered(i)) ?? g.qs[0], { skipIntro: true });
+  keyNext = start; keyPick = null;
+  const prevG = groups[k - 1];
+  call.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', style: k === 0 ? 'visibility:hidden' : '', onclick: () => go(prevG.qs.at(-1), { skipIntro: true }) }, '← Back'),
+    h('button', { class: 'btn primary', onclick: start }, 'Start →')),
+    h('div', { class: 'keys' }, 'Keys: → or Enter to start'));
+}
+
+function renderQuestion(main, call, qi) {
+  const q = packet.questions[qi], a = state.answers[qi], g = groupOf(qi), u = g?.unit;
+  const firstOfPr = g && g.qs[0] === qi;
+
+  // Main column: what this is about, then the evidence.
+  main.style.setProperty('--c', g?.color || '');
+  main.append(
+    h('div', { class: 'q-meta' },
+      q.pr && h('a', { class: 'tag pr', href: q.pr.url, target: '_blank', rel: 'noopener', title: q.pr.ref }, shortRef(q.pr.ref)),
+      q.dimension && h('span', { class: 'tag' }, q.dimension),
+      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} in this part`)),
+    h('h2', { class: 'q-title' }, q.title));
+  const brief = h('div', { class: 'brief' }, h('div', { class: 'b-head' }, h('span', {}, 'Context')));
+  if (q.brief?.length) {
+    brief.append(h('ul', {}, ...q.brief.map(b => h('li', { html: md(b).replace(/^<p>|<\/p>$/g, '') }))));
+    const full = h('details', {}, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted);margin-top:8px' }, 'Full write-up'), h('p', { class: 'full' }, q.question));
+    // A planning question often has no longer write-up; skip the empty toggle then.
+    if (q.question) brief.append(full);
+  } else {
+    brief.append(h('p', { style: 'margin:0' }, q.question));
+  }
+  if (u) brief.append(h('div', { style: 'margin-top:10px' }, unitCard(u, false)));
+  main.append(brief);
+  if (q.context?.length) main.append(h('h3', { class: 'evidence-h' }, 'Evidence'));
+  (q.context || []).forEach((ctx, ci) => main.append(renderContext(qi, ctx, ci)));
+
+  // Sticky panel: the one question and the answers.
+  call.append(h('p', { class: 'kicker' }, 'Your call'), h('p', { class: 'ask' }, q.ask || q.title));
+  const opts = h('div', { class: 'options', role: 'group', 'aria-label': 'Options' });
+  const err = h('div', { class: 'err', hidden: true }, 'Pick an option first, or describe something else.');
+  const otherBox = h('textarea', { placeholder: 'Describe what you want instead', hidden: a.choice !== '__other' });
+  otherBox.value = a.other;
+  otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; clearOverride(qi); save(); renderHeader(); });
+  const choices = [...(q.options || []), { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
+  const pick = (o, btn) => {
+    if (a.choice !== o.value) clearOverride(qi);
+    a.choice = o.value; err.hidden = true; save();
+    opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
+    otherBox.hidden = o.value !== '__other';
+    if (!otherBox.hidden) otherBox.focus();
+    renderHeader();
+    // Picking a listed option moves on by itself, after a beat so the choice is visible.
+    // "Something else" stays, since it needs typing.
+    // Opened from the recap, it goes back to the recap instead.
+    const back = fromRecap;
+    if (o.value !== '__other') setTimeout(() => { if (current === qi && !zoom) go(back ? packet.questions.length : qi + 1); }, 350);
+  };
+  choices.forEach((o, k) => {
+    const btn = h('button', {
+      class: 'opt' + (o.value === 'defer' ? ' defer' : ''), type: 'button', 'aria-pressed': a.choice === o.value ? 'true' : 'false',
+      'aria-keyshortcuts': String(k + 1), onclick: e => pick(o, e.currentTarget)
+    }, h('span', { class: 'key' }, String(k + 1)),
+       h('span', { class: 'o-body' }, o.recommended && h('span', { class: 'rec' }, 'Recommended'),
+         h('span', { class: 'o-label' }, o.label), o.detail && h('span', { class: 'o-detail' }, o.detail)));
+    opts.append(btn);
+  });
+  keyPick = n => { const b = opts.querySelectorAll('.opt')[n - 1]; if (b) pick(choices[n - 1], b); };
+  call.append(opts, h('div', { style: 'margin-top:8px' }, otherBox), err);
+
+  const notes = h('textarea', { placeholder: 'Note for the developer: why, edge cases, wording you want', hidden: !a.notes || null });
+  notes.value = a.notes;
+  notes.addEventListener('input', () => { a.notes = notes.value; save(); });
+  const addNote = h('button', { class: 'notes-toggle', type: 'button', hidden: !!a.notes || null, onclick: () => { addNote.hidden = true; notes.hidden = false; notes.focus(); } }, '+ Add a note for the developer');
+  call.append(addNote, h('div', { style: 'margin-top:12px' }, notes));
+
+  const next = () => {
+    if (!isAnswered(qi)) { err.hidden = false; return; }
+    go(fromRecap ? packet.questions.length : qi + 1);
+  };
+  keyNext = next;
+  const nextLabel = fromRecap ? 'Back to your decisions →' : qi === packet.questions.length - 1 ? 'Last: your own read →'
+    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next part: ${groupOf(qi + 1).label || groupOf(qi + 1).ref} →` : 'Next →';
+  call.append(h('div', { class: 'pager' },
+    h('button', { class: 'btn', onclick: () => back(qi) }, '← Back'),
+    h('button', { class: 'btn primary', onclick: next }, nextLabel)),
+    h('div', { class: 'keys' }, `Picking an answer moves to the next question. Keys: 1 to ${choices.length} pick, ← → move`));
+}
+
+// Keyboard: number keys pick an option, arrows move. Off while typing or in the lightbox.
+let keyPick = null, keyNext = null;
+document.addEventListener('keydown', e => {
+  if (zoom || e.metaKey || e.ctrlKey || e.altKey) return;
+  if (e.target instanceof Element && e.target.matches('input, textarea, select, [contenteditable]')) return;
+  if (document.body.classList.contains('uin-on')) return;
+  if (/^[1-9]$/.test(e.key) && !intro && current < packet.questions.length && keyPick) { e.preventDefault(); keyPick(Number(e.key)); }
+  else if ((e.key === 'ArrowRight' || (intro && e.key === 'Enter')) && (intro || current < packet.questions.length) && keyNext) { e.preventDefault(); keyNext(); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); if (intro) { const k = groups.indexOf(intro); if (k > 0) go(groups[k - 1].qs.at(-1), { skipIntro: true }); } else if (current >= packet.questions.length) go(current - 1); else back(current); }
+});
+
+function openLink(url) { return /^https?:/i.test(url || '') ? h('a', { href: url, target: '_blank', rel: 'noopener' }, 'Open ↗') : null; }
+
+function renderContext(qi, ctx, ci) {
+  const sec = h('section', { class: 'block' });
+  sec.append(h('div', { class: 'block-head' }, h('span', {}, ctx.label || ''), openLink(ctx.url)));
+  const list = h('ul', { class: 'notes-list' });
+  if (ctx.type === 'image') {
+    sec.append(renderShot(qi, ci, 0, ctx));
+  } else if (ctx.type === 'compare') {
+    const grid = h('div', { class: 'compare' });
+    ctx.images.forEach((img, k) => grid.append(h('div', {}, h('div', { class: 'cap' }, img.caption || '', openLink(img.url)), renderShot(qi, ci, k, img))));
+    sec.append(grid);
+  } else if (ctx.type === 'video') {
+    sec.append(renderClip(qi, ci, ctx));
+  } else if (ctx.type === 'text') {
+    sec.append(renderDoc(qi, ci, ctx, list));
+  }
+  sec.append(list);
+  refreshList(qi, ci, ctx, list);
+  return sec;
+}
+
+function claudeMarks(ctx) {
+  if (ctx.type === 'image') return (ctx.marks || []).map(m => ({ ...m, img: 0 }));
+  if (ctx.type === 'compare') return ctx.images.flatMap((im, k) => (im.marks || []).map(m => ({ ...m, img: k })));
+  return [];
+}
+
+function refreshList(qi, ci, ctx, list, inLightbox = false) {
+  const a = state.answers[qi];
+  list.replaceChildren();
+  if (ctx.type === 'video') {
+    (ctx.moments || []).forEach(m => list.append(h('li', {}, seekBtn(qi, ci, m.t, false), h('span', {}, m.note), h('span'))));
+  }
+  claudeMarks(ctx).forEach((m, i) => list.append(h('li', {}, h('span', { class: 'n' }, String(i + 1)), h('span', {}, m.note), h('span'))));
+  a.markups.filter(m => m.ctx === ci).forEach((m, i) => {
+    const placeholder = { quote: 'What about this part?', moment: 'What happens here?' }[m.type] || 'What should change here?';
+    const input = h('input', { type: 'text', placeholder, value: m.note });
+    input.addEventListener('input', () => { m.note = input.value; save(); });
+    if (m.focus && inLightbox === !!zoom) { setTimeout(() => input.focus(), 0); delete m.focus; }
+    list.append(h('li', {},
+      m.type === 'moment' ? seekBtn(qi, ci, m.t, true) : h('span', { class: 'n mine' }, m.type === 'quote' ? '❝' : String.fromCharCode(65 + i)),
+      h('span', {}, m.type === 'quote' && h('blockquote', {}, m.quote), input),
+      h('button', { class: 'icon-btn', 'aria-label': 'Remove', title: 'Remove', onclick: () => {
+        a.markups.splice(a.markups.indexOf(m), 1); save(); rerenderCurrent();
+      } }, '×')));
+  });
+}
+
+function rerenderCurrent() {
+  const y = window.scrollY, body = $('#lb .lb-body');
+  const lbScroll = body && [body.scrollLeft, body.scrollTop];
+  render();
+  window.scrollTo(0, y);
+  if (lbScroll) { const nb = $('#lb .lb-body'); if (nb) [nb.scrollLeft, nb.scrollTop] = lbScroll; }
+}
+
+function zoomImages(ctx) { return ctx.type === 'compare' ? ctx.images : [ctx]; }
+function openZoom(qi, ci, k) { zoom = { qi, ci, k, actual: false, opener: document.activeElement }; renderLightbox(); }
+function closeZoom() {
+  const opener = zoom?.opener;
+  zoom = null; renderLightbox();
+  if (opener?.isConnected) opener.focus();
+}
+
+function renderLightbox() {
+  $('#lb')?.remove();
+  document.body.style.overflow = zoom ? 'hidden' : '';
+  if (!zoom) return;
+  const q = packet.questions[zoom.qi], ctx = q.context[zoom.ci], imgs = zoomImages(ctx), img = imgs[zoom.k];
+  const flip = imgs.length > 1 && imgs.map((im, k) => h('button', {
+    class: 'btn', 'aria-pressed': k === zoom.k ? 'true' : 'false', onclick: () => { zoom.k = k; rerenderCurrent(); }
+  }, im.caption || `Image ${k + 1}`));
+  const body = h('div', { class: 'lb-body' + (zoom.actual ? ' actual' : '') });
+  const close = h('button', { class: 'btn', onclick: closeZoom, 'aria-label': 'Close enlarged view' }, 'Close ✕');
+  const list = h('ul', { class: 'notes-list' });
+  const lb = h('div', { id: 'lb', class: 'lb', role: 'dialog', 'aria-modal': 'true', 'aria-label': `Enlarged: ${img.caption || ctx.label || 'screenshot'}` },
+    h('div', { class: 'lb-bar' },
+      h('span', { class: 'lb-title' }, ctx.label || img.caption || ''),
+      openLink(ctx.type === 'compare' ? img.url : ctx.url),
+      flip,
+      h('button', { class: 'btn', 'aria-pressed': zoom.actual ? 'true' : 'false', onclick: () => { zoom.actual = !zoom.actual; rerenderCurrent(); } }, 'Actual size'),
+      close),
+    h('div', { class: 'lb-main' }, body,
+      h('div', { class: 'lb-side' },
+        h('p', { class: 'hint' }, (imgs.length > 1 ? 'Press ← and → to flip between images in place. ' : '') + 'Click to pin, drag to box. Esc closes.'),
+        list)));
+  document.body.append(lb);
+  body.append(renderShot(zoom.qi, zoom.ci, zoom.k, img, { lightbox: true, actual: zoom.actual, fitTo: body }));
+  refreshList(zoom.qi, zoom.ci, ctx, list, true);
+  if (!lb.contains(document.activeElement) && !list.querySelector('input:focus')) setTimeout(() => { if (!lb.contains(document.activeElement)) close.focus(); }, 0);
+}
+
+document.addEventListener('keydown', e => {
+  if (!zoom) return;
+  if (e.key === 'Escape') { e.preventDefault(); closeZoom(); return; }
+  if (e.target instanceof Element && e.target.matches('input, textarea')) return;
+  const n = zoomImages(packet.questions[zoom.qi].context[zoom.ci]).length;
+  if (n > 1 && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+    e.preventDefault();
+    zoom.k = (zoom.k + (e.key === 'ArrowRight' ? 1 : n - 1)) % n;
+    rerenderCurrent();
+  }
+});
+window.addEventListener('resize', () => { if (zoom && !zoom.actual) rerenderCurrent(); });
+
+function renderShot(qi, ci, k, img, opts = {}) {
+  const a = state.answers[qi];
+  const imgEl = h('img', { src: base + img.src, alt: img.alt || img.caption || 'Screenshot' });
+  const wrap = h('div', { class: 'shot' }, imgEl);
+  if (opts.lightbox) {
+    const size = () => {
+      const nw = imgEl.naturalWidth, nh = imgEl.naturalHeight;
+      if (!nw) return;
+      if (opts.actual) { wrap.style.width = nw + 'px'; return; }
+      const box = opts.fitTo, availW = box.clientWidth - 40, availH = box.clientHeight - 40;
+      wrap.style.width = Math.max(200, Math.min(availW, availH * nw / nh, nw * 2)) + 'px';
+    };
+    if (imgEl.complete) requestAnimationFrame(size); else imgEl.addEventListener('load', size);
+  }
+  const marks = claudeMarks(packet.questions[qi].context[ci]);
+  marks.forEach((m, i) => { if (m.img === k) wrap.append(markEl(m, String(i + 1), false)); });
+  a.markups.filter(m => m.ctx === ci && m.img === k && m.type !== 'quote').forEach(m => {
+    const mine = a.markups.filter(x => x.ctx === ci);
+    wrap.append(markEl(m, String.fromCharCode(65 + mine.indexOf(m)), true));
+  });
+  let start = null, ghost = null;
+  const pct = e => { const r = wrap.getBoundingClientRect(); return { x: Math.min(100, Math.max(0, (e.clientX - r.left) / r.width * 100)), y: Math.min(100, Math.max(0, (e.clientY - r.top) / r.height * 100)) }; };
+  wrap.addEventListener('pointerdown', e => {
+    if (e.target.closest('.pin')) return;
+    start = pct(e); wrap.setPointerCapture(e.pointerId);
+  });
+  wrap.addEventListener('pointermove', e => {
+    if (!start) return;
+    const p = pct(e);
+    if (!ghost && Math.hypot(p.x - start.x, p.y - start.y) > 1.5) { ghost = h('div', { class: 'box mine drawing' }); wrap.append(ghost); }
+    if (ghost) Object.assign(ghost.style, { left: Math.min(p.x, start.x) + '%', top: Math.min(p.y, start.y) + '%', width: Math.abs(p.x - start.x) + '%', height: Math.abs(p.y - start.y) + '%' });
+  });
+  wrap.addEventListener('pointerup', e => {
+    if (!start) return;
+    const p = pct(e);
+    const r2 = n => Math.round(n * 10) / 10;
+    const m = ghost
+      ? { type: 'box', ctx: ci, img: k, x: r2(Math.min(p.x, start.x)), y: r2(Math.min(p.y, start.y)), w: r2(Math.abs(p.x - start.x)), h: r2(Math.abs(p.y - start.y)), note: '' }
+      : { type: 'pin', ctx: ci, img: k, x: r2(p.x), y: r2(p.y), note: '' };
+    start = null; ghost = null;
+    a.markups.push({ ...m, focus: true }); save(); rerenderCurrent();
+  });
+  if (opts.lightbox) return wrap;
+  const enlarge = h('button', { class: 'zoom-btn', type: 'button', onclick: () => openZoom(qi, ci, k), 'aria-label': `Enlarge ${img.caption || 'screenshot'}` }, '⤢ Enlarge');
+  return h('div', {},
+    h('div', { class: 'shot-holder' }, wrap, enlarge),
+    h('div', { class: 'hint' }, 'Click to drop a pin, or drag to draw a box. Use Enlarge for a closer look.'));
+}
+
+function markEl(m, label, mine) {
+  const pin = h('span', { class: 'pin' + (mine ? ' mine' : '') }, label);
+  if (m.w != null) {
+    const box = h('div', { class: 'box' + (mine ? ' mine' : ''), style: `left:${m.x}%;top:${m.y}%;width:${m.w}%;height:${m.h}%` }, pin);
+    return box;
+  }
+  pin.style.left = m.x + '%'; pin.style.top = m.y + '%';
+  return pin;
+}
+
+const clock = t => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, '0')}`;
+
+function seekBtn(qi, ci, t, mine) {
+  return h('button', { class: 'n t' + (mine ? ' mine' : ''), type: 'button', title: 'Jump here', 'aria-label': `Jump to ${clock(t)}`, onclick: () => {
+    const v = clips[`${qi}:${ci}`]?.el;
+    if (v) { v.pause(); v.currentTime = t; v.focus(); }
+  } }, clock(t));
+}
+
+function renderClip(qi, ci, ctx) {
+  const a = state.answers[qi], key = `${qi}:${ci}`;
+  const pos = clips[key] ||= { t: 0, rate: 1 };
+  const v = h('video', { src: base + ctx.src, controls: true, preload: 'metadata', playsinline: true, muted: true, poster: ctx.poster ? base + ctx.poster : null, 'aria-label': ctx.caption || ctx.label || 'Clip' });
+  pos.el = v;
+  v.addEventListener('loadedmetadata', () => { if (pos.t) v.currentTime = pos.t; v.playbackRate = pos.rate; });
+  v.addEventListener('timeupdate', () => { pos.t = v.currentTime; stamp.textContent = `+ Note at ${clock(v.currentTime)}`; });
+  const speeds = [1, 0.5, 0.25].map(r => h('button', { class: 'btn', type: 'button', 'aria-pressed': pos.rate === r ? 'true' : 'false', onclick: e => {
+    pos.rate = r; v.playbackRate = r;
+    e.currentTarget.parentNode.querySelectorAll('[data-rate]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.rate) === r)));
+  }, 'data-rate': r }, r === 1 ? 'Normal speed' : `${r}×`));
+  const stamp = h('button', { class: 'btn', type: 'button', onclick: () => {
+    v.pause();
+    a.markups.push({ type: 'moment', ctx: ci, t: Math.round(v.currentTime * 10) / 10, note: '', focus: true }); save(); rerenderCurrent();
+  } }, `+ Note at ${clock(pos.t)}`);
+  return h('div', { class: 'clip' },
+    ctx.caption && h('div', { class: 'cap', style: 'font-size:13px;font-weight:500;margin-bottom:6px' }, ctx.caption), v,
+    h('div', { class: 'clip-bar' }, ...speeds, h('span', { class: 'spacer' }), stamp),
+    h('div', { class: 'hint' }, 'Slow it down to catch a flicker. Pause where something looks wrong and add a note at that moment.'));
+}
+
+function renderDoc(qi, ci, ctx, list) {
+  const a = state.answers[qi];
+  const quotes = a.markups.filter(m => m.ctx === ci && m.type === 'quote').map(m => m.quote);
+  const doc = h('div', { class: 'doc', html: md(ctx.body, ctx.highlight || [], quotes) });
+  const holder = h('div', { style: 'position:relative' }, doc, h('div', { class: 'hint' }, 'Highlighted lines are what this question is about. Select any text to comment on it.'));
+  let btn = null;
+  const clear = () => { btn?.remove(); btn = null; };
+  doc.addEventListener('mouseup', () => {
+    setTimeout(() => {
+      clear();
+      const sel = window.getSelection(); const text = sel.toString().trim();
+      if (!text || !doc.contains(sel.anchorNode)) return;
+      const r = sel.getRangeAt(0).getBoundingClientRect(), hr = holder.getBoundingClientRect();
+      btn = h('button', { class: 'sel-btn', style: `left:${r.left - hr.left}px;top:${r.bottom - hr.top + 6}px`, onmousedown: e => e.preventDefault(), onclick: () => {
+        a.markups.push({ type: 'quote', ctx: ci, quote: text, note: '', focus: true }); save(); clear(); rerenderCurrent();
+      } }, '+ Comment on selection');
+      holder.append(btn);
+    }, 0);
+  });
+  doc.addEventListener('mousedown', clear);
+  return holder;
+}
+
+function renderOwnRead(main, call) {
+  main.append(
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag' }, 'Your read')),
+    h('h2', { class: 'q-title' }, 'Anything else?'),
+    h('p', { class: 'q-text' }, packet.ownReadPrompt || 'Anything the questions missed: a constraint, a stakeholder, a date, a gut reaction. Leave it blank if nothing comes to mind.'));
+  const ta = h('textarea', { style: 'min-height:220px', placeholder: 'We also promised the School of X that…' });
+  ta.value = state.ownRead;
+  ta.addEventListener('input', () => { state.ownRead = ta.value; save(); renderHeader(); });
+  main.append(ta);
+  // A recap of every decision, grouped by part, so a misclick is caught before sending.
+  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Your decisions'),
+    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, 'Sending hands these to Claude as the decision record. Click a number to change an answer.'));
+  for (const g of groups) {
+    main.append(h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
+      h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, g.label || g.ref))),
+      h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
+        const q = packet.questions[i], a = state.answers[i];
+        const label = a.choice === '__other' ? a.other.trim() : (q.options || []).find(o => o.value === a.choice)?.label;
+        return h('li', {}, h('button', { class: 'n t', type: 'button', onclick: () => go(i, { fromRecap: true }), title: 'Change' }, String(i + 1)),
+          h('span', {}, q.ask || q.title, h('br'), label ? h('strong', {}, label) : h('span', { class: 'err' }, 'Not answered')), h('span'));
+      }))));
+  }
+  call.append(h('p', { class: 'kicker' }, 'Send'), h('p', { class: 'ask' }, `${answeredCount()} of ${packet.questions.length} answered`));
+  const err = h('div', { class: 'err', hidden: true });
+  const send = h('button', { class: 'btn primary', onclick: async () => {
+    const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
+    if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
+    send.disabled = true; send.textContent = 'Sending…';
+    try {
+      const res = await fetch(`api/answers?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildAnswers()) });
+      if (!res.ok) throw new Error(res.status);
+      submitted = true; render();
+    } catch (e) {
+      err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
+      err.hidden = false; send.disabled = false; send.textContent = 'Send decisions';
+    }
+  } }, 'Send decisions');
+  call.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
+}
+
+function buildAnswers() {
+  return {
+    packet: packetId, title: packet.title, submittedAt: new Date().toISOString(),
+    answers: packet.questions.map((q, i) => {
+      const a = state.answers[i];
+      const opt = (q.options || []).find(o => o.value === a.choice);
+      return {
+        id: q.id, part: q.part || q.pr?.ref || null, title: q.title, dimension: q.dimension || null,
+        choice: a.choice === '__other' ? 'other' : a.choice,
+        choiceLabel: a.choice === '__other' ? a.other.trim() : opt?.label,
+        notes: a.notes.trim() || null,
+        markups: a.markups.map(m => {
+          const ctx = q.context[m.ctx];
+          const where = ctx.type === 'compare' ? ctx.images[m.img] : ctx;
+          return { on: where.caption || ctx.label, file: where.src || null, ...m, ctx: undefined, img: undefined };
+        })
+      };
+    }),
+    ownRead: state.ownRead.trim() || null
+  };
+}
+
+// Approve / Request changes / Comment per PR, inferred from the answers. An option says what it
+// means with `verdict`. Any "changes" answer wins, then "comment", else approve. An option with no
+// `verdict` (an older packet) is not guessed from its label: unless another answer already asks
+// for changes, the PR gets no inferred ruling and the reviewer picks one on the last page.
+// "Something else" counts as comment; Step 6 still reads its text for a before-merge edit.
+// test:begin verdicts
+const VERDICTS = { approve: 'Approve', changes: 'Request changes', comment: 'Comment, no ruling yet' };
+// What Send does for each ruling. Finishing the board finishes the review: nothing is asked again in chat.
+const ON_SEND = { approve: 'Posts an approval and labels it ready to merge.', changes: 'Posts a changes request to the developer and swaps needs review for needs work.', comment: 'Posts your open decision as a comment. Labels stay as they are.' };
+function optionVerdict(q, a) {
+  if (a.choice === '__other') return a.other.trim() ? 'comment' : null;
+  const o = (q.options || []).find(x => x.value === a.choice);
+  if (!o) return null;
+  return VERDICTS[o.verdict] ? o.verdict : 'unknown';
+}
+function verdictFor(g) {
+  const rank = { changes: 3, comment: 2, approve: 1 };
+  let best = null, because = [];
+  const unread = [];
+  for (const i of g.qs) {
+    const v = optionVerdict(packet.questions[i], state.answers[i]);
+    if (!v) continue;
+    if (v === 'unknown') { unread.push(i + 1); continue; }
+    if (!best || rank[v] > rank[best]) { best = v; because = []; }
+    if (v === best && v !== 'approve') because.push(i);
+  }
+  if (unread.length && best !== 'changes') best = null;
+  const open = g.qs.filter(i => !isAnswered(i)).length;
+  const over = state.verdicts?.[g.key];
+  return { verdict: over || best, inferred: best, overridden: !!over && over !== best, because: because.map(i => i + 1), unread, open };
+}
+// A manual ruling was made against the answers as they stood. Changing any answer for that PR
+// drops it, so the ruling goes back to what the answers say.
+function clearOverride(qi) {
+  const g = groupOf(qi);
+  if (g && state.verdicts?.[g.key] !== undefined) delete state.verdicts[g.key];
+}
+// test:end
+
+function renderDone(main) {
+  main.append(h('div', { class: 'done-card' },
+    h('h2', {}, 'Sent to Claude'),
+    h('p', {}, 'Claude writes these up as the decision record and drafts the ticket from it. Nothing posts until you see the draft.'),
+    h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
+  $('#h-progress').textContent = 'Submitted';
+}
+
+init();
+</script>
+</body>
+</html>

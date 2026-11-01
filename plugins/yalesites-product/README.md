@@ -14,6 +14,13 @@ team with:
   workflow is ready to run
 - **Release prep** — drafting release notes, feature documentation, release
   emails, QA testing steps, and knowledge base sync
+- **Feature planning**: a planning session for a new feature before it is
+  ticketed. Claude researches the idea first (the code, the portfolio crawl,
+  Pantheon, GitHub history, UX research, the docs site, live sites, and other
+  higher ed and general CMSes), then asks the product questions that settle
+  the most, ranked by blast radius, on a local planning board. Ends in a
+  decision record that the `ticket` skill turns into a feature parent and its
+  phase children
 - **Ticket creation & grooming** — creating new GitHub issues and grooming
   existing ones with correct format, acceptance criteria, priority, risk,
   type, and labels
@@ -111,6 +118,7 @@ knowledge that the workflow skills reference:
 |---|---|
 | `release-prep` | Preparing a YaleSites release, finishing and publishing the docs drafts staged for it, and reconciling the board after it ships |
 | `onboard` | Setting up a Mac or Windows computer so the ticket skill works: Homebrew or Scoop, `gh`, GitHub login, org access, and plugins (invoke directly with `/yalesites-product:onboard`) |
+| `feature-planning` | Planning a new feature before it becomes a ticket: research, ranked product questions, and a decision record handed to `ticket` |
 | `ticket` | Creating a new GitHub issue or grooming an existing one (invoke directly with `/ticket`) |
 | `backlog-hygiene` | Auditing the backlog for tickets that need grooming (read-only) |
 | `pr-feedback` | Reviewing, approving, or requesting changes on a YaleSites pull request, or on several at once (batch mode) |
