@@ -244,6 +244,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 Two things have to be true before it goes on:
 
 - **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **A new embed provider has its approval.** See "New embed providers" in `references/routing.md`. A Priority or milestone is not an approval.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
@@ -405,6 +406,8 @@ When grooming an existing stub ticket, check the title along with the other fiel
 | `Bug:` | A defect found outside of RC testing (reported by an editor, caught in normal use, etc.). |
 | `Embed:` | New or changed support for a specific embeddable content type (calendars, maps, social posts). |
 | `Embed Request:` | An intake ticket for a new embed type someone has asked for but that isn't scoped/dev-ready yet. |
+
+**New embed providers need Michael's approval.** Any `Embed:` or `Embed Request:` ticket, or child of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373), gets a `needs-decision` for `miketullo95` asking whether to add the provider, unless the ticket already has his `## Decision: approved` comment. Until it does, don't assign it or tag it `claude`, even if the user asks: say why and offer to raise the decision instead. The rule and the approval format are in `references/routing.md` ("New embed providers").
 | `Feature Request:` | A new-functionality ask, typically as raised by a stakeholder, before it's fully scoped. |
 | `UX Research:` / `UX Discovery:` / `UX Evaluation:` | Research-workstream tickets — study prep, participant outreach, interview scheduling, evaluating an existing flow. |
 | `Design:` | A visual/design deliverable with no dev work implied (mockups, icon sets, etc.). |
