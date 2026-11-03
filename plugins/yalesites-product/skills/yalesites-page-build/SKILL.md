@@ -13,7 +13,7 @@ argument-hint: "[path to a page draft .md, or a ticket like yalesites-org/YaleSi
 ## Workflow
 
 1. Have a page draft. If there is none, run `yalesites-web-content` first.
-2. Preflight and log in (the user does CAS)
+2. Preflight and log in (reuse the saved login, or the user does CAS)
 3. Decide: new page, or forward draft of a published page
 4. Create the draft
 5. Build the layout, following the layout conventions
@@ -46,12 +46,41 @@ cd "$RUN"
 exec npx -y @playwright/cli@0.1.22 -s=ys "\$@"
 EOF
 chmod +x "$RUN/pw"
-"$RUN/pw" open --headed 'https://yalesites.yale.edu/user/login'
+"$RUN/pw" open --headed about:blank
 ```
 
 The Bash tool does not keep `RUN` between calls. Repeat this exact `RUN=...` line at the start of every later call that uses `$RUN`, including each recipe in `references/playwright-recipes.md`.
 
-Then ask the user to log in with CAS in that window, and wait for them to say so. **Never type a NetID, password, or Duo code**, and never use `drush uli` against production. Confirm the login by reading `page.url()` after they reply. The session dies when the browser closes, so a second pass needs a second login.
+### The saved login
+
+The user's CAS login is saved to one file so later passes can skip it. The file is a live session on production in the user's name, so treat it like a password:
+
+- It lives at `~/.claude/yalesites/auth/yalesites-cas.json`, with the folder at `700` and the file at `600`. Never copy it into a repo, a run folder, a ticket, a subagent prompt, or chat, and never print its contents.
+- **Load it only in a run the user started by hand in this session.** A scheduled or unattended run never loads it. Those runs stay off production, and the user doing CAS is the gate that keeps them off.
+- Load it only into the `ys` session, which visits only yalesites.yale.edu and Yale CAS. Save it only from that session, so cookies from other sites never end up in the file.
+
+Try the saved login first, then check it:
+
+```bash
+RUN=~/.claude/yalesites/page-build/runs/<slug>-<YYYY-MM-DD>
+AUTH=~/.claude/yalesites/auth/yalesites-cas.json
+[ -f "$AUTH" ] && "$RUN/pw" state-load "$AUTH"
+"$RUN/pw" goto 'https://yalesites.yale.edu/user'
+"$RUN/pw" eval 'location.pathname'
+```
+
+`/user` sends a logged-in user to `/user/<uid>` and a logged-out one to `/user/login`. If the path is `/user/<uid>`, the saved login works: tell the user it was reused and go on to Step 3.
+
+Otherwise, run `"$RUN/pw" goto 'https://yalesites.yale.edu/user/login'`, ask the user to log in with CAS in that window, and wait for them to say so. **Never type a NetID, password, or Duo code**, and never use `drush uli` against production. Confirm the login with the same `/user` check, then save it:
+
+```bash
+RUN=~/.claude/yalesites/page-build/runs/<slug>-<YYYY-MM-DD>
+AUTH=~/.claude/yalesites/auth/yalesites-cas.json
+mkdir -p "${AUTH:h}" && chmod 700 "${AUTH:h}"
+(umask 077 && "$RUN/pw" state-save "$AUTH") && chmod 600 "$AUTH"
+```
+
+The CAS and Drupal sessions still time out on the server, so the saved login goes stale on its own. The check above catches that, and the user logs in again. To revoke it early, delete the file and select **Log out** on yalesites.yale.edu, which ends the session on the server too.
 
 ## Step 3: New page, or forward draft?
 
