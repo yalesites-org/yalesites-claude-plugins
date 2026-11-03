@@ -256,8 +256,12 @@ than none, the same as a misplaced pin.
 ```
 
 `pr` on a question overrides the packet's `pr`. On a batch packet it tags each page with its PR
-and picks that PR's unit for the lead-in. Set `pr` on every question, carry one unit per PR,
-and keep a unit's questions next to each other: the board groups them in packet order.
+and picks that PR's unit for the lead-in. `pr` on a question is an object,
+`{ "ref": ..., "url": ... }`, the same shape as the packet's `pr`, and its `ref` must match the
+unit's `pr.ref` exactly. Set `pr` on every question, carry one unit per PR,
+and keep a unit's questions next to each other: the board groups them in packet order. The board
+turns a bare ref string into `{ref, url}` when it loads, so an older packet still groups, but write
+the object.
 
 ### Writing the questions
 
