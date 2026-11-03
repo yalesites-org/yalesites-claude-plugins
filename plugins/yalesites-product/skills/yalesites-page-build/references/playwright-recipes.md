@@ -142,3 +142,66 @@ return await page.evaluate(() => [...document.querySelectorAll('ed11y-element-re
 ```
 
 Compare each element against the blocks you touched to tell new alerts from old ones.
+
+## Place screenshots (Step 5b)
+
+### Upload an image to the media library
+
+The form's own **Save** (`#edit-submit`) times out. Click the sticky header copy, as on the node form.
+
+```js
+await page.goto('https://yalesites.yale.edu/media/add/image');
+await page.setInputFiles('#edit-field-media-image-0-upload', PATH);
+await page.waitForSelector('[name="field_media_image[0][alt]"]', {timeout: 60000});
+await page.fill('[name="field_media_image[0][alt]"]', ALT);
+await Promise.all([page.waitForNavigation({timeout: 60000}), page.click('#gin-sticky-edit-submit')]);
+// The media name defaults to the file name. Read the new id from the media list:
+await page.goto('https://yalesites.yale.edu/admin/content/media?name=' + encodeURIComponent(FILE) + '&type=image');
+const mid = await page.evaluate(() => [...document.querySelectorAll('table tbody tr a')]
+  .map(a => a.getAttribute('href')).find(h => /^\/media\/\d+\/edit$/.test(h)));
+```
+
+### Set the media on an Image or Wrapped Image block form
+
+Skip the media library dialog. Set the widget's hidden selection, then fire the hidden **Update widget** button. Drupal binds that AJAX to `mousedown`, so a plain click does nothing. To swap an existing image, fire **Remove** first:
+
+```js
+const tid = '[name="settings[block_form][field_media][selection][0][target_id]"]';
+if (await page.locator(tid).count()) {
+  await page.evaluate(() => jQuery('[name="field_media-0-media-library-remove-button-settings-block_form"]').trigger('mousedown'));
+  await page.waitForFunction(t => !document.querySelector(t), tid);
+}
+await page.evaluate(m => {
+  document.querySelector('[name="settings[block_form][field_media][media_library_selection]"]').value = String(m);
+  jQuery('[name="field_media-media-library-update-settings-block_form"]').trigger('mousedown');
+}, MID);
+await page.waitForFunction(([t, m]) => document.querySelector(t)?.value === String(m), [tid, MID]);
+```
+
+Then set the caption (`field_text` on Image, `field_caption` on Wrapped Image) with the multi-editor recipe above, and submit **Update** or **Add block**.
+
+| Field | Image | Wrapped Image |
+|---|---|---|
+| Caption | `field_text` (editor) | `field_caption` (editor) |
+| Body text | none | `field_text` |
+| Position, style | none | `field_style_position` left / right, `field_style_variation` offset / floated |
+| Padding default | `no_padding` | `default` |
+
+### Split a Text block at a marker
+
+Parse the block HTML into its top-level elements, find the one element that holds the marker (refuse 0 or 2+ matches), and drop it with the `Alt text:` line after it:
+
+```js
+const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
+const kids = [...doc.body.children];
+const hits = kids.filter(e => e.textContent.includes(MARKER));
+if (hits.length !== 1) return `NO CHANGE: ${hits.length} marker matches`;
+const mi = kids.indexOf(hits[0]);
+const ai = /^\s*Alt text:/.test(kids[mi + 1]?.textContent || '') ? mi + 1 : mi;
+const before = kids.slice(0, mi).map(e => e.outerHTML).join('');
+const after = kids.slice(ai + 1).map(e => e.outerHTML).join('');
+```
+
+Write `before` back to the block (Update), add the Image block, add a Text block with `after` (copy `field_padding_options` and `field_style_variation` from the original), then Move. For a Wrapped Image, widen the cut to the headings around the marker: the before text ends at the heading above, the Wrapped Image takes everything between the two headings, and the new Text block starts at the next heading.
+
+Read the region order from the layout page before and after, so the new block uuids are the ones that were not there before. Set the Move form weights to the wanted order. Then read the order again and compare: a mismatch is a failure, not a warning.
