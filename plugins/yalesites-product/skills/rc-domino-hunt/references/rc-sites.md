@@ -1,6 +1,6 @@
 # RC sites: finding them, preflight, logins, and what may change
 
-This file adapts `pr-feedback/references/drive-it.md` for RC sites. That file is written for `yalesites-platform.pr-<N>`, with the visreg pages, an `e2etest` user, and permission to create throwaway content. None of that applies here. Each RC site is its own Pantheon site holding a copy of a real site's content, and it is shared with the team.
+This file adapts `pr-feedback/references/drive-it.md` for RC sites. That file is written for `yalesites-platform.pr-<N>`, with the visreg pages, an `e2etest` user, and permission to create throwaway content. None of that applies here. Each RC site is its own Pantheon site holding a copy of a real site's content. Most are shared with the team's testers. A reserved hunt site (`--reserved`) is one only the hunt uses, and it has its own, much looser rules below.
 
 ## Find the RC
 
@@ -23,6 +23,7 @@ The release workflow (`.ci/github/deploy_release_sites` in yalesites-project) cr
 | `live_url` | `https://live-<site>.pantheonsite.io` (the baseline) |
 | `exists` | from `terminus multidev:list <site> --fields=id` |
 | `fresh_install` | `true` for `yalesites-platform`, which is a fresh install plus imported content, not a clone. Use it only for clean-slate checks. |
+| `reserved` | `true` for the `--reserved` site, otherwise `false` |
 | `cloned_at` | `terminus env:info <site>.<branch> --field=created`. The workflow clones only when the multidev does not exist yet. RC2 and later push code and run `drush deploy` without cloning again, so content dates from the first RC deploy. |
 
 Do not rely on the "Environments ready for review" comment on the release PR. It only posts when the `RELEASE_SITES_DEPLOYED` repo variable is `0`. Only the cleanup script resets that variable, and the cleanup script has not been running on its own. Terminus is the source of truth.
@@ -66,7 +67,9 @@ Check one site per run in preflight. Each charter re-checks its own site's respo
 
 **Never log in as a real person's account**, even on a clone. Actions on a clone are still recorded under their name, and the team reads those logs.
 
-Until the team decides on test users (see "Pending team decisions" in `SKILL.md`):
+**On the reserved site**, create `qa-<role>` users as described at the end of this section, and run role hypotheses with them. Logged out and user 1 still apply for the rows below.
+
+**On shared RC sites**, until the team decides on test users (see "Team decisions" in `SKILL.md`):
 
 | Need | Do this |
 |---|---|
@@ -81,9 +84,21 @@ terminus drush <site>.<branch> -- uli --uri=https://<branch>-<site>.pantheonsite
 npx -y @playwright/cli@0.1.22 -s=c<NN> open '<login link>'
 ```
 
-Once the team allows `qa-<role>` users, follow "Roles" in `pr-feedback/references/beyond-ac-checks.md` for which roles to use. Record each user in the run's `.created` file, and remove them at the end with `user:cancel --delete-content` (they will own nothing, because the hunt creates nothing).
+On the reserved site (and on shared sites, once the team allows it), follow "Roles" in `pr-feedback/references/beyond-ac-checks.md` for which roles to use. Record each user in the run's `.created` file, On shared sites, remove them at the end with `user:cancel --delete-content`. On the reserved site, leave them: the multidev is deleted after the release, and later runs can reuse them.
 
 ## What the hunt may change
+
+### On the reserved site
+
+Almost anything an editor or site admin could do. The multidev is a clone that gets deleted after the release, and no tester uses it.
+
+- **Edit existing content. This is the main use.** The pages copied from live hold years of old data, and that is where new code breaks. Open them, change blocks and fields, save, rearrange and save layouts, submit reusable block forms, unpublish, and delete when the charter calls for it. Leave existing titles as they are.
+- **Create content** when a charter needs a case no existing page has. Start every new title with `DOMINO TEST`.
+- **Change settings**: theme and color settings, menus, footer, views, sitewide settings. Drush writes are fine too (`cache:rebuild`, `cron`, `config:set`, `state:set`, `queue:run`).
+- **Log every change** in the charter debrief: the URL, what changed, and the value before. A finding on a page the hunt already changed must say so, and the re-run must rule out the hunt's own edit as the cause (re-test on an untouched page of the same kind when possible).
+- **Still not allowed:** anything outbound (see "Nothing outbound" in `SKILL.md`), logging in as a real person's account, and any write to Pantheon dev, test, or live, or to any other site.
+
+### On shared RC sites
 
 Almost nothing:
 
@@ -104,6 +119,8 @@ Almost nothing:
 3. Close the form. If "You have unsaved changes" appeared, select **Discard changes** and confirm.
 4. Reload `/node/<nid>/layout` and confirm that no unsaved-changes notice is there.
 
+These steps are for shared RC sites. On the reserved site, save or discard as the charter needs.
+
 If step 4 fails, the page is locked for the next editor, and the hunt cannot clear it. The fix is a tempstore delete, which is a write the permission system refuses on shared sites, and must not be worked around. Add it to `leftovers.md` with the URL, and stop opening Layout Builder for the rest of the run. Every later Layout Builder charter gets `blocked: leftover draft on <url>`.
 
 ## Baselines
@@ -116,6 +133,6 @@ Every finding compares the RC with the same view on live (`live_url`). Browsing 
 
 ## Cost and courtesy
 
-- At most two charters at once across all RC sites, and at most one per site.
+- At most two charters at once across all RC sites, and at most one per site. On a reserved site that rule still holds: two charters writing to the same site at once would muddle each other's results.
 - No crawling. Visit the pages the charter names, plus at most 50 more per site per charter.
 - Close every browser session when its charter ends (`npx -y @playwright/cli@0.1.22 -s=c<NN> close`).
