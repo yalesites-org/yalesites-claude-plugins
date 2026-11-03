@@ -91,6 +91,11 @@ question's `part` points at. The lead-in fields mean:
 | `related` | Related | Earlier tickets, PRs, and ADRs a question mentions |
 | `notAsked` | Not asked | Questions research settled (with the evidence) and architecture questions for the lead developer |
 
+Only list a part that has questions. When every question in a part was settled or is for the
+lead developer, put its `notAsked` items on the closest part that still has questions. If a
+questionless part slips into `units` anyway, the board shows its Not asked items on the last page
+and leaves it out of the part count.
+
 **Questions.** Write them as pr-feedback's "Writing the questions" says, with these differences:
 
 - `part` instead of `pr`. Keep a part's questions next to each other.

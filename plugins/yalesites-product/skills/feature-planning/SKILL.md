@@ -147,7 +147,8 @@ Draft every question the plan needs, using the coverage list in
    sitewide setting?" comes before "What should the default be?", because its answer decides
    which default question even exists. Each question says what it settles in its brief.
 4. **Group into parts:** usually Scope, Interactions, Feasibility and effort, Timeline. A part
-   with no questions left is dropped.
+   with no questions left is not a part of its own: its settled and Not asked items move to the
+   lead-in of the closest part that still has questions, so the user still sees them.
 5. **Give every question two to four concrete options, our recommendation first,** each with the
    cost of choosing it, plus "Decide later" (it becomes an open item with an owner). Recommend
    only where the evidence supports it, and put that evidence in the option's `detail`.

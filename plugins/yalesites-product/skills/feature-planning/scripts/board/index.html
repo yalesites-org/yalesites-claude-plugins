@@ -282,7 +282,8 @@ async function init() {
   rulingGroups = [...groups, ...quietGroups()];
   const pr = packet.pr || {};
   // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
-  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'Feature plan'} · ${rulingGroups.length} parts` : (packet.shortTitle || packet.title);
+  // Count only parts with questions; a part with none shows its Not asked items on the last page.
+  const title = groups.length > 1 ? `${packet.shortTitle || 'Feature plan'} · ${groups.length} parts` : (packet.shortTitle || packet.title);
   $('#h-title').textContent = title;
   $('#h-title').title = packet.title;
   // The long subtitle (environments, legends) moves behind Details.
@@ -783,6 +784,12 @@ function renderOwnRead(main, call) {
           h('span', {}, q.ask || q.title, h('br'), label ? h('strong', {}, label) : h('span', { class: 'err' }, 'Not answered')), h('span'));
       }))));
   }
+  // A part with no questions left still owes the user its Not asked items, so they can object.
+  const quiet = rulingGroups.filter(g => g.quiet && g.unit?.notAsked?.length);
+  if (quiet.length) main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Not asked'),
+    ...quiet.map(g => h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
+      h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, g.unit.title || g.label || g.ref))),
+      h('ul', { class: 'not-asked' }, ...g.unit.notAsked.map(n => h('li', { html: md(n).replace(/^<p>|<\/p>$/g, '') }))))));
   call.append(h('p', { class: 'kicker' }, 'Send'), h('p', { class: 'ask' }, `${answeredCount()} of ${packet.questions.length} answered`));
   const err = h('div', { class: 'err', hidden: true });
   const send = h('button', { class: 'btn primary', onclick: async () => {
