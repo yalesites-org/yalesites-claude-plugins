@@ -118,6 +118,7 @@ knowledge that the workflow skills reference:
 | `github-screenshots` | Posting a screenshot on a YaleSites-Internal ticket or comment, since `gh` can't upload images |
 | `ticket-sync` | Checking whether a ticket still matches the work — invoked mid-flow by `pr-feedback` and `ticket`, or directly with `/ticket-sync` |
 | `ux-research` | Product decisions and feature evaluation |
+| `yalesites-design-pass` | A first design pass on a UX or Design phase ticket: three or four approaches, then iterating the pick at every allowed region width, then a handoff spec and a draft Storybook docs page, each on a review board |
 | `yalesites-web-content` | Writing or revising a page that will live on yalesites.yale.edu |
 | `yalesites-page-build` | Building a drafted page on yalesites.yale.edu in Layout Builder with Playwright, as an unpublished draft or a forward draft revision |
 | `yalesites-docs-board` | Working through a batch of docs tickets: match each to the live site, review every proposed change beside a screenshot of the page on a local board, then build only what was approved |
