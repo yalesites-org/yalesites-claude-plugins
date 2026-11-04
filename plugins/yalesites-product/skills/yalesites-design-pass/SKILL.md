@@ -71,7 +71,8 @@ chat) if any of these is missing. Do not guess them:
 
 1. **Allowed regions.** Which Layout Builder regions the block can go in. The layouts are
    One column, Two column (50/50), Three column (33/33/33), Two column (70/30) and (30/70),
-   each with a main and a sidebar region, and Banner. A ticket that says "one-column section"
+   each with a main and a sidebar region, and Banner. Read the parent's `allowed_regions:` machine
+   line first (the ticket skill writes it), then the prose. A ticket that says "one-column section"
    (yalesites-org/YaleSites-Internal#2033) has answered it. A parent that lists
    `allowed_regions` as an open decision (yalesites-org/YaleSites-Internal#1957) has not: on a
    UX ticket, make it one of round 1's questions; on a Design ticket, ask before starting.
