@@ -86,6 +86,11 @@ class VerdictTest(unittest.TestCase):
         # A ref with no title is reported as missing, not shown as if it were a title.
         self.assertIsNone(subject({"pr": pr}))
 
+    def test_rulings_are_on_unless_the_packet_turns_them_off(self):
+        code = "out = [hasRulings(), noun()];"
+        self.assertEqual(run({"questions": []}, {}, [], code), [True, "PR"])
+        self.assertEqual(run({"questions": [], "rulings": False}, {}, [], code), [False, "item"])
+
     def test_option_without_verdict_is_not_guessed(self):
         # Labels the old regex got wrong both ways.
         for label in ("Request a fix", "Needs work before merge", "Ship it; nothing must change",

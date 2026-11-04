@@ -155,6 +155,14 @@ delete it.
 }
 ```
 
+**`"rulings": false` for a board that is not a PR review.** The board also carries backlog
+cleanup, planning calls, and other decisions where "Approve / Request changes / Comment" means
+nothing. Set `"rulings": false` on those packets. The board then drops the per-PR ruling row from
+the last page, recaps the answers alone as "Your answers", sends with "Send answers", says
+"item" instead of "PR" in its labels, and writes `"verdicts": null`. Options on such a board
+need no `verdict`. Leave the field off (rulings on) for any PR review: there, an option without
+a `verdict` still makes the reviewer pick a ruling, on purpose.
+
 **Every question ends with a "Decide later" option:** `{ "value": "defer", "label": "Decide later", "detail": "Raise it as needs-decision on the PR so it waits in your queue." }`. A `defer` answer is not a ruling. It becomes a `needs-decision` block on the PR, deciding by the reviewer, per "Open calls go on the record" in `SKILL.md`. Play it back as "Deferred: raising a decision" so the reviewer can still change it.
 
 Context blocks, any number per question, shown in order:
@@ -307,7 +315,7 @@ The technical detail is still welcome; it goes in `brief`, the evidence blocks, 
   recommendation, and that is fine.
 - **`dimension`** is the Step 0 dimension the call belongs to (`product`, `design`, `a11y`,
   `functional`, `code`).
-- **Every option carries a `verdict`:** `approve` if the PR can merge with that answer, `changes`
+- **On a PR review, every option carries a `verdict`** (skip it on a `"rulings": false` board): `approve` if the PR can merge with that answer, `changes`
   if it means the developer has to change something before merge (Step 6's rule: even one small
   edit), `comment` if it leaves the PR waiting on someone (decide later, ask April, hold for a
   site owner). The last page combines them per PR: any `changes` wins, then any `comment`, else
@@ -427,7 +435,8 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   Describe it the same way ("right after Escape, about 7 seconds in"). A screenshot or clip
   with markups is one worth suggesting they drag into the review comment, since `gh` cannot
   upload images or video. For a clip, suggest the MP4.
-- **`verdicts`** holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
+- **`verdicts`** is `null` on a packet with `"rulings": false`: act on the answers alone.
+  Otherwise it holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
   | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer picked
   it on the last page, either changing the inferred one or ruling where the board had none.
   Changing any answer for a PR drops a ruling picked that way, so it always reflects the final

@@ -280,10 +280,12 @@ async function init() {
   state = saved && saved.answers?.length === packet.questions.length
     ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
   groups = buildGroups();
-  rulingGroups = [...groups, ...quietGroups()];
+  // A board that is not a PR review (backlog cleanup, planning, docs calls) sets
+  // "rulings": false. It keeps the answers and drops the per-PR Approve / Request changes step.
+  rulingGroups = hasRulings() ? [...groups, ...quietGroups()] : groups;
   const pr = packet.pr || {};
   // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
-  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'PR review'} · ${rulingGroups.length} PRs` : (packet.shortTitle || packet.title);
+  const title = rulingGroups.length > 1 ? `${packet.shortTitle || (hasRulings() ? 'PR review' : 'Review')} · ${rulingGroups.length} ${noun()}s` : (packet.shortTitle || packet.title);
   $('#h-title').textContent = title;
   $('#h-title').title = packet.title;
   // The long subtitle (environments, legends) moves behind Details.
@@ -324,6 +326,10 @@ function buildGroups() {
 // A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
 // ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
 let rulingGroups = [];
+// test:begin hasRulings
+const hasRulings = () => packet.rulings !== false;
+const noun = () => hasRulings() ? 'PR' : 'item';
+// test:end
 // test:begin quietGroups
 function quietGroups() {
   return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
@@ -373,7 +379,7 @@ function renderHeader() {
       class: 'step own' + (state.ownRead.trim() ? ' done' : ''), type: 'button', title: 'Your own read, then send',
       'aria-label': 'Your own read', 'aria-current': current === nq && !submitted ? 'true' : 'false', onclick: () => go(nq)
     })));
-  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `PR ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
+  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `${noun()} ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
 }
 
 function refLink(r, text) {
@@ -423,7 +429,7 @@ function renderIntro(main, call, g) {
   const u = g.unit, k = groups.indexOf(g);
   main.style.setProperty('--c', g.color);
   main.append(
-    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `PR ${k + 1} of ${groups.length}`)),
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `${noun()} ${k + 1} of ${groups.length}`)),
     h('h2', { class: 'q-title' }, u?.pr?.title || g.label || g.ref));
   const row = (label, body) => body && h('div', { class: 'i-row' }, h('div', { class: 'i-label' }, label), h('div', { class: 'i-body' }, body));
   const inline = t => t && h('span', { html: md(t).replace(/^<p>|<\/p>$/g, '') });
@@ -445,7 +451,7 @@ function renderIntro(main, call, g) {
       return h('li', { class: isAnswered(i) ? 'done' : '' }, h('button', { type: 'button', onclick: () => go(i, { skipIntro: true }) }, q.ask || q.title),
         q.dimension && h('span', { class: 'tag' }, q.dimension));
     })));
-  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `PR ${k + 1} of ${groups.length}` : 'This review'),
+  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `${noun()} ${k + 1} of ${groups.length}` : 'This review'),
     h('p', { class: 'ask' }, `${g.qs.length} decision${g.qs.length > 1 ? 's' : ''} on ${shortRef(g.ref)}`));
   const start = () => go(g.qs.find(i => !isAnswered(i)) ?? g.qs[0], { skipIntro: true });
   keyNext = start; keyPick = null; keyNote = null;
@@ -481,7 +487,7 @@ function renderQuestion(main, call, qi) {
     h('div', { class: 'q-meta' },
       q.pr && h('a', { class: 'tag pr', href: q.pr.url, target: '_blank', rel: 'noopener', title: q.pr.ref }, shortRef(q.pr.ref)),
       q.dimension && h('span', { class: 'tag' }, q.dimension),
-      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this PR`)),
+      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this ${noun()}`)),
     subjectLine(q, u),
     h('h2', { class: 'q-title' }, q.title));
   if (q.gist) main.append(h('div', { class: 'gist' }, h('div', { class: 'g-head' }, 'The gist'), h('p', { html: md(q.gist).replace(/^<p>|<\/p>$/g, '') })));
@@ -540,8 +546,8 @@ function renderQuestion(main, call, qi) {
     go(fromRecap ? packet.questions.length : qi + 1);
   };
   keyNext = next;
-  const nextLabel = fromRecap ? 'Back to your rulings →' : qi === packet.questions.length - 1 ? 'Last: your own read →'
-    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next PR: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
+  const nextLabel = fromRecap ? (hasRulings() ? 'Back to your rulings →' : 'Back to your answers →') : qi === packet.questions.length - 1 ? 'Last: your own read →'
+    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next ${noun()}: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
   call.append(h('div', { class: 'pager' },
     h('button', { class: 'btn', onclick: () => back(qi) }, '← Back'),
     h('button', { class: 'btn primary', onclick: next }, nextLabel)),
@@ -788,26 +794,30 @@ function renderOwnRead(main, call) {
   ta.addEventListener('input', () => { state.ownRead = ta.value; save(); renderHeader(); });
   main.append(ta);
   // A recap of every ruling, grouped by PR, so a misclick is caught before sending.
-  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Your rulings'),
-    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'));
+  // A board without rulings recaps the answers alone.
+  const rulings = hasRulings();
+  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, rulings ? 'Your rulings' : 'Your answers'),
+    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, rulings
+      ? 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'
+      : 'Sending hands these answers to Claude to act on, and nothing is asked again in chat. Click a number to change an answer.'));
   for (const g of rulingGroups) {
-    const v = verdictFor(g);
-    const seg = h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
+    const v = rulings ? verdictFor(g) : null;
+    const seg = rulings && h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
       ...Object.entries(VERDICTS).map(([k, label]) => h('button', {
         type: 'button', class: 'btn', 'aria-pressed': v.verdict === k ? 'true' : 'false',
         onclick: () => { (state.verdicts ||= {})[g.key] = k === v.inferred ? undefined : k; save(); rerenderCurrent(); }
       }, label)));
-    const why = g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
+    const why = !rulings ? null : g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
       : !v.verdict && !v.open ? `Pick a ruling. Your answer${v.unread.length > 1 ? 's' : ''} on question ${v.unread.join(', ')} do${v.unread.length > 1 ? '' : 'es'} not say what ${v.unread.length > 1 ? 'they mean' : 'it means'} for the PR.`
       : g.quiet ? 'Your ruling. Nothing was held for you on this PR.'
       : v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
       : v.overridden ? `You changed this. Your answers pointed to ${VERDICTS[v.inferred]}.`
       : v.verdict === 'approve' ? 'From your answers: nothing needs to change.'
       : `From your answers on question ${v.because.join(', ')}.`;
-    const onSend = v.verdict && !v.open ? h('div', { class: 'hint', style: 'margin:0 0 8px' }, h('strong', {}, 'On send: '), ON_SEND[v.verdict]) : null;
+    const onSend = rulings && v.verdict && !v.open ? h('div', { class: 'hint', style: 'margin:0 0 8px' }, h('strong', {}, 'On send: '), ON_SEND[v.verdict]) : null;
     main.append(h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
       h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, shortRef(g.ref)), g.label ? ` ${g.label}` : '')),
-      h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
+      rulings && h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
       g.quiet && unitCard(g.unit, false),
       !g.quiet && h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
         const q = packet.questions[i], a = state.answers[i];
@@ -818,10 +828,11 @@ function renderOwnRead(main, call) {
   }
   call.append(h('p', { class: 'kicker' }, 'Send'), h('p', { class: 'ask' }, `${answeredCount()} of ${packet.questions.length} answered`));
   const err = h('div', { class: 'err', hidden: true });
+  const sendLabel = rulings ? 'Send and post reviews' : 'Send answers';
   const send = h('button', { class: 'btn primary', onclick: async () => {
     const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
     if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
-    const unruled = rulingGroups.find(g => !verdictFor(g).verdict);
+    const unruled = hasRulings() && rulingGroups.find(g => !verdictFor(g).verdict);
     if (unruled) { err.textContent = `${shortRef(unruled.ref)} still needs a ruling.`; err.hidden = false; return; }
     send.disabled = true; send.textContent = 'Sending…';
     try {
@@ -830,9 +841,9 @@ function renderOwnRead(main, call) {
       submitted = true; render();
     } catch (e) {
       err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
-      err.hidden = false; send.disabled = false; send.textContent = 'Send and post reviews';
+      err.hidden = false; send.disabled = false; send.textContent = sendLabel;
     }
-  } }, 'Send and post reviews');
+  } }, sendLabel);
   call.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
 }
 
@@ -855,7 +866,7 @@ function buildAnswers() {
       };
     }),
     // The per-PR ruling, so the review posts without a second approve/request-changes ask in chat.
-    verdicts: rulingGroups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
+    verdicts: !hasRulings() ? null : rulingGroups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
     ownRead: state.ownRead.trim() || null
   };
 }
@@ -902,7 +913,8 @@ function clearOverride(qi) {
 function renderDone(main) {
   main.append(h('div', { class: 'done-card' },
     h('h2', {}, 'Sent to Claude'),
-    h('p', {}, 'Claude posts each review with the ruling you saw, plus any follow-up tickets you asked for. There is nothing more to answer.'),
+    h('p', {}, hasRulings() ? 'Claude posts each review with the ruling you saw, plus any follow-up tickets you asked for. There is nothing more to answer.'
+      : 'Claude acts on your answers. There is nothing more to answer.'),
     h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
   $('#h-progress').textContent = 'Submitted';
 }
