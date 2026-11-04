@@ -39,14 +39,14 @@ One folder per ticket in the session scratchpad, served by the review board:
   answers.json             written by the board
 ```
 
-Name images by what they show, never by letter. Copy the Claude Design export (zip or PNGs from
-`~/Downloads`) into the folder; never link the board to `~/Downloads` directly.
+Name images by what they show, never by letter. Copy the Claude Design export (zip or PNGs from the
+config's `exportFolder`) into the folder; never point the board at the export folder directly.
 
 ## The board
 
 Use the pr-feedback review board: `plugins/yalesites-product/skills/pr-feedback/scripts/review-board/`.
 Packet format is in `pr-feedback/references/review-board.md`. Start the server as a background
-task and open the board for the PM:
+task and open the board for the reviewer:
 
 ```bash
 python3 <plugin>/skills/pr-feedback/scripts/review-board/server.py --packets <scratchpad>/design-pass/packets --port 8797
@@ -63,4 +63,4 @@ A design packet is not a PR review, so:
 - Before each new round, archive the previous `answers.json` as
   `answers-<round>-<timestamp>.json`. Never delete one; together they are the design record.
 
-The PM's answers on the board are the ruling. Do not re-ask them in chat.
+The reviewer's answers on the board are the ruling. Do not re-ask them in chat.

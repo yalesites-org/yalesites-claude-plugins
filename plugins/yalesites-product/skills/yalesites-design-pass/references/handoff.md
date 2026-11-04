@@ -1,6 +1,6 @@
 # Round 3: handoff spec and Storybook docs page
 
-Both are drafts the PM approves on the board. Nothing here posts on its own.
+Both are drafts the reviewer approves on the board. Nothing here posts on its own.
 
 ## Handoff spec
 
