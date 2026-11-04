@@ -155,6 +155,12 @@
   .opt .o-label { font-size: 17px; font-weight: 500; }
   .opt .o-detail { font-size: 14px; color: var(--muted); line-height: 1.5; }
   .opt[aria-pressed="true"] .o-detail { color: var(--accent-text); }
+  .reveal { margin-top: 12px; padding: 10px 12px; border-radius: 10px; font-size: 13px; line-height: 1.45; border: 1px solid var(--line, #ccc); }
+  .reveal.hit { background: var(--ok-bg); }
+  .reveal .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .reveal .chip { font: inherit; font-size: 12px; padding: 2px 10px; border-radius: 99px; border: 1px solid currentColor; background: none; color: inherit; cursor: pointer; opacity: .75; }
+  .reveal .chip[aria-pressed="true"] { opacity: 1; font-weight: 600; }
+  .tag.blind { background: none; border: 1px dashed currentColor; }
   .rec { align-self: flex-start; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; background: var(--ok-bg); color: var(--ok); }
   textarea { width: 100%; min-height: 120px; border: 1px solid var(--border-strong); border-radius: 10px; padding: 12px 14px; background: var(--surface); font-size: 16px; resize: vertical; }
   textarea:focus, input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
@@ -210,6 +216,9 @@ const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
 const storeKey = `review-board:${packetId}`;
 let packet, state, current = 0, submitted = false, zoom = null, fromRecap = false;
+// Calibration seal (server.py writes it on first open): which questions hide
+// our pick until you answer (blind) and which open with it selected (prefill).
+let seal = { blind: [], prefill: [] };
 const clips = {};
 
 const $ = (sel, el = document) => el.querySelector(sel);
@@ -248,7 +257,29 @@ function md(src, highlights = [], quotes = []) {
   return out.join('');
 }
 
-function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
+function blankAnswer() { return { choice: null, other: '', notes: '', markups: [], blindChoice: null, missTag: null, otherGrade: null, prefilled: false }; }
+
+// test:begin calibration
+// Our guess: the packet's hidden `guess` (a held call, never shown before you answer),
+// else the option marked recommended. A question with neither has no guess.
+function hiddenGuessOf(q) {
+  const g = q.guess, o = g && (q.options || []).find(x => x.value === g.value);
+  return o ? { ...o, detail: g.reason || o.detail, hidden: true } : null;
+}
+function recOf(q) { return hiddenGuessOf(q) || (q.options || []).find(o => o.recommended) || null; }
+const isBlind = q => !!hiddenGuessOf(q) || (!!recOf(q) && (seal.blind || []).includes(q.id));
+// Some packets write the recommendation into the label or detail itself; a blind question hides that too.
+const unrec = t => String(t || '').replace(/\s*\((?:our )?recommend(?:ed|ation)\)/gi, '').replace(/\s*\b(?:recommended|our recommendation)\b[.:]?\s*/gi, ' ').trim();
+// A blind question must not give our pick away by its position, so its options
+// are shuffled, the same way every time for the same question.
+function stableShuffle(list, key) {
+  let h = 2166136261;
+  for (const c of key) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  const out = list.slice();
+  for (let i = out.length - 1; i > 0; i--) { h = Math.imul(h ^ (h >>> 15), 2246822507) >>> 0; const j = h % (i + 1); [out[i], out[j]] = [out[j], out[i]]; }
+  return out;
+}
+// test:end
 function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
 // test:begin isAnswered
 function isAnswered(i) {
@@ -268,9 +299,18 @@ async function init() {
     return;
   }
   document.title = `Review: ${packet.shortTitle || packet.title}`;
+  try {
+    const sr = await fetch(base + 'seal.json', { cache: 'no-store' });
+    if (sr.ok) seal = { blind: [], prefill: [], ...(await sr.json()) };
+  } catch (e) { /* no seal: no blind or pre-filled questions */ }
   const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
   state = saved && saved.answers?.length === packet.questions.length
     ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
+  // A category with a strong record opens with our pick selected; you confirm or change it.
+  if (!saved) packet.questions.forEach((q, i) => {
+    const r = recOf(q);
+    if (r && (seal.prefill || []).includes(q.id)) Object.assign(state.answers[i], { choice: r.value, prefilled: true });
+  });
   groups = buildGroups();
   rulingGroups = [...groups, ...quietGroups()];
   const pr = packet.pr || {};
@@ -448,6 +488,31 @@ function renderIntro(main, call, g) {
     h('div', { class: 'keys' }, 'Keys: → or Enter to start'));
 }
 
+// After a blind pick: your call next to ours, with our reason. On a miss, an
+// optional tag for the Friday misses board. On "Something else", whether it was
+// close to our pick (close counts as a match). Shown for non-blind questions
+// only for the close-or-not grade, and for a pre-filled pick as a reminder.
+function revealBox(q, a, blind, rec) {
+  if (!rec || !a.choice) return null;
+  const chips = (list, key) => h('div', { class: 'chips' }, ...list.map(([v, label]) => h('button', {
+    class: 'chip', type: 'button', 'aria-pressed': a[key] === v ? 'true' : 'false',
+    onclick: () => { a[key] = a[key] === v ? null : v; save(); rerenderCurrent(); }
+  }, label)));
+  const first = a.blindChoice ?? a.choice;
+  const ours = h('span', {}, rec.hidden ? 'Our private guess was ' : 'We guessed ', h('strong', {}, rec.label), rec.detail ? `: ${rec.detail}` : '.');
+  if (first === '__other' || (!blind && a.choice === '__other')) {
+    return h('div', { class: 'reveal' }, ours, h('div', { style: 'margin-top:6px' }, 'Was what you wrote close to that?'),
+      chips([['close', 'Close'], ['miss', 'Not close']], 'otherGrade'));
+  }
+  if (!blind) return a.prefilled && a.choice === rec.value
+    ? h('div', { class: 'reveal' }, 'Pre-filled with our pick: this kind of call has a strong record. Change it if it is wrong.')
+    : null;
+  if (first === rec.value) return h('div', { class: 'reveal hit' }, h('strong', {}, 'Match. '), ours);
+  return h('div', { class: 'reveal' }, h('strong', {}, 'Miss. '), ours,
+    h('div', { style: 'margin-top:6px' }, 'Why the difference? (optional)'),
+    chips([['missing-context', 'Missing context'], ['wrong-rule', 'Wrong rule'], ['taste', 'Taste'], ['changed-mind', 'Changed my mind']], 'missTag'));
+}
+
 function renderQuestion(main, call, qi) {
   const q = packet.questions[qi], a = state.answers[qi], g = groupOf(qi), u = g?.unit;
   const firstOfPr = g && g.qs[0] === qi;
@@ -458,6 +523,7 @@ function renderQuestion(main, call, qi) {
     h('div', { class: 'q-meta' },
       q.pr && h('a', { class: 'tag pr', href: q.pr.url, target: '_blank', rel: 'noopener', title: q.pr.ref }, shortRef(q.pr.ref)),
       q.dimension && h('span', { class: 'tag' }, q.dimension),
+      isBlind(q) && h('span', { class: 'tag blind', title: 'Our pick stays hidden until you answer, so we can measure how well we predict you.' }, 'Blind'),
       g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this PR`)),
     h('h2', { class: 'q-title' }, q.title));
   const brief = h('div', { class: 'brief' }, h('div', { class: 'b-head' }, h('span', {}, 'Context')));
@@ -480,10 +546,18 @@ function renderQuestion(main, call, qi) {
   const otherBox = h('textarea', { placeholder: 'Describe what you want instead', hidden: a.choice !== '__other' });
   otherBox.value = a.other;
   otherBox.addEventListener('input', () => { a.other = otherBox.value; err.hidden = true; clearOverride(qi); save(); renderHeader(); });
-  const choices = [...(q.options || []), { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
+  const blind = isBlind(q), rec = recOf(q);
+  // Only a visible recommendation can give itself away by its place in the list.
+  const listed = blind && !rec.hidden ? stableShuffle(q.options || [], `${packetId}:${q.id}`) : (q.options || []);
+  const choices = [...listed, { value: '__other', label: 'Something else', detail: 'None of these fit. Explain below.' }];
   const pick = (o, btn) => {
     if (a.choice !== o.value) clearOverride(qi);
+    // Your first, cold pick on a blind question is the one we score.
+    const firstBlind = blind && a.blindChoice == null;
+    if (firstBlind) a.blindChoice = o.value;
+    if (a.choice !== o.value) a.prefilled = false;
     a.choice = o.value; err.hidden = true; save();
+    if (firstBlind) { rerenderCurrent(); return; }
     opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
     otherBox.hidden = o.value !== '__other';
     if (!otherBox.hidden) otherBox.focus();
@@ -499,12 +573,14 @@ function renderQuestion(main, call, qi) {
       class: 'opt' + (o.value === 'defer' ? ' defer' : ''), type: 'button', 'aria-pressed': a.choice === o.value ? 'true' : 'false',
       'aria-keyshortcuts': String(k + 1), onclick: e => pick(o, e.currentTarget)
     }, h('span', { class: 'key' }, String(k + 1)),
-       h('span', { class: 'o-body' }, o.recommended && h('span', { class: 'rec' }, 'Recommended'),
-         h('span', { class: 'o-label' }, o.label), o.detail && h('span', { class: 'o-detail' }, o.detail)));
+       h('span', { class: 'o-body' }, o.recommended && !(blind && !a.choice) && h('span', { class: 'rec' }, 'Recommended'),
+         h('span', { class: 'o-label' }, blind && !a.choice ? unrec(o.label) : o.label), o.detail && h('span', { class: 'o-detail' }, blind && !a.choice ? unrec(o.detail) : o.detail)));
     opts.append(btn);
   });
   keyPick = n => { const b = opts.querySelectorAll('.opt')[n - 1]; if (b) pick(choices[n - 1], b); };
   call.append(opts, h('div', { style: 'margin-top:8px' }, otherBox), err);
+  const rv = revealBox(q, a, blind, rec);
+  if (rv) call.append(rv);
 
   const notes = h('textarea', { placeholder: 'Note for the developer: why, edge cases, wording you want', hidden: !a.notes || null });
   notes.value = a.notes;
@@ -823,6 +899,12 @@ function buildAnswers() {
         choice: a.choice === '__other' ? 'other' : a.choice,
         choiceLabel: a.choice === '__other' ? a.other.trim() : opt?.label,
         notes: a.notes.trim() || null,
+        // Calibration: what was blind, your cold pick, and the grades you gave.
+        blind: isBlind(q) || undefined,
+        blindChoice: a.blindChoice == null ? undefined : (a.blindChoice === '__other' ? 'other' : a.blindChoice),
+        missTag: a.missTag || undefined,
+        otherGrade: a.otherGrade || undefined,
+        prefilled: a.prefilled || undefined,
         markups: a.markups.map(m => {
           const ctx = q.context[m.ctx];
           const where = ctx.type === 'compare' ? ctx.images[m.img] : ctx;
