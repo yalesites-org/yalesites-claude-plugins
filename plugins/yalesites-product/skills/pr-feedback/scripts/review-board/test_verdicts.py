@@ -22,7 +22,7 @@ def blocks():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
         src = f.read()
     found = dict(re.findall(r"// test:begin (\w+)\n(.*?)// test:end", src, re.S))
-    for name in ("isAnswered", "quietGroups", "subjectOf", "verdicts"):
+    for name in ("isAnswered", "quietGroups", "verdicts"):
         assert name in found, f"index.html lost its test:{name} block"
     return "\n".join(found.values())
 
@@ -73,6 +73,19 @@ class VerdictTest(unittest.TestCase):
         v = verdict(qs, [answer("hold"), answer("fix")])
         self.assertEqual((v["verdict"], v["because"]), ("changes", [2]))
 
+    def test_subject_is_the_title_never_a_bare_ref(self):
+        def subject(q, u=None):
+            return run({"questions": [q]}, {}, [], f"out = subjectOf(packet.questions[0], {json.dumps(u)});")
+        pr = {"ref": "o/r#82", "url": "https://github.com/o/r/pull/82"}
+        titled = dict(pr, title="feat: count block positions")
+        issue = {"ref": "o/i#5", "title": "Bug: thing breaks"}
+        # The unit's PR title wins, then its ticket, then the question's own refs.
+        self.assertEqual(subject({"pr": pr}, {"pr": titled})["title"], titled["title"])
+        self.assertEqual(subject({"pr": pr}, {"pr": pr, "issue": issue})["title"], issue["title"])
+        self.assertEqual(subject({"pr": titled})["title"], titled["title"])
+        # A ref with no title is reported as missing, not shown as if it were a title.
+        self.assertIsNone(subject({"pr": pr}))
+
     def test_option_without_verdict_is_not_guessed(self):
         # Labels the old regex got wrong both ways.
         for label in ("Request a fix", "Needs work before merge", "Ship it; nothing must change",
@@ -115,20 +128,6 @@ class VerdictTest(unittest.TestCase):
             out = { quiet: q.map(g => [g.ref, g.qs.length, g.quiet, g.label]), verdict: verdictFor(q[0]).verdict };
         """)
         self.assertEqual(out, {"quiet": [["o/r#2", 0, True, "Two"]], "verdict": None})
-
-
-    def test_subject_is_the_title_never_a_bare_ref(self):
-        def subject(q, u=None):
-            return run({"questions": [q]}, {}, [], f"out = subjectOf(packet.questions[0], {json.dumps(u)});")
-        pr = {"ref": "o/r#82", "url": "https://github.com/o/r/pull/82"}
-        titled = dict(pr, title="feat: count block positions")
-        issue = {"ref": "o/i#5", "title": "Bug: thing breaks"}
-        # The unit's PR title wins, then its ticket, then the question's own refs.
-        self.assertEqual(subject({"pr": pr}, {"pr": titled})["title"], titled["title"])
-        self.assertEqual(subject({"pr": pr}, {"pr": pr, "issue": issue})["title"], issue["title"])
-        self.assertEqual(subject({"pr": titled})["title"], titled["title"])
-        # A ref with no title is reported as missing, not shown as if it were a title.
-        self.assertIsNone(subject({"pr": pr}))
 
 
 if __name__ == "__main__":
