@@ -13,9 +13,11 @@ normal, half, or quarter speed, and the reviewer can leave a note at any moment 
 The reviewer runs this several times a day, a handful of PRs each time, so the board is built for
 someone arriving cold. Each PR opens with a **lead-in page**: what it is for, what it changes,
 where to test it, and the numbered list of decisions coming up. Each question then shows a few
-context bullets and one plain question beside the answer cards, which stay in a sticky panel
-while the evidence scrolls. A header row of PR chips and a stepper, color-coded per PR, shows
-where they are. Picking an answer moves to the next question (number keys pick, arrows move).
+the PR or ticket title, a plain-words gist, a few context bullets, and one plain question beside
+the answer cards, which stay in a sticky panel while the evidence scrolls. A header row of PR
+chips and a stepper, color-coded per PR, shows where they are. Picking an answer stays on the
+page so a note can follow it; Next or the right arrow moves on (number keys pick, N opens the
+note, arrows move).
 The last page shows each PR's ruling, worked out from the answers and open to override, and what
 sending will post.
 
@@ -129,6 +131,7 @@ delete it.
       "title": "Swatch row cuts off",
       "dimension": "design",
       "question": "The last swatch is cut off and a scrollbar shows under the row. This PR did not cause it. How should we handle it?",
+      "gist": "The color swatches in the section settings get cut off on the right. It was already broken before this PR. Do we fix it here or later?",
       "brief": ["The last swatch is cut off at the modal edge.", "This PR did not cause it; it shows on `dev` too."],
       "ask": "Ticket the clipping, or fix it in this PR?",
       "context": [
@@ -261,6 +264,25 @@ and keep a unit's questions next to each other: the board groups them in packet 
 
 ### Writing the questions
 
+**Write for a reviewer moving fast, not a developer.** The reviewer clears many boards a day and
+should get each question in one read. This is a blanket rule for everything the reviewer reads
+first: `gist`, `ask`, option `label` and `detail`, and a unit's `ask` and `change`. Say what
+happens to editors, sites, or the team, in everyday words. Leave out file paths, function and
+script names, commit hashes, and internal jargon unless the decision is about that exact thing,
+and then say what it is in a few words ("the script that rebuilds the portfolio skill's data").
+The technical detail is still welcome; it goes in `brief`, the evidence blocks, and the full
+`question`, where it backs up the gist instead of standing in for it.
+
+- **Every question has a title to show, by name.** The page leads with the PR or ticket title
+  (`feat: count block positions`), not just its ref, because `plugins#82` alone says nothing.
+  The board takes it from the unit's `pr.title`, then its `issue.title`, then the question's own
+  `pr.title` or `issue.title`. Give every `pr` and `issue` a `title`. A page with none shows
+  "no title in this packet", which is a packet bug to fix, not something to send.
+- **`gist` first: what we are asking, explained like to a smart friend outside the team.** One
+  to three short sentences, shown in a highlighted box above the context: what this thing is,
+  what is going on with it, and what we need decided. "This is the plan to track where blocks
+  sit on a page. Nobody needs that data yet, and another change has to land first. Park it?"
+  Every question gets one.
 - **Context first, then one plain question.** `brief` is two to four short bullets, one fact
   each: what was built, what was measured, what is already settled elsewhere. No PR ref and
   ticket number preamble, since the lead-in and the tag carry those. `ask` is the decision
@@ -274,6 +296,9 @@ and keep a unit's questions next to each other: the board groups them in packet 
   the call is shown, not what is asked.
 - **Answerable from the page.** If the reviewer needs to open another tab to decide, put the
   thing they would look at into a context block instead.
+- **Option `detail` says what happens, not why again.** The gist and brief already gave the
+  reasoning; repeating it in the recommended option makes the panel a wall of text. One short
+  sentence of consequence ("Moves it to Backlog with a note on when to bring it back").
 - **Two to four options, each with a `detail` naming its cost.** "Widens a small bug fix" is the
   part that makes the choice real. The board always adds a "Something else" option with a free
   text box, so do not add an "Other" option yourself.
