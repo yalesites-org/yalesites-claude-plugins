@@ -26,8 +26,11 @@ Usage:
     python3 check-github-text.py draft.md --surface ticket
     python3 check-github-text.py draft.md --surface pr-review --json
     python3 check-github-text.py draft.md --surface page-draft
+    python3 check-github-text.py draft.md --surface pr-body --variant adr
 
 Surfaces: ticket, pr-body, pr-review, release-notes, report, page-draft
+A standard pr-body must carry the template's '### Description of work' and
+'### Functional testing steps:' headings; --variant adr skips that check.
 Exit codes: 0 clean, 1 issues found, 2 bad invocation or unreadable input.
 """
 
@@ -308,7 +311,15 @@ def check_page_draft(text, masked, add):
             add("banned_word", 0, f'"{word}" -> "{better}"')
 
 
-def check(path, surface):
+# Headings every standard PR body carries (with or without an issue). An ADR
+# PR has a different shape and opts out with --variant adr.
+PR_BODY_HEADINGS = (
+    ("### Description of work", re.compile(r"^###[ \t]+Description of work[ \t]*$", re.M | re.I)),
+    ("### Functional testing steps:", re.compile(r"^###[ \t]+Functional testing steps:?[ \t]*$", re.M | re.I)),
+)
+
+
+def check(path, surface, variant="standard"):
     try:
         with open(path, encoding="utf-8") as fh:
             text = fh.read()
@@ -357,6 +368,13 @@ def check(path, surface):
                          masked, re.I):
         add("vague_summary", line_of(text, m.start()),
             f'"{m.group(1)}" does not say what is inside. Name the content.')
+
+    if surface == "pr-body" and variant == "standard":
+        for title, pattern in PR_BODY_HEADINGS:
+            if not pattern.search(masked):
+                add("section_missing", 0,
+                    f"PR body is missing the '{title}' heading from "
+                    "references/pr-template.md. Use it exactly, at ### level.")
 
     visible, collapsed, agent, agent_start = split_layers(text)
 
@@ -441,9 +459,12 @@ def main():
     ap.add_argument("path")
     ap.add_argument("--surface", required=True, choices=ALL_SURFACES)
     ap.add_argument("--json", action="store_true")
+    ap.add_argument("--variant", choices=("standard", "adr"), default="standard",
+                    help="pr-body only: 'adr' skips the template heading check "
+                         "(an ADR PR body is a TL;DR, a file link, and References)")
     args = ap.parse_args()
 
-    issues = check(args.path, args.surface)
+    issues = check(args.path, args.surface, args.variant)
 
     if args.json:
         print(json.dumps(issues, indent=2))

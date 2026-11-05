@@ -152,6 +152,22 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 
    **The base is decided here, once.** `{base}` is the parent sub-issue branch when the work is stacked on one (the caller decides, not the script). Otherwise it is the output of `scripts/epic-branch.sh <issue> <repo>`, run per repo: the epic branch for work under an epic, and `develop` (`main` in tokens) for standalone or epic-level issues and when there is no issue. Step 4's detection diffs against the same `{base}`, so a tokens PR is never diffed against `main` and opened against `develop`. Step 4 runs the script without `--ensure`, so it creates nothing; if the epic branch does not exist yet in that repo, step 4 diffs against the repo's default branch, which the epic branch is cut from. Right before `gh pr create`, run it again with `--ensure`, companion repos first, which creates the epic branch and its draft Epic PR if missing.
 
+   The body skeleton (full template and the no-issue variant are in references/pr-template.md). The two `###` headings are required and the checker fails the body without them, so copy them exactly:
+
+   ```
+   ## [NNN: Issue Title](https://github.com/yalesites-org/YaleSites-Internal/issues/NNN)
+
+   **TL;DR:** One or two sentences.
+
+   ### Description of work
+   - What was added or fixed
+
+   ### Functional testing steps:
+   - [ ] [Step, linked to where it happens](https://pr-NNN-yalesites-platform.pantheonsite.io/...)
+
+   References yalesites-org/YaleSites-Internal#NNN
+   ```
+
    The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
 
    Write the words per references/github-writing.md: plain sentences, active voice, no em dashes, and 350 words as the budget for everything a reviewer sees before expanding anything. The reader is a developer peer, so normal technical vocabulary is fine, but do not narrate the diff. The diff is already there.
@@ -161,6 +177,8 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    ```bash
    python3 scripts/check-github-text.py body.md --surface pr-body
    ```
+
+   It also fails a body missing `### Description of work` or `### Functional testing steps:`. Both the with-issue and no-issue shapes carry them. Only an ADR PR body (below) is exempt: check it with `--surface pr-body --variant adr`.
 
    **Write the testing steps as links** — a step that names a place should link to it, so the
    reviewer lands on the change instead of hunting for it. references/preview-urls.md has the
