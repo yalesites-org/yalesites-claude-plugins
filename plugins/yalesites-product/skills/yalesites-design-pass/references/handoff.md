@@ -10,6 +10,10 @@ because it named where each piece lands and what to check first. Follow the GitH
 standard (`ticket/references/github-writing.md` and `github-communication-format.md`) and run
 `ticket/scripts/check-github-text.py --surface ticket` on it.
 
+The TL;DR promises the zip in the next comment. Nothing can upload it for us (`gh` and
+`github-screenshots` cannot attach a zip), so the reviewer drags it into that comment by hand.
+Say so when you hand them the draft.
+
 ```markdown
 **TL;DR:** The <component> design is done, and the handoff is below. The reference mockups are
 in the zip in the next comment. <dev>, this is ready to build in <dev ticket refs>.

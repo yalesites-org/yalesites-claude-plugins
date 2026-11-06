@@ -32,7 +32,7 @@ in `~/.claude/yalesites/design-pass/config.json`, outside every repo:
 {
   "renderer": "claude-design-here | claude-design-other | html",
   "otherAccount": { "label": "Personal Claude", "app": "<path to the app, if any>" },
-  "dataRuling": { "date": "YYYY-MM-DD", "scope": "brief, ticket, parent, public links, placeholder content" },
+  "dataRuling": { "date": "YYYY-MM-DD", "scope": "brief.md only" },
   "exportFolder": "~/Downloads",
   "checkedAt": "YYYY-MM-DD"
 }
@@ -47,17 +47,19 @@ in `~/.claude/yalesites/design-pass/config.json`, outside every repo:
    Yale's enterprise agreement, that whether that is allowed is the user's call (and possibly
    their manager's), not ours, and offer `html` as the option that keeps everything in. Set
    `claude-design-other` only on an explicit yes, and record their ruling with its date and
-   scope in `dataRuling`.
+   scope in `dataRuling`. The scope is always `brief.md only`: the brief is the one file that
+   leaves the account.
 
 **Every run, before round 1:**
 
 - `claude-design-other` or `html`, and `checkedAt` is more than 30 days old: ask again whether
-  the work account has Claude Design now. If it does, switch to `claude-design-here`. Nothing
-  else in the skill changes, since the rounds, the brief and the boards are the same for every
-  renderer.
-- `claude-design-other`: send only what `dataRuling.scope` covers. Never real site content,
-  people's names or contact details, analytics exports, other tickets, or anything from email
-  or Slack. If the brief would need any of those, leave it out or ask.
+  the work account has Claude Design now. If it does, switch to `claude-design-here`. Whatever
+  the answer, set `checkedAt` to today and save the config. Nothing else in the skill changes,
+  since the rounds, the brief and the boards are the same for every renderer.
+- `claude-design-other`: send only `brief.md`. Not the ticket, the parent, screenshots or board
+  files. The brief itself never holds real site content, people's names or contact details,
+  analytics exports, other tickets, or anything from email or Slack. If it would need any of
+  those, leave it out or ask.
 
 | Renderer | How it runs |
 |---|---|
@@ -99,20 +101,23 @@ for a Design ticket, the recorded answers on its UX sibling. Stop and ask (one q
 chat) if any of these is missing. Do not guess them:
 
 1. **Allowed regions.** Which Layout Builder regions the block can go in. The layouts are
-   One column, Two column (50/50), Three column (33/33/33), Two column (70/30) and (30/70),
-   each with a main and a sidebar region, and Banner. Read the parent's `allowed_regions:` machine
+   One column (Layout Builder core's `layout_onecol`), and from `ys_layouts`: Two column
+   (50/50), Three column (33/33/33), Two column (70/30) and (30/70) with a main and a sidebar
+   region, and Banner. Read the parent's `allowed_regions:` machine
    line first (the ticket skill writes it), then the prose. A ticket that says "one-column section"
    (yalesites-org/YaleSites-Internal#2033) has answered it. A parent that lists
    `allowed_regions` as an open decision (yalesites-org/YaleSites-Internal#1957) has not: on a
    UX ticket, make it one of round 1's questions; on a Design ticket, ask before starting.
 2. **What the ticket asks to settle.** The open choices in its Acceptance Criteria. These are
    what the approaches must differ on.
-3. **The renderer.** Claude Design or HTML mockups. Default to Claude Design.
+3. **The renderer.** Read it from `config.json`. Only when there is no config, run the setup
+   questions above first.
 
 ## Gather context (read-only)
 
-Build one `brief.md` per ticket, kept with the board packet. On `claude-design-other` it is also exactly
-what leaves the account, so write it as a brief, not a dump:
+Build one `brief.md` per ticket, kept with the board packet. On `claude-design-other` it is the
+only thing that leaves the account, so write it as a brief, not a dump. In round 2, add the
+reviewer's notes to the brief rather than sending them separately:
 
 - The ask: the ticket's TL;DR and the open choices, in our words.
 - Who it is for: the `ux-research` archetypes the feature touches, with the pain point each one
@@ -172,15 +177,17 @@ After sign-off, write two things (templates in `references/handoff.md`):
    most CL docs pages are a canvas, controls and a props table; this is the part that keeps the
    component supportable after the people who designed it move on.
 
-Both are **drafts**. Show them to the reviewer on the board. Posting the spec as a ticket comment, and
-attaching the zip, happens only when the reviewer says so, through `github-screenshots` for images.
+Both are **drafts**. Show them to the reviewer on the board. Posting the spec as a ticket comment
+happens only when the reviewer says so, with images through `github-screenshots`. Neither
+`github-screenshots` nor `gh` can attach a zip, so the reviewer drags the mockup zip into the
+next comment by hand; tell them its path in the packet folder.
 The ticket's acceptance criteria often ask for each answer as a comment; draft those too.
 
 ## Rules
 
 - Never posts to GitHub, never moves board status, never closes a ticket. The router hands the
   phase off once the reviewer closes it.
-- On `claude-design-other`, never sends anything beyond the brief and what `dataRuling.scope` covers.
+- On `claude-design-other`, never sends anything beyond `brief.md`.
 - Never ships one approach as "the" design. Round 1 always offers a real choice.
 - Region widths are a gate, not a nice-to-have.
 - Write as "we", no em dashes, `owner/repo#N` refs, per `ticket/references/github-writing.md`.

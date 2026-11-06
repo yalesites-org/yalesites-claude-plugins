@@ -2,8 +2,9 @@
 
 ## Region widths
 
-The layouts come from `ys_layouts` in yalesites-project (`*.layouts.yml` on `develop`). The
-widths below are content widths at a 1440px viewport. Only the two marked "measured" were
+One column is Layout Builder core's `layout_onecol`. The rest come from `ys_layouts` in
+yalesites-project (`ys_layouts.layouts.yml` on `develop`), which also defines Page Meta, a page
+header layout and not a block region. The widths below are content widths at a 1440px viewport. Only the two marked "measured" were
 measured (on pr-1477 for Office Hours, yalesites-org/YaleSites-Internal#1710); measure the rest
 on a multidev or the published Storybook layout stories before a ticket depends on them, and
 update this table.
@@ -25,11 +26,12 @@ breakpoints in the spec, since the same block sits in regions of different width
 
 ## Files
 
-One folder per ticket in the session scratchpad, served by the review board:
+One folder per ticket in a durable folder, not the session scratchpad, since rounds 2 and 3 often
+run in a later session. It mirrors docs-board's `~/.claude/yalesites/docs-board/packets`:
 
 ```
-<scratchpad>/design-pass/packets/design-<number>/
-  brief.md                 what goes to Claude Design (and nothing more)
+~/.claude/yalesites/design-pass/packets/design-<number>/
+  brief.md                 what goes to Claude Design; on claude-design-other, the only file that leaves
   packet.json              the board
   r1-<approach>-1440.png   round 1, one desktop and one phone per approach
   r1-<approach>-360.png
@@ -49,7 +51,7 @@ Packet format is in `pr-feedback/references/review-board.md`. Start the server a
 task and open the board for the reviewer:
 
 ```bash
-python3 <plugin>/skills/pr-feedback/scripts/review-board/server.py --packets <scratchpad>/design-pass/packets --port 8797
+python3 <plugin>/skills/pr-feedback/scripts/review-board/server.py --packets ~/.claude/yalesites/design-pass/packets --port 8797
 ```
 
 A design packet is not a PR review, so:
@@ -58,6 +60,10 @@ A design packet is not a PR review, so:
   and `issue` set to the ticket. The board needs a `pr` on the unit to draw its lead-in page.
 - Use `compare` blocks with sides labeled by approach name or by what differs
   (`Sidebar 305px:` / `One column:`, `Global One:` / `Global Four:`), never "A" and "B".
+- Give every option `"verdict": "comment"`, "Decide later" included. The board wants a ruling
+  per unit and stops Send without one; `comment` is the one that claims nothing. Its last page
+  still uses PR wording ("Posts your open decision as a comment"); ignore it, since Send only
+  writes `answers.json` and nothing posts.
 - Put the recommendation first, with `recommended: true`, and end every question with
   "Decide later".
 - Before each new round, archive the previous `answers.json` as
