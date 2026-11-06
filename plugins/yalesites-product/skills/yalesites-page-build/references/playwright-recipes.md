@@ -189,17 +189,22 @@ Then set the caption (`field_text` on Image, `field_caption` on Wrapped Image) w
 
 ### Split a Text block at a marker
 
-Parse the block HTML into its top-level elements, find the one element that holds the marker (refuse 0 or 2+ matches), and drop it with the `Alt text:` line after it:
+Parse the block HTML into its top-level elements, find the one element that holds the marker (refuse 0 or 2+ matches), and drop it with the `Alt text:` and `Caption:` lines after it. Refuse unless the hit is a `<p>` holding only the marker: a marker inside a list item or a wrapper `<div>` would take the whole list or wrapper with it, so split that one by hand:
 
 ```js
 const doc = new DOMParser().parseFromString('<body>' + html + '</body>', 'text/html');
 const kids = [...doc.body.children];
 const hits = kids.filter(e => e.textContent.includes(MARKER));
 if (hits.length !== 1) return `NO CHANGE: ${hits.length} marker matches`;
-const mi = kids.indexOf(hits[0]);
-const ai = /^\s*Alt text:/.test(kids[mi + 1]?.textContent || '') ? mi + 1 : mi;
+const hit = hits[0];
+if (hit.tagName !== 'P' || !/^\s*\*?\[SCREENSHOT[^\]]*\]\*?\s*$/.test(hit.textContent)) return 'NO CHANGE: marker is not its own paragraph';
+const mi = kids.indexOf(hit);
+let end = mi;
+for (const label of ['Alt text:', 'Caption:']) {
+  if ((kids[end + 1]?.textContent || '').trim().startsWith(label)) end++;
+}
 const before = kids.slice(0, mi).map(e => e.outerHTML).join('');
-const after = kids.slice(ai + 1).map(e => e.outerHTML).join('');
+const after = kids.slice(end + 1).map(e => e.outerHTML).join('');
 ```
 
 Write `before` back to the block (Update), add the Image block, add a Text block with `after` (copy `field_padding_options` and `field_style_variation` from the original), then Move. For a Wrapped Image, widen the cut to the headings around the marker: the before text ends at the heading above, the Wrapped Image takes everything between the two headings, and the new Text block starts at the next heading.

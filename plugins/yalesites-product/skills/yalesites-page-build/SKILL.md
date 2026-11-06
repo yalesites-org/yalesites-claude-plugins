@@ -127,7 +127,7 @@ Only when the user asks for placement in this conversation. `release-prep` Phase
 
 4. **Size decides the block.** An Image block stretches the image to the content width (about 900px). A shot narrower than about 450px comes out blurry, so use a Wrapped Image for it and say so in the handoff. Wrapped Image has an Image Size field only from 12-01-26: before that release is on production, list "set Image Size to Small" as a release-day step.
 5. **Fields differ by block.** Image block: caption is `field_text`, padding defaults to No padding (set Padding on both top and bottom). Wrapped Image: caption is `field_caption`, and `field_text` is the body text. Never put the caption in a Wrapped Image's `field_text`.
-6. **Take the marker out with the shot.** Remove the marker paragraph and its `Alt text:` line (and `Caption:` line), then scan every touched node for leftover `[SCREENSHOT` and `Alt text:` text before saving.
+6. **Take the marker out with the shot.** Remove the marker paragraph and its `Alt text:` line (and `Caption:` line), then scan every touched node for leftover `[SCREENSHOT`, `Alt text:`, and `Caption:` text before saving.
 7. **Look before you save.** Screenshot each changed area on the layout page and open it. Then Save as Draft (Step 6) per node, after all of that node's changes.
 
 **Alt text edits are live at once.** Media items have no moderation state. Edit the alt on a media item only when the item is used by staged drafts alone (a media item this pass uploaded).
