@@ -270,8 +270,8 @@ but the last page gives it its own ruling row with no inferred default, and Send
 reviewer picks one.
 Set `pr` on each question so its page is tagged with the PR. `pr` is an object,
 `{ "ref": "yalesites-org/yale-ui-cl#76", "url": "https://github.com/yalesites-org/yale-ui-cl/pull/76" }`,
-never a bare ref string, and its `ref` must match the unit's `pr.ref` exactly: that match is how
-the board groups a question under its PR. Keep a unit's
+never a bare ref string, and its `ref` must match the unit's `pr.ref` or one of its `extraPrs`
+exactly: that match is how the board groups a question under its unit. Keep a unit's
 questions next to each other, and let the last page take their own read for the whole batch.
 The four-per-round limit below does not apply there. The other rules in this step do.
 
