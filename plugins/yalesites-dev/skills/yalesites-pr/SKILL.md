@@ -150,9 +150,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
 6. **Draft and create PRs** — companion repos first, yalesites-project last
    For each repo, draft the full PR title and body using the template from references/pr-template.md, then **show the draft to the user and wait for explicit approval before running `gh pr create`**. Do not create any PR without confirmation. The one exception is an unattended run (step 4: `--unattended` or `--body-file`): there is nobody to show it to, so use the supplied body as the PR body, append the step 4 ADR note to it, and create the PR without pausing.
 
-   **The base is decided here, once.** `{base}` is the parent sub-issue branch when the work is stacked on one (the caller decides, not the script). Otherwise it is the output of `scripts/epic-branch.sh <issue> <repo>`, run per repo: the epic branch for work under an epic, and `develop` (`main` in tokens) for standalone or epic-level issues and when there is no issue. Step 4's detection diffs against the same `{base}`, so a tokens PR is never diffed against `main` and opened against `develop`. Step 4 runs the script without `--ensure`, so it creates nothing; if the epic branch does not exist yet in that repo, step 4 diffs against the repo's default branch, which the epic branch is cut from. Right before `gh pr create`, run it again with `--ensure`, companion repos first, which creates the epic branch and its draft Epic PR if missing.
-
-   The body skeleton (full template and the no-issue variant are in references/pr-template.md). The two `###` headings are required and the checker fails the body without them, so copy them exactly:
+   The body skeleton (with an issue; without one, swap the first line for `## Brief description of the change` and drop the `References` line). The `pr-body` checker fails a body missing either `###` heading, verbatim:
 
    ```
    ## [NNN: Issue Title](https://github.com/yalesites-org/YaleSites-Internal/issues/NNN)
@@ -163,10 +161,12 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - What was added or fixed
 
    ### Functional testing steps:
-   - [ ] [Step, linked to where it happens](https://pr-NNN-yalesites-platform.pantheonsite.io/...)
+   - [ ] [Step](https://pr-NNN-yalesites-platform.pantheonsite.io/...), linked to where it happens
 
    References yalesites-org/YaleSites-Internal#NNN
    ```
+
+   **The base is decided here, once.** `{base}` is the parent sub-issue branch when the work is stacked on one (the caller decides, not the script). Otherwise it is the output of `scripts/epic-branch.sh <issue> <repo>`, run per repo: the epic branch for work under an epic, and `develop` (`main` in tokens) for standalone or epic-level issues and when there is no issue. Step 4's detection diffs against the same `{base}`, so a tokens PR is never diffed against `main` and opened against `develop`. Step 4 runs the script without `--ensure`, so it creates nothing; if the epic branch does not exist yet in that repo, step 4 diffs against the repo's default branch, which the epic branch is cut from. Right before `gh pr create`, run it again with `--ensure`, companion repos first, which creates the epic branch and its draft Epic PR if missing.
 
    The body follows references/github-communication-format.md: a `**TL;DR:**` line under the H2 (one or two sentences, what the PR does and why), then the "Description of work" bullets and "Functional testing steps" visible as-is. If there are granular change notes worth keeping, put them in a collapsed `<details><summary><b>Detailed changes</b></summary>` block rather than expanding the bullet list. The H2 link line and the trailing `References ...` line stay visible.
 
@@ -177,8 +177,6 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    ```bash
    python3 scripts/check-github-text.py body.md --surface pr-body
    ```
-
-   It also fails a body missing `### Description of work` or `### Functional testing steps:`. Both the with-issue and no-issue shapes carry them. Only an ADR PR body (below) is exempt: check it with `--surface pr-body --variant adr`.
 
    **Write the testing steps as links** — a step that names a place should link to it, so the
    reviewer lands on the change instead of hunting for it. references/preview-urls.md has the
