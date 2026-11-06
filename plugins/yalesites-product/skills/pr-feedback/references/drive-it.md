@@ -556,18 +556,31 @@ its own clone and adds one throwaway worktree per PR head:
 ```bash
 C=~/.claude/yalesites/pr-feedback/checkouts
 [ -d $C/yale-ui-cl ] || git clone -q https://github.com/yalesites-org/yale-ui-cl.git $C/yale-ui-cl
-git -C $C/yale-ui-cl fetch -q origin main "pull/<N>/head"
-SHA=$(git -C $C/yale-ui-cl rev-parse FETCH_HEAD)      # must equal the PR's headRefOid
+git -C $C/yale-ui-cl fetch -q origin main "+pull/<N>/head:refs/pr/<N>"
+SHA=$(git -C $C/yale-ui-cl rev-parse refs/pr/<N>)
+[ "$SHA" = "<headRefOid>" ] || { echo "STOP: refs/pr/<N> is $SHA, not the PR head"; exit 1; }
 W=$C/yale-ui-cl-<N>-${SHA:0:7}
-git -C $C/yale-ui-cl worktree add -q --detach $W $SHA
-(cd $W && bash -lc 'npm ci --no-audit --no-fund')    # bash -lc picks up the token from the profile
+if [ -e "$W" ]; then
+  P=$(cat "$W/.storybook.pid" 2>/dev/null)
+  if [ -n "$P" ] && kill -0 "$P" 2>/dev/null; then echo "STOP: $W is in use (Storybook pid $P)"
+  else echo "STOP: $W exists with no live Storybook"; fi
+  exit 1
+fi
+git -C $C/yale-ui-cl worktree add -q --detach "$W" "$SHA"
+(cd "$W" && bash -lc 'npm ci --no-audit --no-fund')   # bash -lc picks up the token from the profile
 ```
 
+Fetch into the named ref `refs/pr/<N>`, never read `FETCH_HEAD`: its first entry is the first
+refspec (`main`), and the clone shares it between runs, so two runs fetching different PRs could
+read each other's SHA.
+
 A worktree per PR head keeps two runs (a live review and a prep run, or two units in one prep
-run) from switching each other's branch. If `$W` already exists, another run may be using it:
-check `$W/.storybook.pid` (Step U1) and, if that process is alive, wait for it or skip the unit;
-never share a worktree. If the SHA does not match `headRefOid`, stop: the run would test the
-wrong code. If `npm ci` fails, hand off with "install failed" and the last lines of its output.
+run) from switching each other's branch, so the block stops before `worktree add` when `$W`
+already exists. On "in use", another run owns it: wait for it or skip the unit, and never share
+a worktree. On "no live Storybook", it is left over from a run that died: remove it with
+`git -C $C/yale-ui-cl worktree remove --force "$W"` and run the block again. On a SHA mismatch,
+stop: the run would test the wrong code. If `npm ci` fails, hand off with "install failed" and
+the last lines of its output.
 
 ### Step U1: Start Storybook in the background
 
