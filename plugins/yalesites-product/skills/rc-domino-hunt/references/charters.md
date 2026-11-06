@@ -17,7 +17,7 @@ Explore <surface> on <sites and pages> to find <the oracle from the hypothesis>.
 - PRs: yalesites-org/yalesites-project#1666
 - Sites and pages: ys-your-yale-edu /about, ys-registrar-yale-edu /calendar
 - Conditions to cover: <the untested condition, plus the pairwise rows if any>
-- Login: logged out | user 1 (read-only)
+- Login: logged out | user 1 (read-only) | user 1 or qa-<role> (reserved site only)
 - Devices: desktop Chrome 1280 | phone (WebKit, iPhone 15) | both
 - Budget: 20 minutes, or about 40 browser actions
 - Evidence folder: runs/<run>/screenshots/<NN>/
@@ -43,7 +43,7 @@ The subagent must:
 5. **Run phone checks on mobile WebKit**, not a narrow Chrome window (see "Phones" below).
 6. **Screenshot every check**, pass or fail, named `<NN>-<result>-<site>-<device>-<slug>.png`. Follow "Screenshots: every step, pass or fail" in `drive-it.md`. Look at every image before giving it a result, and retake it if it is wrong.
 7. **Re-run every failure once**, from a fresh page load. Agents misread pages that are still loading, and dynamic content, as failures. Only a failure that repeats is `confirmed`. A failure that does not repeat is `suspicious`, with both screenshots.
-8. **Stay inside the rules** in `rc-sites.md`, "What the hunt may change": on the reserved site, edit and create freely and log every change. On shared sites, read-only and Layout Builder discard only. No outbound forms anywhere.
+8. **Stay inside the rules** in `rc-sites.md`, "What the hunt may change": on the reserved site, edit and create freely, check `changes.md` before calling a finding, and log every change. On shared sites, read-only and Layout Builder discard only. No outbound forms anywhere.
 9. **Close the browser session** when done.
 
 ### Phones
@@ -71,7 +71,8 @@ Append this to the charter file:
 - Not covered: <conditions in the charter that were not reached, and why>
 - Findings: <one line each: what, where (URL), RC vs live, screenshot file names>
 - Obstacles: <anything that wasted time: login, slow site, missing content>
-- Leftovers: <anything left changed. Should be "none".>
+- Changes: <reserved site only: each change as URL, what changed, value before. Also appended to `changes.md`. "none" on shared sites.>
+- Leftovers: <anything left changed on a shared site. Should be "none". Reserved-site changes go under Changes instead.>
 - Time: <minutes>, split into setup, testing, and investigating
 ```
 

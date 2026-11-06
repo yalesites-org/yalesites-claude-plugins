@@ -13,7 +13,7 @@ Why it exists: a lookback over Oct 2025 to Oct 2026 found 23 functional hotfixes
 **Ground rules, in every mode:**
 
 - **Read and write on the reserved site, read-only everywhere else.** RC multidevs are temporary clones of live sites, and they are deleted after the release ships, so nothing done on them lasts. When a run has a reserved hunt site (`--reserved`), the hunt tests there as hard as an editor would: it edits existing content, creates content, saves layouts, and changes settings. Editing the existing, copied-from-live content is the main use: that is where old data meets the new code. The other RC multidevs are still the human testers' shared QA environment, so a saved change there would look like a release bug to them. On those, the only allowed change is opening a Layout Builder form on an existing page and then discarding it. Both sets of rules are in `references/rc-sites.md`, "What the hunt may change".
-- **Nothing outbound.** No form submissions, no webform sends, and no writes to Localist, ServiceNow, or CAS.
+- **Nothing outbound.** No form that sends something off the site (contact forms, webform sends, newsletter sign-ups, event registration), and no writes to Localist, ServiceNow, or CAS. Saving a node, layout, or reusable block form on the reserved site is not outbound.
 - **Nothing to GitHub.** No comments, reviews, labels, or issues. Findings go into the morning report. A human triages them, and real bugs go through the `ticket` skill.
 - **Screenshots of real sites stay local.** Only use them on private repos, through `github-screenshots`.
 - **Evidence or it did not happen.** Every finding needs a screenshot of the RC beside the same view on live, repro steps, and one re-run that fails again (see `references/charters.md`).
@@ -51,6 +51,7 @@ Everything for one RC lives in one folder, so a fresh session can pick up where 
   impact-map.json       Phase 1
   vendor-diff.json      Phase 1, contrib and patch changes
   hypotheses.json       Phase 2, one entry per hypothesis with status
+  changes.md            every change the hunt made on the reserved site, across all runs
   runs/<YYYY-MM-DD-HHMM>/
     charters/<NN>-<slug>.md     the charter and its debrief
     screenshots/
@@ -115,7 +116,7 @@ The Tuesday routine calls `/rc-domino-hunt --drain` the night before the weekly 
 - **Do not stop because the ranked list ran out.** Generators always have more.
 - **Stop when** usage is at about 99% of the weekly limit, or 20 minutes before the reset, whichever comes first. Read both from the session usage tool (`get_usage`) at the start and after every charter. The reset time moves with daylight saving, so never hard-code it. If `get_usage` is missing or errors, do not guess: finish the ranked list without the generators, then stop, and make the report's first line `usage not readable, stopped at the end of the ranked list`.
 - **A second wake-up at about 3:30 AM** resumes from `hypotheses.json` if usage is still under about 97%. This is a second scheduled task, not something the first run schedules (see "The routine" below).
-- **Ask nothing.** A charter that needs a ruling (a role user, creating content, a fleet-wide scan) is marked `blocked` with the reason, and the next charter starts.
+- **Ask nothing.** A charter that needs a ruling (a fleet-wide scan, or on shared sites a role user or creating content) is marked `blocked` with the reason, and the next charter starts. On the reserved site, role users and creating content are already allowed (see "What the hunt may change" in `references/rc-sites.md`), so they are not blockers there.
 - **No Lando.** Everything runs against Pantheon. Never start a local site on a drain night.
 - **Keep the session small.** Charters run in subagents, state lives in files, and nothing reports progress between charters.
 - **Write the report even if the run fails.** If the run stopped with more than 3% of the weekly usage left, the report's first line says so, as a failure, with the reason.
@@ -128,6 +129,8 @@ Two scheduled tasks, both created **disabled** and turned on by hand when an RC 
 |---|---|---|
 | `rc-domino-hunt-tuesday` | Tuesday about 9 PM ET | `/rc-domino-hunt --drain` |
 | `rc-domino-hunt-resume` | Wednesday about 3:30 AM ET | `/rc-domino-hunt --drain`, only if usage is under about 97% and the reset has not passed |
+
+When you turn the tasks on for an RC window and the team has reserved a hunt site, add `--reserved <site>` to both prompts (e.g. `/rc-domino-hunt --drain --reserved ys-registrar-yale-edu`). Without it, the drain runs read-only on the shared sites.
 
 `create_scheduled_task` has no enabled flag, so create each task and then set `enabled: false` with `update_scheduled_task`. Set `notifyOnCompletion: false`, since it defaults to true. Scheduled tasks only run while the desktop app is open. Unattended runs cannot read production with drush, so the skill already avoids that in `--drain`. Any other permission prompt blocks the charter and gets reported.
 
