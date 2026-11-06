@@ -61,6 +61,16 @@ class Classify(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
+    def test_hidden_guess_is_never_prefilled_even_at_rung_one(self):
+        tmp = tempfile.mkdtemp()
+        try:
+            write(os.path.join(tmp, "state.json"), {"categories": {"other": {"rung": 1}}})
+            packet = {"questions": [{**q("q1", "x", "y"), "guess": {"value": "y"}}, q("q2", "x", "y", rec="x")]}
+            s = calibration.build_seal(packet, "b", tmp, "sha")
+            self.assertEqual((s["blind"], s["prefill"]), (["q1"], ["q2"]))
+        finally:
+            shutil.rmtree(tmp)
+
 
 class Seal(unittest.TestCase):
     def setUp(self):
@@ -176,7 +186,19 @@ class BoardJs(unittest.TestCase):
                   same: s1.join() === s2.join(), n: s1.length, rec: recOf(packet.questions[0]).value,
                   hidden: recOf(packet.questions[2]).value, none: recOf(packet.questions[1]) };
         """)
-        self.assertEqual(out, {"a": True, "b": False, "c": True, "same": True, "n": 3, "rec": "x", "hidden": "y", "none": None})
+        self.assertEqual(out, {"a": True, "b": False, "c": False, "same": True, "n": 3, "rec": "x", "hidden": "y", "none": None})
+
+    def test_blind_follows_the_seal_and_a_hidden_guess_never_prefills(self):
+        packet = {"questions": [{"id": "h", "options": [{"value": "x"}, {"value": "y"}], "guess": {"value": "y"}},
+                                q("v", "x", "y", rec="x")]}
+        out = run(packet, {"answers": []}, [], """
+          seal = { blind: [], prefill: ['h', 'v'] };
+          const [h, v] = packet.questions;
+          out = { hBlind: isBlind(h), hPre: prefillOf(h), vPre: prefillOf(v).value };
+          seal = { blind: ['h'], prefill: [] };
+          out.hSealed = isBlind(h);
+        """)
+        self.assertEqual(out, {"hBlind": False, "hPre": None, "vPre": "x", "hSealed": True})
 
 
 if __name__ == "__main__":

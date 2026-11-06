@@ -434,7 +434,8 @@ never uses them:
 - **Seal on open.** The first GET of a packet writes `<packet>/seal.json`: the time, a hash of
   `packet.json`, and which questions are blind or pre-filled. A packet changed before anyone
   answers is re-sealed; after answers exist it is not, and the dashboard voids its rows.
-- **Blind and pre-filled questions.** A question with a hidden `guess` is always blind. Of the
+- **Blind and pre-filled questions.** A question with a hidden `guess` is always blind, at every rung,
+  and never pre-filled. Of the
   questions with a visible recommendation, 1 in 4 is blind while its category is in shadow: the
   Recommended badge and any "(recommended)" wording are hidden and the options shuffled, until
   he answers. Then a reveal shows our guess and reason; on a miss he can tag why (missing

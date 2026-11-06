@@ -168,10 +168,10 @@ def build_seal(packet, packet_id, cal_dir, packet_sha, now=None):
             cat = classify({"source": "board", "packet": packet_id, "dimension": q.get("dimension") or "",
                             "pr": pr or "", "kind": "question"}, cats)
             rung = int((rungs.get(cat) or {}).get("rung") or 0)
-            if rung >= 1:
+            if not guess["visible"]:
+                blind.append(qid)  # a hidden guess is blind by nature and never pre-filled
+            elif rung >= 1:
                 prefill.append(qid)
-            elif not guess["visible"]:
-                blind.append(qid)  # a hidden guess is blind by nature
             elif is_blind(packet_id, qid, rate) and not leaks(q, recommended(q)):
                 blind.append(qid)
     return {
