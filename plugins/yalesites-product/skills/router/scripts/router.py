@@ -52,20 +52,24 @@ TODAY = dt.date.today()
 
 # --- helpers ---------------------------------------------------------------
 
-def gh(*args, input_text=None):
+def gh(*args, input_text=None, check=True):
+    """Run gh and return stdout. With check=False a non-zero exit that still printed output returns
+    that output (gh api graphql exits 1 on partial errors but prints the partial data)."""
     r = subprocess.run(["gh", *args], capture_output=True, text=True, input=input_text)
-    if r.returncode != 0:
+    if r.returncode != 0 and (check or not r.stdout.strip()):
         raise RuntimeError(f"gh {' '.join(args[:3])}... failed: {r.stderr.strip()}")
     return r.stdout
 
 
-def graphql(query, **variables):
+def graphql(query, _tolerate=(), **variables):
+    """_tolerate is a set of GraphQL error types (e.g. {"NOT_FOUND"}) to ignore, keeping the partial data."""
     args = ["api", "graphql", "-f", f"query={query}"]
     for k, v in variables.items():
         args += ["-F" if isinstance(v, int) else "-f", f"{k}={v}"]
-    data = json.loads(gh(*args))
-    if data.get("errors"):
-        raise RuntimeError(json.dumps(data["errors"])[:500])
+    data = json.loads(gh(*args, check=not _tolerate))
+    errors = [e for e in data.get("errors") or [] if e.get("type") not in _tolerate]
+    if errors:
+        raise RuntimeError(json.dumps(errors)[:500])
     return data["data"]
 
 
@@ -401,9 +405,14 @@ def find_unblocked():
     wanted = sorted({r for _, refs in candidates for r in refs})
     closed = {}
     for i in range(0, len(wanted), 100):
-        aliases = " ".join(f"i{r}: issue(number:{r}){{number state closedAt stateReason}}" for r in wanted[i:i + 100])
-        d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, aliases))["repository"]
-        closed.update({v["number"]: v for v in d.values() if v and v["state"] == "CLOSED"})
+        # issueOrPullRequest so a ref to a PR doesn't fail the query; a number that doesn't exist (typo)
+        # comes back null with a NOT_FOUND error, which is tolerated. Only closed issues count as blockers.
+        aliases = " ".join(f"i{r}: issueOrPullRequest(number:{r}){{__typename ... on Issue{{number state closedAt stateReason}}}}"
+                           for r in wanted[i:i + 100])
+        d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, aliases),
+                    _tolerate={"NOT_FOUND"})["repository"]
+        closed.update({v["number"]: v for v in d.values()
+                       if v and v["__typename"] == "Issue" and v["state"] == "CLOSED"})
     out = []
     for n, refs in candidates:
         edited = n["lastEditedAt"] or n["createdAt"]
@@ -601,7 +610,11 @@ def main():
     owed = find_owed()
     intake = find_intake()
     stuck, no_priority, board = find_stuck(load_groomers())
-    unblocked = find_unblocked()
+    try:
+        unblocked = find_unblocked()  # list-only; never let it stop hand-offs, Stage sync or the brief
+    except Exception as e:  # noqa: BLE001
+        print(f"router: skipping 'may be unblocked' list: {e}", file=sys.stderr)
+        unblocked = []
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
