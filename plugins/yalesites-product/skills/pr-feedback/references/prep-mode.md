@@ -118,8 +118,10 @@ it for them.
 
 ## Step P3: Drive it, under the disposable multidev rule
 
-Driving applies to `yalesites-project` units, as in `SKILL.md` Step 3. Follow `drive-it.md`,
-with these changes:
+Driving applies to `yalesites-project` and `yale-ui-cl` units, as in `SKILL.md` Step 3. Follow
+`drive-it.md`, with these changes. The multidev rules below are for `yalesites-project`; a UICL
+unit writes nothing to any shared environment, and its prep-mode changes are in "UICL units in
+prep" after them.
 
 **The disposable multidev rule is Step D1's standing consent, narrowed.** A PR multidev is a disposable copy of
 the platform, so prep mode creates the Step D1 kinds on it without asking (test pages,
@@ -174,7 +176,30 @@ browser, do not call `ready` or `fail` (the entry is not this run's to write, an
 anyway), leave Step D5 cleanup to whoever holds the claim now (their test content shares names
 with yours), and record the unit in the digest (Step P6) as lost with the script's reason.
 
-For a unit with nothing to drive (Storybook, `atomic`, `tokens`, or a failed preflight), the
+### UICL units in prep
+
+A `yale-ui-cl` unit follows "The `yale-ui-cl` path" in `drive-it.md`, deployed preview check
+first, with the same prep-mode changes as above: headless, no browser installs, show nothing
+and save everything, heartbeat after every U-step. Also:
+
+- **No prompts for anything.** A missing `YALESITES_BUILD_TOKEN`, a failed `npm ci`, or a
+  Storybook that does not build fails the unit with that check named
+  (`prep_status.py fail ... --reason "no YALESITES_BUILD_TOKEN for npm ci"`). The packet is still
+  built from the brief alone, as for any unit with nothing to drive.
+- **The Storybook server never outlives the unit.** Stop it and remove the worktree (Step U3)
+  before `ready` or `fail`, including when the unit stops early. A heartbeat that exits 1 also
+  stops the server and removes this run's worktree: unlike multidev content, nothing there is
+  shared with whoever holds the claim now.
+- **One server at a time.** A prep run drives its units in order, so a second UICL unit starts
+  its server only after the first one's Step U3.
+- **The packet carries the evidence.** Each question gets `image`, `compare`, and `video`
+  context blocks from the run, each with a `url` to the published story on `main` where one
+  exists (Step U2, "Link each image to its story"). The local server is gone by the time the
+  reviewer opens the board, so the unit's `test` link points at the published Storybook story
+  or the PR, never at `localhost`.
+
+For a unit with nothing to drive (`component-library-twig` Storybook, `atomic`, `tokens`, or a
+failed preflight), the
 packet still gets built in Step P4, from the brief alone, and the plan in `plan.md` is the
 hand-off walkthrough for the review session.
 
