@@ -482,7 +482,12 @@ def is_candidate(it):
 
 
 def is_embed(c, epic):
-    """A new embed provider: titled Embed: or Embed Request:, or a child of the Embed Requests epic."""
+    """A new embed provider: titled Embed: or Embed Request:, or a child of the Embed Requests epic.
+
+    Bugs are not held: a Bug on an embed that already ships needs no provider approval.
+    """
+    if (c.get("issueType") or {}).get("name") == "Bug":
+        return False
     return bool(EMBED_TITLE.match(c["title"])) or (epic is not None and (c.get("parent") or {}).get("number") == epic)
 
 

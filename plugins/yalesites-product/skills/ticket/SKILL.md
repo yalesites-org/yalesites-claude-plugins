@@ -406,8 +406,6 @@ When grooming an existing stub ticket, check the title along with the other fiel
 | `Bug:` | A defect found outside of RC testing (reported by an editor, caught in normal use, etc.). |
 | `Embed:` | New or changed support for a specific embeddable content type (calendars, maps, social posts). |
 | `Embed Request:` | An intake ticket for a new embed type someone has asked for but that isn't scoped/dev-ready yet. |
-
-**New embed providers need Michael's approval.** Any `Embed:` or `Embed Request:` ticket, or child of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373), gets a `needs-decision` for `miketullo95` asking whether to add the provider, unless the ticket already has his `## Decision: approved` comment. Until it does, don't assign it or tag it `claude`, even if the user asks: say why and offer to raise the decision instead. The rule and the approval format are in `references/routing.md` ("New embed providers").
 | `Feature Request:` | A new-functionality ask, typically as raised by a stakeholder, before it's fully scoped. |
 | `UX Research:` / `UX Discovery:` / `UX Evaluation:` | Research-workstream tickets — study prep, participant outreach, interview scheduling, evaluating an existing flow. |
 | `Design:` | A visual/design deliverable with no dev work implied (mockups, icon sets, etc.). |
@@ -416,6 +414,8 @@ When grooming an existing stub ticket, check the title along with the other fiel
 | `Migration Tool:` | Work on content migration tooling (CSV import/export, etc.). |
 | `Community Spotlight:` | A specific Community Spotlight content ticket. |
 | `YS-Email:` | YaleSites training or release email tickets. |
+
+**New embed providers need Michael's approval.** Any `Embed:` or `Embed Request:` ticket, or child of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373), gets a `needs-decision` for `miketullo95` asking whether to add the provider, unless the ticket's Issue Type is Bug (a bug on an embed that already ships) or the ticket already has his `## Decision: approved` comment. Until it does, don't assign it or tag it `claude`, even if the user asks: say why and offer to raise the decision instead. The rule and the approval format are in `references/routing.md` ("New embed providers").
 
 **`Hotfix:` stacks; the rest don't.** Every other prefix in the table is one-per-ticket. `Hotfix:` is the exception: it goes in front of whatever prefix the ticket already earned, so you get `Hotfix: Bug: ...` or `Hotfix: View: ...`. This matters because Priority is a Projects v2 field, which means it doesn't appear in search results, notification emails, or most board views. The title prefix is the only place the urgency is visible to someone skimming. Whenever Priority comes back as Hotfix, prepend it. Reference examples: YaleSites-Internal #1729, #1730, #1732, #1381.
 

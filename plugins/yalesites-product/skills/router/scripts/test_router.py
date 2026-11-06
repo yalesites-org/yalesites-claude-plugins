@@ -189,6 +189,13 @@ class LaneFloorTest(unittest.TestCase):
         self.assertEqual(sorted(nums(under[0])), [63, 64])
         self.assertEqual(sorted(it["node"]["number"] for it in held), [60, 61, 62])
 
+    def test_embed_bugs_are_not_held(self):
+        bug = board_item(65, title="Embed: Vimeo player cropped on mobile", issue_type="Bug")
+        self.assertFalse(router.is_embed(bug["node"], 1373))
+        under, held = router.lane_report([bug], {"dblanken-yale": self.DAVE}, 1373, approved_embeds=set())
+        self.assertEqual(held, [])
+        self.assertEqual(nums(under[0]), [65])
+
     def test_brief_lists_short_lane_and_candidates(self):
         lane = {"handle": "laura-johnson", **self.LAURA, "to_do": 1,
                 "candidates": [(board_item(70, milestone=DEC), "Bug")]}
