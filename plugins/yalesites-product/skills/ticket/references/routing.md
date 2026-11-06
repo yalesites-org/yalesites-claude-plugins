@@ -90,12 +90,42 @@ Priority is also how every agent orders its work, whoever runs it. When an agent
 3. **The current milestone**: the open dated release milestone (the `MM-DD-YY ... Release` shape in the ticket skill's "Milestone") with the soonest due date. Hotfix milestones never count here, since they are due a week after the hotfix and would sort ahead of the release; step 2 already covers them. Order it `High` then `Medium` then `Low`. A ticket with no Priority goes last, after `Low`, since nobody has groomed it yet.
 4. **The next milestone**: the dated release milestone after the current one, in the same order, only once the current one has nothing left it can take: every ticket still open in it is assigned to someone else, blocked, waiting on a `needs-decision`, or already has an open PR. During an RC window, next-release work doesn't merge to `develop`.
 5. **Never a ticket with no milestone, except a `Hotfix`** (step 2). A person schedules it first.
+6. **Never a new embed provider without its approval comment** (see "New embed providers"), whatever its Priority, milestone, or labels.
 
 Ties go to lower Risk (a board field since 2026-10-28). When Risk isn't set, the older ticket wins.
 
 **The team cap.** Every open yalesites-project PR uses one of Pantheon's 25 multidevs, and the whole team shares them. When 25 or more yalesites-project PRs are open, agents stop taking new work and only do rework and `Hotfix` tickets. A person can wave through something that's clearly urgent. It's a soft cap on purpose: it doesn't matter whether those PRs are waiting on review, approved, or in rework. A closed PR's multidev lives until the next deploy, so the open count can run a little low.
 
 This order is the rule for every agent. Change it here, not in one person's agent setup.
+
+## Lane floors
+
+Each developer should always have work ready to start. A lane's floor is the fewest tickets that person should have in `To Do`, assigned to them, at any time. In progress and In review don't count: the floor is about what they can pick up next. Communications tickets never count toward a floor and are never candidates.
+
+| Person | Handle | Floor (To Do) | Approves top-ups | Areas |
+|---|---|---|---|---|
+| Laura | `laura-johnson` | 2 | `miketullo95` | `CSV`, `import`, `export`, `migration`, `dashboard`, `manage content`, `people`, `taxonomy`, `profile` |
+| Dave | `dblanken-yale` | 5 | `miketullo95` | |
+
+- **The router flags, a person assigns.** When a lane is under its floor, the brief lists it under "Lane floors" with up to 5 candidate tickets. The approver checks fit (skills, hours, context) and tops up the lane by assigning a ticket to that person and moving it to `To Do`. The router never assigns a candidate.
+- **Candidates** are open YaleSites-Internal tickets on the board, in `Backlog` or `To Do`, with no assignee and a Priority set. They skip epics, Communications, feature parents (anything with sub-issues), `forming`, `needs-decision`, `follow-up`, anything blocked by an open ticket, and anything with an open PR. Embed tickets without an approval are left out too (see "New embed providers").
+- **Order.** A lane with no Areas sorts like the agent pickup order: `Hotfix` first, then by milestone due date (no milestone last), Priority, and Risk, oldest first on a tie. A lane with Areas sorts for fit instead, in four groups, each in pickup order:
+  1. Bugs.
+  2. Features whose title matches one of the person's Areas (title keywords, any case).
+  3. `Low` Priority work.
+  4. Everything else.
+- **Laura's lane.** Laura is external and works about 8 hours a week, so her tickets move week to week. Give her bugs first, then features in areas she has built before (her Areas), then work that is `Low` Priority or well siloed: something that can sit half-done for a week without blocking anyone. The router can't tell siloed work from its title, so the approver checks that. Add an Area when she builds something new.
+- **Why Friday matters.** The router runs every weekday, so a short lane shows on Friday's brief in time to top it up before Monday. Monday's agenda counts the lanes under their floor.
+- Change a floor or an approver here. Remove a row to stop watching that lane.
+
+## New embed providers
+
+Every new Embed block provider needs `miketullo95`'s explicit approval before anyone builds it. Each one adds a third party that runs on every YaleSites site that uses it, so it is a platform call, not a grooming call.
+
+- **Which tickets.** Any ticket titled `Embed:` or `Embed Request:`, or that is a sub-issue of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373). Bugs on embeds that already ship are not covered.
+- **How to ask.** Raise a `needs-decision` for `miketullo95` on the ticket (see the blocks below), asking whether to add the provider.
+- **How it's approved.** `miketullo95` replies `## Decision: approved, decided by Michael on <date>. Reason: ...` and removes `needs-decision`. That comment is the approval. Nothing else counts: not a Priority, a milestone, the `claude` label, or a Status of `To Do`.
+- **Until then.** No `claude` label, no assignee, and no agent or lane floor picks it up. The router checks for the approval comment before it lists an embed ticket as a lane floor candidate.
 
 ## Waiting on a person: `needs-decision` and `follow-up`
 
@@ -157,6 +187,8 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 | Add or remove `awaiting-go` | Kept on exactly the gated children waiting on a go, so the board's Gates view can find them. Removed once a child moves on or is held |
 | Comment on the brief issue | Once per run |
 
+Lane floor candidates are suggestions in the brief, not writes. The router never assigns them.
+
 The router never closes, relabels, or reassigns anything else, never touches a PR, never starts an agent, and never @-mentions anyone in the brief (it writes handles in backticks so nobody gets a notification storm). Nudges happen in person or in the Monday meeting.
 
 ## Monday meeting
@@ -172,6 +204,7 @@ Monday is the dev meeting. Communications work (Issue Type `Communications`) goe
 | 3 | Intake | **Monday** view, Stage `Intake` | New `forming` tickets and new tickets with no priority: groom now, park, or decline |
 | 4 | Features | The brief (Mondays) | Release-planning weeks only: feature parents by milestone and progress, and which we take on next |
 | 5 | Gates | **Monday** view, Stage `Gate` | Phases waiting on a gatekeeper's go (`awaiting-go`) |
+| 6 | Lane floors | The brief | Developers under their To Do floor (see "Lane floors"), with candidates to top them up |
 
 ### The Stage field
 
