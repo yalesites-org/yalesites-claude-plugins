@@ -134,6 +134,22 @@ class VerdictTest(unittest.TestCase):
         """)
         self.assertEqual(out, {"quiet": [["o/r#2", 0, True, "Two"]], "verdict": None})
 
+    def test_units_with_no_pr_group_by_issue_and_need_no_ruling(self):
+        packet = {"rulings": False,
+                  "questions": [{"issue": {"ref": "o/i#5"}}, {"issue": {"ref": "o/i#6"}}, {"issue": {"ref": "o/i#5"}}],
+                  "units": [{"issue": {"ref": "o/i#5", "title": "Five"}}, {"issue": {"ref": "o/i#6"}, "short": "Six"}]}
+        out = run(packet, {"answers": [answer(None)] * 3}, [], """
+            groups = buildGroups();
+            out = { groups: groups.map(g => [g.key, g.qs, g.noPr, g.label]), quiet: quietGroups().length };
+        """)
+        self.assertEqual(out, {"groups": [["o/i#5", [0, 2], True, "Five"], ["o/i#6", [1], True, "Six"]], "quiet": 0})
+
+    def test_pr_units_still_match_by_pr_ref(self):
+        packet = {"questions": [{"pr": {"ref": "o/r#2"}}, {"pr": {"ref": "o/c#9"}}],
+                  "units": [{"pr": {"ref": "o/r#1"}}, {"pr": {"ref": "o/r#2"}, "extraPrs": ["o/c#9"], "issue": {"ref": "o/i#1"}}]}
+        out = run(packet, {}, [], "out = buildGroups().map(g => [g.key, g.qs, g.noPr]);")
+        self.assertEqual(out, [["o/r#2", [0, 1], False]])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -161,7 +161,9 @@ nothing. Set `"rulings": false` on those packets. The board then drops the per-P
 the last page, recaps the answers alone as "Your answers", sends with "Send answers", says
 "item" instead of "PR" in its labels, and writes `"verdicts": null`. Options on such a board
 need no `verdict`. Leave the field off (rulings on) for any PR review: there, an option without
-a `verdict` still makes the reviewer pick a ruling, on purpose.
+a `verdict` still makes the reviewer pick a ruling, on purpose. Write `units` on such a board
+too, one per ticket with `issue` and no `pr`, and tag each question with that ticket's
+`issue.ref` (see `units` below), so every ticket gets its own lead-in and "item" label.
 
 **Every question ends with a "Decide later" option:** `{ "value": "defer", "label": "Decide later", "detail": "Raise it as needs-decision on the PR so it waits in your queue." }`. A `defer` answer is not a ruling. It becomes a `needs-decision` block on the PR, deciding by the reviewer, per "Open calls go on the record" in `SKILL.md`. Play it back as "Deferred: raising a decision" so the reviewer can still change it.
 
@@ -223,12 +225,18 @@ and what the PR does, then lists the plain question (`ask`) of every question in
 The same facts fold into an "About" line on each question. Write one unit per PR, or per set of
 PRs reviewed together. Every packet gets `units`, a single-PR one included.
 
+On a board with no PRs (backlog cleanup, planning, usually `"rulings": false`), write one unit
+per ticket with `issue` and leave `pr` off. Give each question the same `issue` object (at least
+its `ref`), and the question joins the unit whose `issue.ref` matches. The lead-in and the About
+line then show the ticket in place of a PR, and the unit's group never asks for an
+Approve / Request changes ruling, even with rulings on.
+
 | Field | What goes in it |
 |---|---|
 | `short` | Two to four words for the header chip and the lead-in (`LB resize edge`, `Audio transcript`). The chip shows it next to the short ref |
 | `issue` | `ref`, `url`, and `title` of the ticket the PR closes. Leave it off if there is none, and say so in `change` |
 | `ask` | One to three sentences: what the ticket asks for and why, in the reviewer's terms. Not the acceptance criteria list (a `text` block carries that), the point of the ticket |
-| `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly |
+| `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly. Required on a PR review; leave it off only on a no-PR board, where the question's `issue.ref` finds the unit instead |
 | `extraPrs` | Optional. Refs of the other PRs in the same unit (`yalesites-org/atomic#545`). A question tagged with one of them joins this unit's group |
 | `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised |
 | `status` | Optional. The drive-it result in one line (`8 pass, 2 fail, 1 ask`), or why there was no run |
@@ -442,7 +450,7 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   Changing any answer for a PR drops a ruling picked that way, so it always reflects the final
   answers. That is the Step 6 ruling for that PR. Do not ask for it again. A unit in
   `units` with no questions gets an entry too, always with `inferred: false`, because the board
-  makes the reviewer pick it rather than guessing.
+  makes the reviewer pick it rather than guessing. A unit with no `pr` gets no entry.
 - **Do not wait for a playback confirmation.** The board's last page already showed every ruling
   and what sending would post, so go straight on to Step 4 and post. List the rulings in Step 10's
   report instead, so the transcript still has them.
