@@ -59,9 +59,11 @@ while [ -n "$d" ] && [ "$d" != "/" ]; do
 done
 [ -n "$repo" ] || { echo "error: not inside a YaleSites checkout (no web/profiles/custom/yalesites_profile above $PWD)" >&2; exit 1; }
 
-# Hooks and non-interactive shells do not inherit the export; ask zsh (same as ys-docker-exec).
+# Hooks and non-interactive shells do not inherit the export. Ask an interactive zsh, since a
+# plain `zsh -c` skips ~/.zshrc, where the export usually lives. Keep only the last line, in
+# case ~/.zshrc prints something of its own.
 tool=${YALESITES_LOCAL_DOCKER_TOOL:-}
-[ -z "$tool" ] && tool=$(zsh -c 'printf %s "$YALESITES_LOCAL_DOCKER_TOOL"' 2>/dev/null)
+[ -z "$tool" ] && tool=$(zsh -ic 'printf "\n%s" "$YALESITES_LOCAL_DOCKER_TOOL"' 2>/dev/null </dev/null | tail -n 1)
 if [ "$tool" = ddev ]; then
   root=/var/www/html
   db='mysql://db:db@db/db'

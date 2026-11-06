@@ -13,8 +13,7 @@ substitute: `lando ssh -c` becomes `ddev exec`, `lando info` becomes `ddev descr
 `lando phpunit` has no equivalent (always pass a path), container root `/app` becomes
 `/var/www/html`, `SIMPLETEST_DB=mysql://db:db@db/db`, `SIMPLETEST_BASE_URL=http://localhost`.
 `ddev exec` runs a real shell, so the no-shell traps below do not apply (the `env` form
-still works). `scripts/run-kernel-test.sh` and `~/.claude/scripts/ys-docker-exec` do the
-switch for you.
+still works). `scripts/run-kernel-test.sh` does the switch for you.
 
 ## Use the bundled script
 
