@@ -898,7 +898,7 @@ Build the right-hand column as forward drafts during the RC period wherever prod
 
 **The list.** Show the user every ticket from Step 1 with its node(s), what Step 2 changed, which screenshots are placed and which are still owed, and the Step 4 pieces still to do at publish time. Tickets held in Step 2 are listed as held, with the reason. Then ask for approval of the batch in chat, and say in the same ask that each published ticket's row in the publish ticket gets ticked as it goes. Nothing publishes or gets ticked without it, and a held ticket stays unpublished even if the rest are approved. Mark any held ticket that shares a node with approved ones, and say whether its sections come out first or the whole node waits (sub-step 4 below).
 
-**The publish.** In one logged-in browser (the `pw` wrapper from `yalesites-page-build`, Step 2, with the user doing CAS), per node:
+**The publish.** In one logged-in browser (the `pw` wrapper from `yalesites-page-build`, Step 2, reusing the saved login or with the user doing CAS), per node:
 
 1. Do the publish-time pieces from Step 4 on the staged draft, Save as Draft, and verify them on `/node/<nid>/latest` (or `/node/<nid>` for a new node).
 2. Open the **Tasks** sidebar. It must read `Status: Draft` and offer **Publish**. Check **Use custom log message** and write `PUBLISH for <release>: <what> (<owner/repo#N>)`, then select **Publish**. The moderation control at the top of a draft page (**Change to: Published**, **Apply**) does the same thing without a log message, so prefer the sidebar.
