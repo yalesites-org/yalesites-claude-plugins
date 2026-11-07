@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.9.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-dev-v0.8.0...yalesites-dev-v0.9.0) (2026-11-07)
+
+
+### Features
+
+* **phpunit-drupal:** run tests in ddev when YALESITES_LOCAL_DOCKER_TOOL=ddev ([#93](https://github.com/yalesites-org/yalesites-claude-plugins/issues/93)) ([67e3890](https://github.com/yalesites-org/yalesites-claude-plugins/commit/67e3890ae5e5051fd3664dd472ceaa1c77273bb1))
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([c76aa14](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c76aa14fd886089b930721351071ee204e33dbc0))
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([af15aae](https://github.com/yalesites-org/yalesites-claude-plugins/commit/af15aaed25a69c1012328fd8b7eb5efab8fad188)), closes [#86](https://github.com/yalesites-org/yalesites-claude-plugins/issues/86)
+
 ## [0.8.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-dev-v0.7.0...yalesites-dev-v0.8.0) (2026-10-29)
 
 
