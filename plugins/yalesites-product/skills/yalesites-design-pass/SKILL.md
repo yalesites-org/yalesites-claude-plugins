@@ -94,6 +94,42 @@ attached, or Claude Design invents its own Yale.
   components are the nearest starting point (Media Grid for a carousel, Calendar for an event
   view), so the approaches build from them instead of from scratch.
 
+## Atomic design: build from the library, call out what is new
+
+component-library-twig is organized by atomic design, and every design this skill produces is
+too. The levels are its `components/` folders on `develop`:
+
+| Level | CL folder | Examples |
+|---|---|---|
+| Tokens | `00-tokens` (and the tokens repo) | colors, spacing, type scale, theme slots |
+| Atoms | `01-atoms` | controls (buttons), typography, images, forms, lists, divider, date-time |
+| Molecules | `02-molecules` | cards, callout, accordion, tabs, office-hours, pager, link-group |
+| Organisms | `03-organisms` | calendar, card-collection, galleries, tiles, site-header |
+
+A block can be a molecule (Office Hours, Callout) or an organism (Calendar, Card Collection).
+Say which, and why: an organism is made of molecules, a molecule of atoms.
+
+Read the folder listing fresh each time (`gh api repos/yalesites-org/component-library-twig/contents/components/<level>?ref=develop`),
+since it changes as the library grows.
+
+**The rule is reuse first.** Every piece of a design is either an existing CL component, an
+existing one with a change (a new variant, prop or modifier), or new. New is fine when it is
+earned, but it is never silent:
+
+- **Inventory every design.** For each approach and each iteration, list its parts by level,
+  each marked **existing** (with a Storybook link), **changed** (what changes, and every other
+  component that uses it), or **new**.
+- **Call out anything new or changed, loudly.** On the board, in the brief, and in the handoff
+  spec, each new or changed piece gets its level, why an existing component could not do the
+  job (name the one you considered), and where else it could be reused. A new or changed
+  **atom** or **token** carries the biggest blast radius, since everything above it inherits
+  it: say so, and size it with `yalesites-portfolio` when it touches a component sites use.
+- **Prefer the lowest-impact path.** Composing existing atoms and molecules beats a new
+  molecule; a variant of an existing molecule beats a near-duplicate. When two approaches look
+  equally good, recommend the one with fewer new pieces.
+- **Name the home.** Every new piece gets its CL folder (`01-atoms/<name>`,
+  `02-molecules/<name>`, `03-organisms/<name>`), so the developer does not have to decide.
+
 ## Before round 1: the gate
 
 Read the ticket, its parent Feature (the `parent:` line in the `yalesites:agent` block), and,
@@ -126,7 +162,9 @@ reviewer's notes to the brief rather than sending them separately:
   so the approaches match how the community actually builds.
 - Constraints: allowed regions with their widths (see `references/rounds.md`), themes it must
   hold up in, accessibility floor (WCAG 2.2 AA, 4.5:1 text, no state by color alone, visible
-  focus), and the nearest existing components.
+  focus), and the nearest existing components with their atomic level.
+- Reuse: build from existing atoms and molecules; any new or changed component must be named
+  and justified (see "Atomic design" above).
 - Links: the published Storybook stories for the nearest components, and the CL and tokens
   repos. All public.
 - Placeholder content: invent realistic Yale-flavored placeholder titles and dates. Never copy
@@ -141,10 +179,14 @@ not). Not color swaps, not the same layout at two sizes. Each approach gets:
 - A name a person can say out loud ("Filmstrip", "Quiet dots"), never "A" or "B".
 - One desktop mockup (1440) and one phone mockup (360) in the widest region it is allowed in.
 - Two or three lines: what it is good at, who it serves (an archetype), and its main risk.
+- Its component inventory (see "Atomic design" above), with a one-line cost: "Built from Card
+  and Pager; adds 1 new molecule (Filmstrip), changes 1 atom (Button: icon-only size)". The
+  cost of new pieces is part of what the reviewer is choosing between.
 
 Board: one question, "Which approach do we take forward?", with each approach as an option and
 a `compare` block per approach, our recommendation first, plus "Combine" (notes say how) and
-"None of these" (notes say why). A UX ticket adds one question per open product choice the
+"None of these" (notes say why). Put each approach's inventory line in its option text, so new
+atoms, molecules and organisms are visible before the pick. A UX ticket adds one question per open product choice the
 approaches do not already settle. Board mechanics are in `references/rounds.md`.
 
 ## Round 2: iterate the pick
@@ -160,8 +202,14 @@ will need it:
 - The editor side: the block form in Layout Builder, field labels and help text a New Recruit
   understands.
 
+- The inventory, updated: iterating often turns a "new" piece back into an existing one with a
+  variant, or the reverse. Say what moved.
+
 Board: one question per area that still needs a call, each with the screenshots as a
-`compare` block, and a closing question "Sign off / Iterate again / Back to approaches".
+`compare` block, then one question per new or changed component ("New molecule: Filmstrip.
+Keep it new / Use <existing> with a variant / Rethink"), with the existing one it was weighed
+against shown next to it. Close with "Sign off / Iterate again / Back to approaches". Sign-off
+means every new and changed component has been accepted on its own question.
 Iterate as many times as the reviewer asks; archive each round's `answers.json` before the next.
 
 ## Round 3: handoff
@@ -169,8 +217,9 @@ Iterate as many times as the reviewer asks; archive each round's `answers.json` 
 After sign-off, write two things (templates in `references/handoff.md`):
 
 1. **Handoff spec**, shaped like the Office Hours one in yalesites-org/YaleSites-Internal#1710:
-   where each piece lands (which ticket), the structure and stack rule, theming, the states,
-   what to check first and report in the PR, plus the mockup zip.
+   where each piece lands (which ticket), the component inventory with every new and changed
+   atom, molecule and organism called out and its CL folder named, the structure and stack
+   rule, theming, the states, what to check first and report in the PR, plus the mockup zip.
 2. **Draft Storybook docs page** for the component: when to use it, anatomy, states with
    contrast, accessibility, regions and widths, theming, block form and help text, do and
    don't. The developer turns it into the component's `.mdx` in component-library-twig. Today
@@ -190,6 +239,8 @@ The ticket's acceptance criteria often ask for each answer as a comment; draft t
 - On `claude-design-other`, never sends anything beyond `brief.md`.
 - Never ships one approach as "the" design. Round 1 always offers a real choice.
 - Region widths are a gate, not a nice-to-have.
+- Never adds a new or changed atom, molecule, organism or token without calling it out by name
+  and level, with the existing component it was weighed against.
 - Write as "we", no em dashes, `owner/repo#N` refs, per `ticket/references/github-writing.md`.
 
 ## Orchestrator

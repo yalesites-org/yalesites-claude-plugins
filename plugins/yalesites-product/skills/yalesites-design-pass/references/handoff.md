@@ -21,9 +21,26 @@ in the zip in the next comment. <dev>, this is ready to build in <dev ticket ref
 **Where each piece lands**
 - **<owner/repo#N> (<what>):** <one or two lines of the decision that ticket needs>.
 
+**New and changed components**
+<Every new or changed piece, or "None: built entirely from existing components.">
+- **New molecule: <Name>** (`02-molecules/<name>`). <Why <existing component> could not do it>. Reusable for <other blocks>.
+- **Changed atom: <Name>** (`01-atoms/<name>`). <What changes>. Also used by <components>, so check them in the PR.
+
 **Check these first, and report back in the PR**
 1. <the thing most likely to be wrong, e.g. a theme the library has not supported before>
 2. <a width or token pairing we did not measure>
+
+<details><summary><b>Component inventory</b></summary>
+
+The <component> is a <molecule | organism> in `<0N-level>/<name>`.
+
+| Level | Component | Status | Storybook |
+|---|---|---|---|
+| Organism | <Name> | new | n/a |
+| Molecule | Card | existing | <link> |
+| Atom | Button | changed: icon-only size | <link> |
+| Token | <slot> | existing | |
+</details>
 
 <details><summary><b>Structure and stack rule</b></summary>
 The reference files are mockups, not production code. Rebuild them in component-library-twig
@@ -56,17 +73,23 @@ component-library-twig docs pages today (for example `03-organisms/calendar/cale
 canvas, controls and a props table. Those stay; this adds the parts a future maintainer needs
 and cannot read off the code. Write it as MDX the developer can drop next to the component's
 stories. Use plain prose and tables. Show states with the real stories (`<Canvas of={...} />`),
-not with images, so the page stays true as the component changes.
+not with images, so the page stays true as the component changes. Pages attached to a stories
+file always use `name="Overview"`, per component-library-twig's
+`components/00-introduction/storybook-guide.mdx`.
 
 ```mdx
 import { Meta, Canvas, Controls } from '@storybook/blocks';
 import * as Stories from './<component>.stories';
 
-<Meta of={Stories} name="Docs" />
+<Meta of={Stories} name="Overview" />
 
 # <Component>
 
 <One paragraph: what it is and the problem it solves for an editor.>
+
+## Built from
+<Its atomic level (molecule or organism), then the atoms and molecules it composes, each linked
+to its own docs page. Any piece added for this component says so.>
 
 ## When to use it
 - Use it for <case>. Use <other component> instead when <case>.
@@ -116,3 +139,6 @@ import * as Stories from './<component>.stories';
 
 Every number in the States table comes from the signed-off mockups. A contrast ratio that fails
 AA is a token pairing problem to fix before handoff, not a note to leave in the docs.
+
+A new atom or molecule in the inventory gets its own short docs page too, in its own folder, so
+the next block that reuses it can find it.
