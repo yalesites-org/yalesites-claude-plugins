@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Build and run the correct PHPUnit invocation for a YaleSites module inside Lando.
+# Build and run the correct PHPUnit invocation for a YaleSites module inside the local
+# container. YALESITES_LOCAL_DOCKER_TOOL=ddev -> ddev exec; unset or anything else -> Lando.
+# Only the chosen tool is ever invoked.
 #
 # This exists because the command itself is the hard part, not the testing. Four
 # things silently break the obvious version: `lando ssh -c` execs without a shell
@@ -29,7 +31,7 @@ dry=0
 suite=Kernel
 filter=""
 
-usage() { sed -n '2,26p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
+usage() { sed -n '2,28p' "$0" | sed 's/^# \{0,1\}//'; exit "${1:-0}"; }
 
 while getopts ':nuf:h' opt; do
   case "$opt" in
@@ -57,11 +59,27 @@ while [ -n "$d" ] && [ "$d" != "/" ]; do
 done
 [ -n "$repo" ] || { echo "error: not inside a YaleSites checkout (no web/profiles/custom/yalesites_profile above $PWD)" >&2; exit 1; }
 
-# /app is the in-container docroot; host paths are irrelevant to the command.
+# Hooks and non-interactive shells do not inherit the export. Ask an interactive zsh, since a
+# plain `zsh -c` skips ~/.zshrc, where the export usually lives. Keep only the last line, in
+# case ~/.zshrc prints something of its own.
+tool=${YALESITES_LOCAL_DOCKER_TOOL:-}
+[ -z "$tool" ] && tool=$(zsh -ic 'printf "\n%s" "$YALESITES_LOCAL_DOCKER_TOOL"' 2>/dev/null </dev/null | tail -n 1)
+if [ "$tool" = ddev ]; then
+  root=/var/www/html
+  db='mysql://db:db@db/db'
+  baseurl=http://localhost
+else
+  tool=lando
+  root=/app
+  db='mysql://pantheon:pantheon@database/pantheon?module=mysql'
+  baseurl=http://appserver
+fi
+
+# $root is the in-container docroot; host paths are irrelevant to the command.
 rel="web/profiles/custom/yalesites_profile/modules/custom/$module/tests/src/$suite"
 [ -d "$repo/$rel" ] || echo "warning: $rel does not exist in this checkout" >&2
 
-target="/app/$rel"
+target="$root/$rel"
 [ -n "$testfile" ] && target="$target/$testfile"
 
 if [ ! -x "$repo/vendor/bin/phpunit" ]; then
@@ -71,9 +89,9 @@ fi
 # Unit tests need no database; kernel tests do. Dropping the env prefix entirely
 # for Unit keeps the emitted command honest about which suite depends on the
 # container DB.
-inner="php /app/vendor/bin/phpunit -c /app/phpunit.xml $target"
+inner="php $root/vendor/bin/phpunit -c $root/phpunit.xml $target"
 if [ "$suite" != "Unit" ]; then
-  inner="env SIMPLETEST_DB=mysql://pantheon:pantheon@database/pantheon?module=mysql SIMPLETEST_BASE_URL=http://appserver $inner"
+  inner="env SIMPLETEST_DB=$db SIMPLETEST_BASE_URL=$baseurl $inner"
 fi
 
 # Deliberately unquoted: `lando ssh -c` execs without a shell, so quotes would be
@@ -84,12 +102,13 @@ fi
 inner="$inner --testdox"
 
 if [ "$dry" = "1" ]; then
-  printf 'lando ssh -c "%s"\n' "$inner"
+  [ "$tool" = ddev ] && printf 'ddev exec "%s"\n' "$inner" || printf 'lando ssh -c "%s"\n' "$inner"
   exit 0
 fi
 
 echo "repo:  $repo" >&2
-echo "runs:  lando ssh -c \"$inner\"" >&2
+[ "$tool" = ddev ] && echo "runs:  ddev exec \"$inner\"" >&2 || echo "runs:  lando ssh -c \"$inner\"" >&2
 echo "note:  expect 1-7 minutes; exit 1 with all tests green is a deprecation tally, not a failure" >&2
 cd "$repo" || exit 1
+if [ "$tool" = ddev ]; then exec ddev exec "$inner"; fi
 exec lando ssh -c "$inner"
