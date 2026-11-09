@@ -562,7 +562,8 @@ SHA=$(git -C $C/yale-ui-cl rev-parse refs/pr/<N>)
 W=$C/yale-ui-cl-<N>-${SHA:0:7}
 if [ -e "$W" ]; then
   P=$(cat "$W/.storybook.pid" 2>/dev/null)
-  if [ -n "$P" ] && kill -0 "$P" 2>/dev/null; then echo "STOP: $W is in use (Storybook pid $P)"
+  if [ -n "$P" ] && ps -p "$P" -o command= 2>/dev/null | grep -q "storybook dev"; then
+    echo "STOP: $W is in use (Storybook pid $P)"
   else echo "STOP: $W exists with no live Storybook"; fi
   exit 1
 fi
@@ -576,8 +577,13 @@ read each other's SHA.
 
 A worktree per PR head keeps two runs (a live review and a prep run, or two units in one prep
 run) from switching each other's branch, so the block stops before `worktree add` when `$W`
-already exists. On "in use", another run owns it: wait for it or skip the unit, and never share
-a worktree. On "no live Storybook", it is left over from a run that died: remove it with
+already exists. One rule decides what happens to an existing worktree, here and in U3: the pid
+in `.storybook.pid` is the test. If that process is still running and its command line is
+`storybook dev`, the worktree is in use. Another run owns it, or a run died and left its
+Storybook running, and the skill cannot tell those apart, so it never stops that process and
+never shares the worktree: wait for it or skip the unit, and name the path and pid in the
+hand-off so the user can stop an orphan themselves. If the pid file is missing, or its process is
+gone or is something else, the worktree is left over from a run that died: remove it with
 `git -C $C/yale-ui-cl worktree remove --force "$W"` and run the block again. On a SHA mismatch,
 stop: the run would test the wrong code. If `npm ci` fails, hand off with "install failed" and
 the last lines of its output.
@@ -587,10 +593,20 @@ the last lines of its output.
 Use a free port, never 6006: that is the port the user's own `npm run storybook` takes, and a
 reviewer often has one running.
 
+Shell variables do not carry from one Bash tool call to the next, so this block and U3 set `W`
+to the literal worktree path from U0, and the port goes in `$W/.storybook.port` for later steps
+to read. Use the literal port in U2's URLs. The run folder is the one D3 names under
+"Screenshots"; create it here, since the log redirect fails if it does not exist yet.
+
 ```bash
+W=~/.claude/yalesites/pr-feedback/checkouts/yale-ui-cl-<N>-<sha7>
+R=~/.claude/yalesites/pr-feedback/runs/yale-ui-cl-<N>-<YYYY-MM-DD>-<HHMM>
+mkdir -p "$R"
 PORT=$(python3 -c 'import socket; s=socket.socket(); s.bind(("",0)); print(s.getsockname()[1])')
-cd $W && nohup npx storybook dev -p $PORT --ci --no-open > <run folder>/storybook.log 2>&1 &
-echo $! > $W/.storybook.pid
+echo "$PORT" > "$W/.storybook.port"
+cd "$W" || exit 1
+nohup npx storybook dev -p "$PORT" --ci --no-open > "$R/storybook.log" 2>&1 &
+echo $! > "$W/.storybook.pid"
 ```
 
 Run it as a background job and poll `http://localhost:$PORT/index.json` until it returns 200
@@ -644,16 +660,23 @@ reviewer can open it. A local Storybook is gone after the run, so never link `lo
 Stop the Storybook server, remove the worktree, and close the browser sessions:
 
 ```bash
-kill $(cat $W/.storybook.pid) 2>/dev/null; pkill -f "storybook dev -p $PORT"
-git -C $C/yale-ui-cl worktree remove --force $W && git -C $C/yale-ui-cl worktree prune
+C=~/.claude/yalesites/pr-feedback/checkouts
+W=$C/yale-ui-cl-<N>-<sha7>
+[ -d "$W" ] || { echo "STOP: no worktree at $W"; exit 1; }
+P=$(cat "$W/.storybook.pid" 2>/dev/null); PORT=$(cat "$W/.storybook.port" 2>/dev/null)
+[ -n "$P" ] && [ -n "$PORT" ] || { echo "STOP: no pid or port recorded in $W, stop Storybook by hand"; exit 1; }
+if ps -p "$P" -o command= | grep -q "storybook dev -p $PORT "; then pkill -P "$P"; kill "$P"; fi
+pkill -f "storybook dev -p $PORT "   # the node child npx started, on this run's port only
+git -C $C/yale-ui-cl worktree remove --force "$W" && git -C $C/yale-ui-cl worktree prune
 npx -y @playwright/cli@0.1.22 -s=<session> close
 ```
 
-Confirm nothing listens on `$PORT` any more (`lsof -iTCP:$PORT -sTCP:LISTEN` prints nothing)
+Never run the `pkill` without a port: `storybook dev -p ` alone matches every Storybook on the
+machine, including the user's own on 6006. Confirm nothing listens on `$PORT` any more (`lsof -iTCP:$PORT -sTCP:LISTEN` prints nothing)
 and the worktree is gone (`git worktree list`). Keep the skill's `yale-ui-cl` clone and its
-`node_modules` cache; only the per-PR worktree goes. A run that died leaves a worktree with a
-`.storybook.pid` behind: the next run kills that process if its command line is still
-`storybook dev`, then removes the worktree. Report cleanup in one line. Leave the screenshots,
+`node_modules` cache; only the per-PR worktree goes. A run that died skips this step and leaves
+its worktree behind; the next run's U0 handles it by the rule there: removed when its Storybook
+is gone, left alone and named to the user when it is still running. Report cleanup in one line. Leave the screenshots,
 clips, `results.md`, and `storybook.log` in the run folder.
 
 ## Handing results to the rest of the skill
