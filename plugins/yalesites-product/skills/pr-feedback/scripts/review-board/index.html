@@ -79,6 +79,14 @@
   .call .notes-toggle { border: none; background: none; color: var(--accent); cursor: pointer; padding: 0; font-size: 14px; margin-top: 14px; }
   /* Question header in the main column. */
   .q-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+  .q-subject { font-size: 17px; font-weight: 500; margin: 10px 0 0; line-height: 1.4; }
+  .q-subject a { color: inherit; text-decoration: none; }
+  .q-subject a:hover { text-decoration: underline; }
+  .q-subject .ref { color: var(--muted); font-weight: 400; margin-right: 6px; }
+  .q-subject.missing { color: var(--faint); font-style: italic; font-weight: 400; }
+  .gist { background: var(--surface); border: 1px solid var(--border); border-left: 4px solid var(--accent); border-radius: 12px; padding: 14px 18px; margin: 0 0 16px; font-size: 18px; line-height: 1.5; }
+  .gist .g-head { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+  .gist p { margin: 0; }
   h2.q-title { font-size: 24px; font-weight: 600; margin: 8px 0 12px; line-height: 1.3; }
   .brief { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 18px; margin: 0 0 22px; }
   .brief .b-head { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
@@ -272,10 +280,12 @@ async function init() {
   state = saved && saved.answers?.length === packet.questions.length
     ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
   groups = buildGroups();
-  rulingGroups = [...groups, ...quietGroups()];
+  // A board that is not a PR review (backlog cleanup, planning, docs calls) sets
+  // "rulings": false. It keeps the answers and drops the per-PR Approve / Request changes step.
+  rulingGroups = hasRulings() ? [...groups, ...quietGroups()] : groups;
   const pr = packet.pr || {};
   // One short title. With a single PR it is the PR; a batch says how many PRs it holds.
-  const title = rulingGroups.length > 1 ? `${packet.shortTitle || 'PR review'} · ${rulingGroups.length} PRs` : (packet.shortTitle || packet.title);
+  const title = rulingGroups.length > 1 ? `${packet.shortTitle || (hasRulings() ? 'PR review' : 'Review')} · ${rulingGroups.length} ${noun()}s` : (packet.shortTitle || packet.title);
   $('#h-title').textContent = title;
   $('#h-title').title = packet.title;
   // The long subtitle (environments, legends) moves behind Details.
@@ -291,6 +301,8 @@ async function init() {
 
 // Questions grouped by the PR (unit) they come from, in packet order. A question finds its
 // unit by its PR ref, or one of the unit's extraPrs (a multi-repo change reviewed as one).
+// A unit on a board with no PRs (backlog cleanup, planning) carries only `issue`; its key is the
+// issue ref and a question finds it by `q.issue.ref`.
 let groups = [];
 // Mid-tone hues that read on both the light and dark surfaces.
 const PR_COLORS = ['#3b82d6', '#9b5de5', '#e07a2e', '#1fa08a', '#d14d86', '#8a9a1f'];
@@ -299,23 +311,34 @@ function shortRef(ref) {
   const m = String(ref || '').match(/^[^/]+\/([^#]+)#(\d+)$/);
   return m ? `${REPO_SHORT[m[1]] || m[1]}#${m[2]}` : (ref || '');
 }
+// test:begin unitOf
+const unitKey = u => u?.pr?.ref || u?.issue?.ref || null;
 function unitOf(q) {
-  const units = packet.units || [], ref = q.pr?.ref || packet.pr?.ref;
-  return units.find(u => u.pr?.ref === ref || (u.extraPrs || []).includes(ref)) || (units.length === 1 ? units[0] : null);
+  const units = packet.units || [], ref = q.pr?.ref || packet.pr?.ref, iref = q.issue?.ref;
+  return (ref && units.find(u => u.pr?.ref === ref || (u.extraPrs || []).includes(ref)))
+    || (iref && units.find(u => !u.pr?.ref && u.issue?.ref === iref))
+    || (units.length === 1 ? units[0] : null);
 }
 function buildGroups() {
   const out = [];
   packet.questions.forEach((q, i) => {
-    const u = unitOf(q), key = u ? u.pr.ref : (q.pr?.ref || packet.pr?.ref || 'review');
+    const u = unitOf(q), key = unitKey(u) || q.pr?.ref || packet.pr?.ref || q.issue?.ref || 'review';
+    // A group with no PR behind it gets no Approve / Request changes ruling.
+    const noPr = u ? !u.pr?.ref : !(q.pr?.ref || packet.pr?.ref);
     let g = out.find(x => x.key === key);
-    if (!g) out.push(g = { key, unit: u, label: u?.short || u?.pr?.title || '', ref: u?.pr?.ref || key, qs: [], color: PR_COLORS[out.length % PR_COLORS.length] });
+    if (!g) out.push(g = { key, unit: u, noPr, label: u?.short || u?.pr?.title || u?.issue?.title || '', ref: key, qs: [], color: PR_COLORS[out.length % PR_COLORS.length] });
     g.qs.push(i);
   });
   return out;
 }
+// test:end
 // A unit whose brief held nothing has no questions, so it gets no group above. It still needs a
 // ruling, so it gets one on the last page, with no inferred default: the reviewer picks it.
 let rulingGroups = [];
+// test:begin hasRulings
+const hasRulings = () => packet.rulings !== false;
+const noun = () => hasRulings() ? 'PR' : 'item';
+// test:end
 // test:begin quietGroups
 function quietGroups() {
   return (packet.units || []).filter(u => u.pr?.ref && !groups.some(g => g.key === u.pr.ref))
@@ -342,7 +365,7 @@ function renderHeader() {
   $('#chips').replaceChildren(...(groups.length > 1 || groups[0]?.label ? groups : []).map(g => {
     const done = g.qs.filter(isAnswered).length;
     return h('button', {
-      class: 'chip' + (done === g.qs.length ? ' complete' : ''), type: 'button', title: `${g.ref}${g.unit?.pr?.title ? ': ' + g.unit.pr.title : ''}`,
+      class: 'chip' + (done === g.qs.length ? ' complete' : ''), type: 'button', title: `${g.ref}${(g.unit?.pr?.title || g.unit?.issue?.title) ? ': ' + (g.unit.pr?.title || g.unit.issue.title) : ''}`,
       style: `--c:${g.color}`,
       'aria-current': g === cur && !submitted ? 'true' : 'false', onclick: () => showIntro(g)
     }, h('span', { class: 'dot' }), h('span', { class: 'num' }, shortRef(g.ref)), g.label && h('span', {}, g.label), h('span', { class: 'cnt' }, `${done}/${g.qs.length}`));
@@ -365,7 +388,7 @@ function renderHeader() {
       class: 'step own' + (state.ownRead.trim() ? ' done' : ''), type: 'button', title: 'Your own read, then send',
       'aria-label': 'Your own read', 'aria-current': current === nq && !submitted ? 'true' : 'false', onclick: () => go(nq)
     })));
-  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `PR ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
+  $('#h-progress').textContent = submitted ? 'Sent' : intro ? `${noun()} ${groups.indexOf(intro) + 1} of ${groups.length} · ${answeredCount()} of ${nq} answered` : current < nq ? `Question ${current + 1} of ${nq} · ${answeredCount()} answered` : `${answeredCount()} of ${nq} answered`;
 }
 
 function refLink(r, text) {
@@ -380,11 +403,11 @@ function unitCard(u, open) {
   if (!u) return null;
   const rows = [
     u.issue && ['Ticket', h('span', {}, refLink(u.issue, shortRef(u.issue.ref)), u.ask ? ' ' : '', u.ask && h('span', { html: md(u.ask).replace(/^<p>|<\/p>$/g, '') }))],
-    ['PR', h('span', {}, refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [', ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]), u.change ? ' ' : '', u.change && h('span', { html: md(u.change).replace(/^<p>|<\/p>$/g, '') }))],
+    u.pr?.ref && ['PR', h('span', {}, refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [', ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]), u.change ? ' ' : '', u.change && h('span', { html: md(u.change).replace(/^<p>|<\/p>$/g, '') }))],
     (u.status || u.test) && ['Test', h('span', {}, u.status || '', u.status && u.test ? ' · ' : '', u.test && refLink({ ref: u.test.label, url: u.test.url }))],
     u.related?.length && ['Related', h('span', {}, ...u.related.flatMap((r, k) => [k ? ' · ' : '', refLink(r, shortRef(r.ref)), r.note ? ` ${r.note}` : '']))],
   ].filter(Boolean);
-  const d = h('details', { open: open || null }, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted)' }, `About ${shortRef(u.pr.ref)}${u.pr.title ? ': ' + u.pr.title : ''}`),
+  const d = h('details', { open: open || null }, h('summary', { style: 'cursor:pointer;font-size:13px;color:var(--muted)' }, `About ${shortRef(unitKey(u))}${(u.pr?.title || u.issue?.title) ? ': ' + (u.pr?.title || u.issue.title) : ''}`),
     h('dl', { class: 'unitcard' }, ...rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])));
   return d;
 }
@@ -415,13 +438,13 @@ function renderIntro(main, call, g) {
   const u = g.unit, k = groups.indexOf(g);
   main.style.setProperty('--c', g.color);
   main.append(
-    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `PR ${k + 1} of ${groups.length}`)),
-    h('h2', { class: 'q-title' }, u?.pr?.title || g.label || g.ref));
+    h('div', { class: 'q-meta' }, h('span', { class: 'tag pr' }, shortRef(g.ref)), groups.length > 1 && h('span', {}, `${noun()} ${k + 1} of ${groups.length}`)),
+    h('h2', { class: 'q-title' }, u?.pr?.title || u?.issue?.title || g.label || g.ref));
   const row = (label, body) => body && h('div', { class: 'i-row' }, h('div', { class: 'i-label' }, label), h('div', { class: 'i-body' }, body));
   const inline = t => t && h('span', { html: md(t).replace(/^<p>|<\/p>$/g, '') });
   const links = u ? h('span', {},
-    refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [' · ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]),
-    u.issue && [' · ticket ', refLink(u.issue, shortRef(u.issue.ref))],
+    u.pr?.ref && refLink(u.pr, shortRef(u.pr.ref)), (u.extraPrs || []).flatMap(r => [' · ', refLink({ ref: r, url: prUrl(r) }, shortRef(r))]),
+    u.issue && [u.pr?.ref ? ' · ticket ' : 'Ticket ', refLink(u.issue, shortRef(u.issue.ref))],
     u.test && [' · ', refLink({ ref: u.test.label, url: u.test.url })]) : null;
   const facts = h('div', { class: 'brief intro' },
     row('What it is for', inline(u?.ask)),
@@ -437,15 +460,30 @@ function renderIntro(main, call, g) {
       return h('li', { class: isAnswered(i) ? 'done' : '' }, h('button', { type: 'button', onclick: () => go(i, { skipIntro: true }) }, q.ask || q.title),
         q.dimension && h('span', { class: 'tag' }, q.dimension));
     })));
-  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `PR ${k + 1} of ${groups.length}` : 'This review'),
+  call.append(h('p', { class: 'kicker' }, groups.length > 1 ? `${noun()} ${k + 1} of ${groups.length}` : 'This review'),
     h('p', { class: 'ask' }, `${g.qs.length} decision${g.qs.length > 1 ? 's' : ''} on ${shortRef(g.ref)}`));
   const start = () => go(g.qs.find(i => !isAnswered(i)) ?? g.qs[0], { skipIntro: true });
-  keyNext = start; keyPick = null;
+  keyNext = start; keyPick = null; keyNote = null;
   const prevG = groups[k - 1];
   call.append(h('div', { class: 'pager' },
     h('button', { class: 'btn', style: k === 0 ? 'visibility:hidden' : '', onclick: () => go(prevG.qs.at(-1), { skipIntro: true }) }, '← Back'),
     h('button', { class: 'btn primary', onclick: start }, 'Start →')),
     h('div', { class: 'keys' }, 'Keys: → or Enter to start'));
+}
+
+// What the question is about, by name: the PR or ticket title, never just a ref. A ref like
+// plugins#82 means nothing to someone moving fast, so a packet without a title says so on screen.
+// test:begin subjectOf
+function subjectOf(q, u) {
+  const pick = r => r?.ref && r?.title ? r : null;
+  return pick(u?.pr) || pick(u?.issue) || pick(q.pr) || pick(q.issue) || null;
+}
+// test:end
+function subjectLine(q, u) {
+  const s = subjectOf(q, u), ref = s || u?.pr || q.pr || q.issue || packet.pr;
+  if (!s) return h('p', { class: 'q-subject missing' }, `${ref?.ref ? shortRef(ref.ref) + ': ' : ''}no title in this packet`);
+  const body = [h('span', { class: 'ref' }, shortRef(s.ref)), s.title];
+  return h('p', { class: 'q-subject' }, /^https?:/i.test(s.url || '') ? h('a', { href: s.url, target: '_blank', rel: 'noopener' }, ...body) : body);
 }
 
 function renderQuestion(main, call, qi) {
@@ -458,8 +496,10 @@ function renderQuestion(main, call, qi) {
     h('div', { class: 'q-meta' },
       q.pr && h('a', { class: 'tag pr', href: q.pr.url, target: '_blank', rel: 'noopener', title: q.pr.ref }, shortRef(q.pr.ref)),
       q.dimension && h('span', { class: 'tag' }, q.dimension),
-      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this PR`)),
+      g && groups.length > 1 && h('span', {}, `${g.qs.indexOf(qi) + 1} of ${g.qs.length} for this ${noun()}`)),
+    subjectLine(q, u),
     h('h2', { class: 'q-title' }, q.title));
+  if (q.gist) main.append(h('div', { class: 'gist' }, h('div', { class: 'g-head' }, 'The gist'), h('p', { html: md(q.gist).replace(/^<p>|<\/p>$/g, '') })));
   const brief = h('div', { class: 'brief' }, h('div', { class: 'b-head' }, h('span', {}, 'Context')));
   if (q.brief?.length) {
     brief.append(h('ul', {}, ...q.brief.map(b => h('li', { html: md(b).replace(/^<p>|<\/p>$/g, '') }))));
@@ -488,11 +528,7 @@ function renderQuestion(main, call, qi) {
     otherBox.hidden = o.value !== '__other';
     if (!otherBox.hidden) otherBox.focus();
     renderHeader();
-    // Picking a listed option moves on by itself, after a beat so the choice is visible.
-    // "Something else" stays, since it needs typing.
-    // Opened from the recap, it goes back to the recap instead.
-    const back = fromRecap;
-    if (o.value !== '__other') setTimeout(() => { if (current === qi && !zoom) go(back ? packet.questions.length : qi + 1); }, 350);
+    // Picking stays on the page, so a note can follow the pick. Next (or →) moves on.
   };
   choices.forEach((o, k) => {
     const btn = h('button', {
@@ -509,7 +545,9 @@ function renderQuestion(main, call, qi) {
   const notes = h('textarea', { placeholder: 'Note for the developer: why, edge cases, wording you want', hidden: !a.notes || null });
   notes.value = a.notes;
   notes.addEventListener('input', () => { a.notes = notes.value; save(); });
-  const addNote = h('button', { class: 'notes-toggle', type: 'button', hidden: !!a.notes || null, onclick: () => { addNote.hidden = true; notes.hidden = false; notes.focus(); } }, '+ Add a note for the developer');
+  const openNote = () => { addNote.hidden = true; notes.hidden = false; notes.focus(); };
+  const addNote = h('button', { class: 'notes-toggle', type: 'button', hidden: !!a.notes || null, 'aria-keyshortcuts': 'n', onclick: openNote }, '+ Add a note for the developer (N)');
+  keyNote = openNote;
   call.append(addNote, h('div', { style: 'margin-top:12px' }, notes));
 
   const next = () => {
@@ -517,21 +555,22 @@ function renderQuestion(main, call, qi) {
     go(fromRecap ? packet.questions.length : qi + 1);
   };
   keyNext = next;
-  const nextLabel = fromRecap ? 'Back to your rulings →' : qi === packet.questions.length - 1 ? 'Last: your own read →'
-    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next PR: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
+  const nextLabel = fromRecap ? (hasRulings() ? 'Back to your rulings →' : 'Back to your answers →') : qi === packet.questions.length - 1 ? 'Last: your own read →'
+    : g && g.qs.at(-1) === qi && groups.length > 1 ? `Next ${noun()}: ${shortRef(groupOf(qi + 1).ref)} →` : 'Next →';
   call.append(h('div', { class: 'pager' },
     h('button', { class: 'btn', onclick: () => back(qi) }, '← Back'),
     h('button', { class: 'btn primary', onclick: next }, nextLabel)),
-    h('div', { class: 'keys' }, `Picking an answer moves to the next question. Keys: 1 to ${choices.length} pick, ← → move`));
+    h('div', { class: 'keys' }, `Keys: 1 to ${choices.length} pick, N add a note, ← → move`));
 }
 
 // Keyboard: number keys pick an option, arrows move. Off while typing or in the lightbox.
-let keyPick = null, keyNext = null;
+let keyPick = null, keyNext = null, keyNote = null;
 document.addEventListener('keydown', e => {
   if (zoom || e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target instanceof Element && e.target.matches('input, textarea, select, [contenteditable]')) return;
   if (document.body.classList.contains('uin-on')) return;
   if (/^[1-9]$/.test(e.key) && !intro && current < packet.questions.length && keyPick) { e.preventDefault(); keyPick(Number(e.key)); }
+  else if ((e.key === 'n' || e.key === 'N') && !intro && current < packet.questions.length && keyNote) { e.preventDefault(); keyNote(); }
   else if ((e.key === 'ArrowRight' || (intro && e.key === 'Enter')) && (intro || current < packet.questions.length) && keyNext) { e.preventDefault(); keyNext(); }
   else if (e.key === 'ArrowLeft') { e.preventDefault(); if (intro) { const k = groups.indexOf(intro); if (k > 0) go(groups[k - 1].qs.at(-1), { skipIntro: true }); } else if (current >= packet.questions.length) go(current - 1); else back(current); }
 });
@@ -764,26 +803,30 @@ function renderOwnRead(main, call) {
   ta.addEventListener('input', () => { state.ownRead = ta.value; save(); renderHeader(); });
   main.append(ta);
   // A recap of every ruling, grouped by PR, so a misclick is caught before sending.
-  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, 'Your rulings'),
-    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'));
+  // A board without rulings recaps the answers alone.
+  const rulings = hasRulings();
+  main.append(h('h3', { class: 'evidence-h', style: 'margin-top:32px' }, rulings ? 'Your rulings' : 'Your answers'),
+    h('p', { class: 'hint', style: 'margin:-4px 0 12px' }, rulings
+      ? 'Sending finishes the review: each PR posts with the ruling shown, and nothing is asked again in chat. Rulings come from your answers; click another to change one.'
+      : 'Sending hands these answers to Claude to act on, and nothing is asked again in chat. Click a number to change an answer.'));
   for (const g of rulingGroups) {
-    const v = verdictFor(g);
-    const seg = h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
+    const ruled = rulings && !g.noPr, v = ruled ? verdictFor(g) : null;
+    const seg = ruled && h('div', { class: 'verdict', role: 'group', 'aria-label': `Ruling for ${shortRef(g.ref)}` },
       ...Object.entries(VERDICTS).map(([k, label]) => h('button', {
         type: 'button', class: 'btn', 'aria-pressed': v.verdict === k ? 'true' : 'false',
         onclick: () => { (state.verdicts ||= {})[g.key] = k === v.inferred ? undefined : k; save(); rerenderCurrent(); }
       }, label)));
-    const why = g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
+    const why = !ruled ? null : g.quiet && !v.verdict ? 'Nothing was held for you on this PR. Pick a ruling from your own testing.'
       : !v.verdict && !v.open ? `Pick a ruling. Your answer${v.unread.length > 1 ? 's' : ''} on question ${v.unread.join(', ')} do${v.unread.length > 1 ? '' : 'es'} not say what ${v.unread.length > 1 ? 'they mean' : 'it means'} for the PR.`
       : g.quiet ? 'Your ruling. Nothing was held for you on this PR.'
       : v.open ? `${v.open} question${v.open > 1 ? 's' : ''} still open.`
       : v.overridden ? `You changed this. Your answers pointed to ${VERDICTS[v.inferred]}.`
       : v.verdict === 'approve' ? 'From your answers: nothing needs to change.'
       : `From your answers on question ${v.because.join(', ')}.`;
-    const onSend = v.verdict && !v.open ? h('div', { class: 'hint', style: 'margin:0 0 8px' }, h('strong', {}, 'On send: '), ON_SEND[v.verdict]) : null;
+    const onSend = ruled && v.verdict && !v.open ? h('div', { class: 'hint', style: 'margin:0 0 8px' }, h('strong', {}, 'On send: '), ON_SEND[v.verdict]) : null;
     main.append(h('section', { class: 'block', style: `--c:${g.color};border-left:4px solid ${g.color}` },
       h('div', { class: 'block-head' }, h('span', {}, h('strong', {}, shortRef(g.ref)), g.label ? ` ${g.label}` : '')),
-      h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
+      ruled && h('div', { class: 'v-row' }, seg, h('span', { class: 'hint', style: 'margin:0' }, why)), onSend,
       g.quiet && unitCard(g.unit, false),
       !g.quiet && h('ul', { class: 'notes-list' }, ...g.qs.map(i => {
         const q = packet.questions[i], a = state.answers[i];
@@ -794,10 +837,11 @@ function renderOwnRead(main, call) {
   }
   call.append(h('p', { class: 'kicker' }, 'Send'), h('p', { class: 'ask' }, `${answeredCount()} of ${packet.questions.length} answered`));
   const err = h('div', { class: 'err', hidden: true });
+  const sendLabel = rulings ? 'Send and post reviews' : 'Send answers';
   const send = h('button', { class: 'btn primary', onclick: async () => {
     const missing = packet.questions.findIndex((_, i) => !isAnswered(i));
     if (missing >= 0) { err.textContent = `Question ${missing + 1} still needs an answer.`; err.hidden = false; return; }
-    const unruled = rulingGroups.find(g => !verdictFor(g).verdict);
+    const unruled = hasRulings() && rulingGroups.find(g => !g.noPr && !verdictFor(g).verdict);
     if (unruled) { err.textContent = `${shortRef(unruled.ref)} still needs a ruling.`; err.hidden = false; return; }
     send.disabled = true; send.textContent = 'Sending…';
     try {
@@ -806,9 +850,9 @@ function renderOwnRead(main, call) {
       submitted = true; render();
     } catch (e) {
       err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
-      err.hidden = false; send.disabled = false; send.textContent = 'Send and post reviews';
+      err.hidden = false; send.disabled = false; send.textContent = sendLabel;
     }
-  } }, 'Send and post reviews');
+  } }, sendLabel);
   call.append(err, h('div', { class: 'pager' }, h('button', { class: 'btn', onclick: () => go(packet.questions.length - 1) }, '← Back'), send));
 }
 
@@ -819,7 +863,7 @@ function buildAnswers() {
       const a = state.answers[i];
       const opt = (q.options || []).find(o => o.value === a.choice);
       return {
-        id: q.id, pr: q.pr?.ref || packet.pr?.ref || null, title: q.title, dimension: q.dimension || null,
+        id: q.id, pr: q.pr?.ref || packet.pr?.ref || null, issue: q.issue?.ref || null, title: q.title, dimension: q.dimension || null,
         choice: a.choice === '__other' ? 'other' : a.choice,
         choiceLabel: a.choice === '__other' ? a.other.trim() : opt?.label,
         notes: a.notes.trim() || null,
@@ -831,7 +875,7 @@ function buildAnswers() {
       };
     }),
     // The per-PR ruling, so the review posts without a second approve/request-changes ask in chat.
-    verdicts: rulingGroups.map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
+    verdicts: !hasRulings() ? null : rulingGroups.filter(g => !g.noPr).map(g => { const v = verdictFor(g); return { pr: g.ref, verdict: v.verdict, inferred: !v.overridden, because: v.because }; }),
     ownRead: state.ownRead.trim() || null
   };
 }
@@ -878,7 +922,8 @@ function clearOverride(qi) {
 function renderDone(main) {
   main.append(h('div', { class: 'done-card' },
     h('h2', {}, 'Sent to Claude'),
-    h('p', {}, 'Claude posts each review with the ruling you saw, plus any follow-up tickets you asked for. There is nothing more to answer.'),
+    h('p', {}, hasRulings() ? 'Claude posts each review with the ruling you saw, plus any follow-up tickets you asked for. There is nothing more to answer.'
+      : 'Claude acts on your answers. There is nothing more to answer.'),
     h('button', { class: 'btn', onclick: () => go(0) }, 'Edit and resend')));
   $('#h-progress').textContent = 'Submitted';
 }
