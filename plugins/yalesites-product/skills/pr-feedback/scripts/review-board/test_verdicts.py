@@ -22,7 +22,7 @@ def blocks():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
         src = f.read()
     found = dict(re.findall(r"// test:begin (\w+)\n(.*?)// test:end", src, re.S))
-    for name in ("isAnswered", "quietGroups", "verdicts"):
+    for name in ("isAnswered", "quietGroups", "verdicts", "unitOf", "prUrl"):
         assert name in found, f"index.html lost its test:{name} block"
     return "\n".join(found.values())
 
@@ -133,6 +133,20 @@ class VerdictTest(unittest.TestCase):
             out = { quiet: q.map(g => [g.ref, g.qs.length, g.quiet, g.label]), verdict: verdictFor(q[0]).verdict };
         """)
         self.assertEqual(out, {"quiet": [["o/r#2", 0, True, "Two"]], "verdict": None})
+
+    def test_string_pr_on_a_question_still_groups_by_unit(self):
+        # A hand-built batch packet set `pr` to a bare ref. Each question must still find its
+        # unit, so no unit reads as quiet and each chip counts its own questions.
+        a, b = "yalesites-org/yale-ui-cl#76", "yalesites-org/yalesites-project#1598"
+        packet = {"questions": [{"pr": a}, {"pr": a}, {"pr": {"ref": b, "url": "u"}}],
+                  "units": [{"pr": {"ref": a}}, {"pr": {"ref": b}}]}
+        out = run(packet, {}, [], """
+            normalizePrs();
+            groups = buildGroups();
+            out = { groups: groups.map(g => [g.ref, g.qs]), quiet: quietGroups().length, pr: packet.questions[0].pr };
+        """)
+        self.assertEqual(out, {"groups": [[a, [0, 1]], [b, [2]]], "quiet": 0,
+                               "pr": {"ref": a, "url": "https://github.com/yalesites-org/yale-ui-cl/pull/76"}})
 
     def test_units_with_no_pr_group_by_issue_and_need_no_ruling(self):
         packet = {"rulings": False,
