@@ -50,7 +50,9 @@ message:
    the theme). Research will correct it.
 
 Make a working folder in the scratchpad: `<scratchpad>/feature-planning/<slug>/`. The research
-notes, the board packet, and the decision record all go there.
+notes and the decision record go there. The board packet does not: it goes in
+`<scratchpad>/feature-planning/packets/<slug>/`, where the board server looks for it (see
+`references/planning-board.md`).
 
 ## Step 1: Check which sources are available
 
@@ -150,8 +152,10 @@ Draft every question the plan needs, using the coverage list in
    with no questions left is not a part of its own: its settled and Not asked items move to the
    lead-in of the closest part that still has questions, so the user still sees them.
 5. **Give every question two to four concrete options, our recommendation first,** each with the
-   cost of choosing it, plus "Decide later" (it becomes an open item with an owner). Recommend
-   only where the evidence supports it, and put that evidence in the option's `detail`.
+   cost of choosing it, plus "Decide later" (it becomes an open item with an owner). A question
+   with four concrete options goes on the board, since chat allows only three plus "Decide later"
+   (Step 6). Recommend only where the evidence supports it, and put that evidence in the
+   option's `detail`.
 6. **Put the evidence beside it.** The screenshots from Step 3b, the adoption number, the other
    school's editor doc, the relevant code or ticket text with the key line highlighted. A
    question about how something should look shows its options side by side. The user should be
@@ -159,15 +163,18 @@ Draft every question the plan needs, using the coverage list in
 
 ## Step 6: Ask
 
-- **Three or fewer quick questions:** ask in chat with `AskUserQuestion`.
-- **Four or more, or any that need a screenshot or a side-by-side:** use the planning board,
-  following `references/planning-board.md`. Serve it locally, open it, and wait for Send. The
-  answers on the board are the ruling. Do not re-ask them in chat.
+- **Three or fewer quick questions, each with at most three concrete options plus "Decide
+  later":** ask in chat with `AskUserQuestion`, which takes no more than four options per question.
+- **Four or more questions, any question with four concrete options, or any that need a
+  screenshot or a side-by-side:** use the planning board, following
+  `references/planning-board.md`. Serve it locally, open it, and wait for Send. The answers on
+  the board are the ruling. Do not re-ask them in chat.
 
 **One follow-up round, at most.** Answers often open a few new questions (choosing "sitewide
-setting" raises "on or off for existing sites?"). Ask those in chat if there are three or fewer,
-otherwise on a second, smaller board. If a third round looks needed, the idea is not ready to
-ticket: say so, record what is decided, and leave the rest open.
+setting" raises "on or off for existing sites?"). Ask those in chat if there are three or fewer and
+each has at most three concrete options, otherwise on a second, smaller board. If a third round
+looks needed, the idea is not ready to ticket: say so, record what is decided, and leave the rest
+open.
 
 ## Step 7: Write the decision record
 
