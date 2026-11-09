@@ -26,12 +26,31 @@ breakpoints in the spec, since the same block sits in regions of different width
 
 ## Files
 
-One folder per ticket in a durable folder, not the session scratchpad, since rounds 2 and 3 often
-run in a later session. It mirrors docs-board's `~/.claude/yalesites/docs-board/packets`:
+One folder per board packet in a durable folder, not the session scratchpad, since rounds 2 and 3
+often run in a later session. It mirrors docs-board's `~/.claude/yalesites/docs-board/packets`.
+Every round, and every "Iterate again" within a round, gets its own packet id, and the folder is
+named for it:
 
 ```
-~/.claude/yalesites/design-pass/packets/design-<number>/
-  brief.md                 what goes to Claude Design; on claude-design-other, the only file that leaves
+~/.claude/yalesites/design-pass/packets/
+  design-<number>-r1/        round 1
+  design-<number>-r2/        round 2, first pass
+  design-<number>-r2-i2/     round 2 after one "Iterate again" (then -i3, -i4, ...)
+  design-<number>-r3/        round 3
+```
+
+A fresh id is what gives each round a blank board. The board saves the reviewer's picks in the
+browser under `review-board:<packet id>` and restores them on load whenever the saved answer count
+matches the packet's question count, and nothing clears them. A reused id would open the next
+round with the last round's picks already made. Never rebuild an earlier round's folder for a new
+round; make the next id.
+
+Each folder holds what its round shows, plus the brief carried forward:
+
+```
+design-<number>-r<round>[-i<n>]/
+  brief.md                 what goes to Claude Design; on claude-design-other, the only file that leaves.
+                           Copy it from the previous folder and add this round's notes
   packet.json              the board
   r1-<approach>-1440.png   round 1, one desktop and one phone per approach
   r1-<approach>-360.png
@@ -48,7 +67,8 @@ config's `exportFolder`) into the folder; never point the board at the export fo
 
 Use the pr-feedback review board: `plugins/yalesites-product/skills/pr-feedback/scripts/review-board/`.
 Packet format is in `pr-feedback/references/review-board.md`. Start the server as a background
-task and open the board for the reviewer:
+task and open the board for the reviewer at `http://localhost:8797/?packet=<packet id>`, the
+current round's id (`design-<number>-r2-i2`, say). One server serves every round:
 
 ```bash
 python3 <plugin>/skills/pr-feedback/scripts/review-board/server.py --packets ~/.claude/yalesites/design-pass/packets --port 8797
@@ -66,7 +86,9 @@ A design packet is not a PR review, so:
   writes `answers.json` and nothing posts.
 - Put the recommendation first, with `recommended: true`, and end every question with
   "Decide later".
-- Before each new round, archive the previous `answers.json` as
-  `answers-<round>-<timestamp>.json`. Never delete one; together they are the design record.
+- Never reuse a packet id across rounds or iterations (see "Files" above). Each round's
+  `answers.json` stays in its own folder; never delete one, since together they are the design
+  record. Archive an `answers.json` with a timestamp only when the same packet is rebuilt
+  within a round (a fix to a typo, say), as `answers-<timestamp>.json`.
 
 The reviewer's answers on the board are the ruling. Do not re-ask them in chat.

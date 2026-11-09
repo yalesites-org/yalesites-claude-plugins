@@ -151,8 +151,9 @@ chat) if any of these is missing. Do not guess them:
 
 ## Gather context (read-only)
 
-Build one `brief.md` per ticket, kept with the board packet. On `claude-design-other` it is the
-only thing that leaves the account, so write it as a brief, not a dump. In round 2, add the
+Build one `brief.md` per ticket, kept with the board packet and carried forward into each
+round's packet folder. On `claude-design-other` it is the only thing that leaves the account,
+so write it as a brief, not a dump. In round 2, add the
 reviewer's notes to the brief rather than sending them separately:
 
 - The ask: the ticket's TL;DR and the open choices, in our words.
@@ -210,7 +211,8 @@ Board: one question per area that still needs a call, each with the screenshots 
 Keep it new / Use <existing> with a variant / Rethink"), with the existing one it was weighed
 against shown next to it. Close with "Sign off / Iterate again / Back to approaches". Sign-off
 means every new and changed component has been accepted on its own question.
-Iterate as many times as the reviewer asks; archive each round's `answers.json` before the next.
+Iterate as many times as the reviewer asks. Each iteration is a new packet with its own id
+(`design-<number>-r2-i2`, then `-i3`), so it opens on a blank board; see `references/rounds.md`.
 
 ## Round 3: handoff
 
@@ -229,13 +231,14 @@ After sign-off, write two things (templates in `references/handoff.md`):
 Both are **drafts**. Show them to the reviewer on the board. Posting the spec as a ticket comment
 happens only when the reviewer says so, with images through `github-screenshots`. Neither
 `github-screenshots` nor `gh` can attach a zip, so the reviewer drags the mockup zip into the
-next comment by hand; tell them its path in the packet folder.
+next comment by hand; copy it into the round 3 packet folder
+(`~/.claude/yalesites/design-pass/packets/design-<number>-r3/`) and tell them its path.
 The ticket's acceptance criteria often ask for each answer as a comment; draft those too.
 
 ## Rules
 
-- Never posts to GitHub, never moves board status, never closes a ticket. The router hands the
-  phase off once the reviewer closes it.
+- Never posts to GitHub without the reviewer's go-ahead (see round 3), never moves board
+  status, never closes a ticket. The router hands the phase off once the reviewer closes it.
 - On `claude-design-other`, never sends anything beyond `brief.md`.
 - Never ships one approach as "the" design. Round 1 always offers a real choice.
 - Region widths are a gate, not a nice-to-have.
