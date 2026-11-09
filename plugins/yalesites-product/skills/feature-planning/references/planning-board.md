@@ -23,7 +23,13 @@ quote comments, compare blocks, and video.
 
 The id is the feature slug (`facts-band-layouts`). Copy every image and clip into the folder. If an
 `answers.json` is already there from an earlier round, rename it to
-`answers-$(date -u +%Y%m%dT%H%M%SZ).json` first, never delete it.
+`answers-$(date -u +%Y%m%dT%H%M%SZ).json` first, never delete it, and set `"round": 2` in the new
+`packet.json`.
+
+The board saves answers in the browser as the user goes, keyed by packet id, `round`, and a hash
+of the questions and their options, and clears them after a successful Send. So a later round on
+the same slug opens blank even when it has the same number of questions; leave `round` out (it
+reads as 1) for the first board.
 
 ### packet.json
 
@@ -31,6 +37,7 @@ The id is the feature slug (`facts-band-layouts`). Copy every image and clip int
 {
   "title": "Feature plan: Facts and Figures layouts",
   "shortTitle": "Facts band layouts",
+  "round": 1,
   "subtitle": "Research 2026-11-01 | Portfolio crawl 2026-10 | Pantheon skipped: not logged in",
   "ownReadPrompt": "Optional. Overrides the default last-page prompt.",
   "units": [

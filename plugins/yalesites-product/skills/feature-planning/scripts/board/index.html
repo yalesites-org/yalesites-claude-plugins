@@ -211,7 +211,7 @@
 const params = new URLSearchParams(location.search);
 const packetId = params.get('packet') || 'demo';
 const base = `packets/${encodeURIComponent(packetId)}/`;
-const storeKey = `planning-board:${packetId}`;
+let storeKey = null; // set once the packet loads; see storageKey()
 let packet, state, current = 0, submitted = false, zoom = null, fromRecap = false;
 const clips = {};
 
@@ -251,12 +251,41 @@ function md(src, highlights = [], quotes = []) {
   return out.join('');
 }
 
+function save() { if (storeKey) localStorage.setItem(storeKey, JSON.stringify(state)); }
+// test:begin storageKey
+// Saved answers are keyed by packet id, round, and a hash of the questions themselves. Step B1
+// reuses the feature slug for every round, so keying on the id alone let a later round open with
+// the earlier round's picks. A changed question, option, or round gets a fresh key and a blank board.
+function storageKey(id, p) {
+  const shape = JSON.stringify([p.round ?? null, (p.questions || []).map(q =>
+    [q.id ?? null, q.title ?? null, q.ask ?? null, (q.options || []).map(o => [o.value, o.label])])]);
+  let hash = 0x811c9dc5; // FNV-1a, 32-bit
+  for (let i = 0; i < shape.length; i++) hash = Math.imul(hash ^ shape.charCodeAt(i), 0x01000193) >>> 0;
+  return `planning-board:${id}:r${p.round ?? 1}:${hash.toString(36)}`;
+}
+// test:end
+// test:begin restoreState
 function blankAnswer() { return { choice: null, other: '', notes: '', markups: [] }; }
-function save() { localStorage.setItem(storeKey, JSON.stringify(state)); }
+// Use saved answers only when they fit this packet; drop any pick that is not one of its options.
+function restoreState(saved, p) {
+  const qs = p.questions;
+  if (!saved || !Array.isArray(saved.answers) || saved.answers.length !== qs.length)
+    return { answers: qs.map(blankAnswer), ownRead: '' };
+  saved.answers = saved.answers.map((a, i) => {
+    a = { ...blankAnswer(), ...a };
+    if (a.choice && a.choice !== '__other' && !(qs[i].options || []).some(o => o.value === a.choice)) a.choice = null;
+    return a;
+  });
+  saved.ownRead ??= '';
+  return saved;
+}
+// test:end
 // test:begin isAnswered
 function isAnswered(i) {
   const a = state.answers[i];
-  return a.choice && (a.choice !== '__other' || a.other.trim());
+  if (!a.choice) return false;
+  if (a.choice === '__other') return !!a.other.trim();
+  return (packet.questions[i].options || []).some(o => o.value === a.choice);
 }
 // test:end
 const totalSteps = () => packet.questions.length + 1;
@@ -275,9 +304,12 @@ async function init() {
   for (const u of packet.units || []) u.pr ||= { ref: u.key, title: u.title };
   for (const q of packet.questions) if (q.part && !q.pr) q.pr = { ref: q.part };
   document.title = `Plan: ${packet.shortTitle || packet.title}`;
-  const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
-  state = saved && saved.answers?.length === packet.questions.length
-    ? saved : { answers: packet.questions.map(blankAnswer), ownRead: '' };
+  storeKey = storageKey(packetId, packet);
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(storeKey) || 'null'); } catch (e) { /* corrupt entry: start blank */ }
+  state = restoreState(saved, packet);
+  // Older boards keyed by id alone; that entry can only hold an earlier round's picks.
+  localStorage.removeItem(`planning-board:${packetId}`);
   groups = buildGroups();
   rulingGroups = [...groups, ...quietGroups()];
   const pr = packet.pr || {};
@@ -799,6 +831,8 @@ function renderOwnRead(main, call) {
     try {
       const res = await fetch(`api/answers?packet=${encodeURIComponent(packetId)}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(buildAnswers()) });
       if (!res.ok) throw new Error(res.status);
+      // Sent: this round is done, so nothing should come back if the board is reopened.
+      localStorage.removeItem(storeKey);
       submitted = true; render();
     } catch (e) {
       err.textContent = "Couldn't reach the review server. Your answers are saved here, so try again in a moment.";
