@@ -275,6 +275,7 @@ async function init() {
     $('#h-title').textContent = `Couldn't load packet "${packetId}"`;
     return;
   }
+  normalizePrs();
   document.title = `Review: ${packet.shortTitle || packet.title}`;
   const saved = JSON.parse(localStorage.getItem(storeKey) || 'null');
   state = saved && saved.answers?.length === packet.questions.length
@@ -312,6 +313,11 @@ function shortRef(ref) {
   return m ? `${REPO_SHORT[m[1]] || m[1]}#${m[2]}` : (ref || '');
 }
 // test:begin unitOf
+// `pr` on a question is `{ref, url}`. A hand-built or older packet may carry a bare ref string;
+// without this every question lands in one untagged group and every unit reads as quiet.
+function normalizePrs() {
+  (packet.questions || []).forEach(q => { if (typeof q.pr === 'string') q.pr = { ref: q.pr, url: prUrl(q.pr) }; });
+}
 const unitKey = u => u?.pr?.ref || u?.issue?.ref || null;
 function unitOf(q) {
   const units = packet.units || [], ref = q.pr?.ref || packet.pr?.ref, iref = q.issue?.ref;
@@ -411,10 +417,12 @@ function unitCard(u, open) {
     h('dl', { class: 'unitcard' }, ...rows.flatMap(([k, v]) => [h('dt', {}, k), h('dd', {}, v)])));
   return d;
 }
+// test:begin prUrl
 function prUrl(ref) {
   const m = String(ref).match(/^([^/]+)\/([^#]+)#(\d+)$/);
   return m ? `https://github.com/${m[1]}/${m[2]}/pull/${m[3]}` : null;
 }
+// test:end
 
 let intro = null;
 function go(i, opts = {}) {

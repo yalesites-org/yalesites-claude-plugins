@@ -215,3 +215,9 @@ Don't set Stage by hand: the next run overwrites it. Change the label, status, o
 ## Brief
 
 The router posts its brief as a comment on the pinned **Router brief** issue in YaleSites-Internal, every weekday morning. It is yalesites-org/YaleSites-Internal#1987.
+
+### May be unblocked
+
+The brief lists open tickets whose body says "blocked by," "blocked on," "depends on," "waiting on," or "don't start until" next to a YaleSites-Internal ticket that closed after the body was last edited. Each entry shows the closed ticket, its close date, and "as not planned" when it was cancelled. Native blocked-by links on phase children are not here; the router hands those off itself.
+
+It is a list only. The router never changes these tickets and never gives them a Stage. Expect the odd false hit, such as a child-ticket list where the blocker on the line is in another repo. A ticket drops off once someone edits its body. Fix one with the `ticket-sync` skill. The weekly `backlog-hygiene` report covers the wider case: tickets that describe a closed ticket as still open.

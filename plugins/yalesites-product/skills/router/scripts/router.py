@@ -62,20 +62,24 @@ TODAY = dt.date.today()
 
 # --- helpers ---------------------------------------------------------------
 
-def gh(*args, input_text=None):
+def gh(*args, input_text=None, check=True):
+    """Run gh and return stdout. With check=False a non-zero exit that still printed output returns
+    that output (gh api graphql exits 1 on partial errors but prints the partial data)."""
     r = subprocess.run(["gh", *args], capture_output=True, text=True, input=input_text)
-    if r.returncode != 0:
+    if r.returncode != 0 and (check or not r.stdout.strip()):
         raise RuntimeError(f"gh {' '.join(args[:3])}... failed: {r.stderr.strip()}")
     return r.stdout
 
 
-def graphql(query, **variables):
+def graphql(query, _tolerate=(), **variables):
+    """_tolerate is a set of GraphQL error types (e.g. {"NOT_FOUND"}) to ignore, keeping the partial data."""
     args = ["api", "graphql", "-f", f"query={query}"]
     for k, v in variables.items():
         args += ["-F" if isinstance(v, int) else "-f", f"{k}={v}"]
-    data = json.loads(gh(*args))
-    if data.get("errors"):
-        raise RuntimeError(json.dumps(data["errors"])[:500])
+    data = json.loads(gh(*args, check=not _tolerate))
+    errors = [e for e in data.get("errors") or [] if e.get("type") not in _tolerate]
+    if errors:
+        raise RuntimeError(json.dumps(errors)[:500])
     return data["data"]
 
 
@@ -417,6 +421,51 @@ def find_features():
     return sorted(out, key=lambda f: (f["due"], f["done"] / f["total"]))
 
 
+BLOCKER = re.compile(r"\b(blocked by|blocked on|depends on|waiting on|wait for|do(?:n't| not) start\b[^.]*?\buntil)\b", re.I)
+ISSUE_REF = re.compile(r"(?:(?<![\w/])|%s/%s)#(\d{2,5})\b|github\.com/%s/%s/issues/(\d{2,5})\b"
+                       % (ORG, ISSUES_REPO, ORG, ISSUES_REPO), re.I)
+
+
+def blocker_refs(body):
+    """Ticket numbers named on a line that also says the ticket is blocked by or waiting on them."""
+    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.S)
+    out = set()
+    for line in body.splitlines():
+        if BLOCKER.search(line):
+            out |= {int(a or b) for a, b in ISSUE_REF.findall(line)}
+    return out
+
+
+def find_unblocked():
+    """Open tickets whose body says they are blocked by a ticket that closed after the body was last edited.
+    The router only lists these. Native blocked-by links on phase children are handled by find_promotions."""
+    fields = "number title url state lastEditedAt createdAt body repository{nameWithOwner} issueType{name}"
+    candidates = []
+    for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open', fields, include_prs=False):
+        refs = blocker_refs(n["body"]) - {n["number"]}
+        if refs:
+            candidates.append((n, refs))
+    wanted = sorted({r for _, refs in candidates for r in refs})
+    closed = {}
+    for i in range(0, len(wanted), 100):
+        # issueOrPullRequest so a ref to a PR doesn't fail the query; a number that doesn't exist (typo)
+        # comes back null with a NOT_FOUND error, which is tolerated. Only closed issues count as blockers.
+        aliases = " ".join(f"i{r}: issueOrPullRequest(number:{r}){{__typename ... on Issue{{number state closedAt stateReason}}}}"
+                           for r in wanted[i:i + 100])
+        d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, aliases),
+                    _tolerate={"NOT_FOUND"})["repository"]
+        closed.update({v["number"]: v for v in d.values()
+                       if v and v["__typename"] == "Issue" and v["state"] == "CLOSED"})
+    out = []
+    for n, refs in candidates:
+        edited = n["lastEditedAt"] or n["createdAt"]
+        hits = sorted((closed[r] for r in refs if r in closed and closed[r]["closedAt"] > edited),
+                      key=lambda c: c["number"])
+        if hits:
+            out.append({"node": n, "blockers": hits})
+    return sorted(out, key=lambda u: max(b["closedAt"] for b in u["blockers"]), reverse=True)
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login} issueType{name}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -583,14 +632,16 @@ def lanes_phrase(n):
 
 
 def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None,
-                lanes_under=(), embeds_held=()):
+                lanes_under=(), embeds_held=(), unblocked=None):
+    unblocked = unblocked or []
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
             f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck"
-            + (f", {lanes_phrase(len(lanes_under))}." if lanes_under else "."))
+            + (f", {lanes_phrase(len(lanes_under))}" if lanes_under else "")
+            + (f", {len(unblocked)} may be unblocked." if unblocked else "."))
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
 
     if TODAY.weekday() == 0:
@@ -705,6 +756,15 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
         lines += ["", "</details>", ""]
 
+    if unblocked:
+        lines += ["<details>", f"<summary><b>May be unblocked: the ticket says it is blocked by one that has since closed "
+                  f"({len(unblocked)})</b></summary>", ""]
+        for u in unblocked:
+            done = ", ".join(f"#{b['number']} closed {parse_date(b['closedAt']):%b %-d}"
+                             + (" as not planned" if b["stateReason"] == "NOT_PLANNED" else "") for b in u["blockers"])
+            lines.append(f"- {link(u['node'])} {quiet(u['node']['title'])}: {done}")
+        lines += ["", "Check each one and update the ticket. The router does not change them.", "", "</details>", ""]
+
     if features:
         lines += ["<details>", f"<summary><b>Features in flight ({len(features)})</b></summary>", "",
                   "| Feature | Milestone | Done |", "|---|---|---|"]
@@ -744,6 +804,11 @@ def main():
     if lanes_under:
         maybe = [it["node"]["number"] for it in open_items if is_candidate(it) and is_embed(it["node"], embed_epic)]
         lanes_under, embeds_held = lane_report(open_items, lanes, embed_epic, embed_approvals(maybe, embed_approver))
+    try:
+        unblocked = find_unblocked()  # list-only; never let it stop hand-offs, Stage sync or the brief
+    except Exception as e:  # noqa: BLE001
+        print(f"router: skipping 'may be unblocked' list: {e}", file=sys.stderr)
+        unblocked = []
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -772,6 +837,10 @@ def main():
                                                    "milestone": (open_milestone(it["node"]) or {}).get("title")}
                                                   for it, why in l["candidates"]]} for l in lanes_under],
             "embeds_held": [{**item(it["node"]), "number": it["node"]["number"]} for it in embeds_held],
+            "unblocked": [{**item(u["node"]), "number": u["node"]["number"],
+                           "blockers": [{"number": b["number"], "closed": b["closedAt"][:10],
+                                         "not_planned": b["stateReason"] == "NOT_PLANNED"} for b in u["blockers"]]}
+                          for u in unblocked],
         }, indent=2))
         return
 
@@ -798,7 +867,8 @@ def main():
 
     features = find_features() if TODAY.weekday() == 0 else None
     brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases,
-                        dry=not a.apply, features=features, lanes_under=lanes_under, embeds_held=embeds_held)
+                        dry=not a.apply, features=features, lanes_under=lanes_under, embeds_held=embeds_held,
+                        unblocked=unblocked)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

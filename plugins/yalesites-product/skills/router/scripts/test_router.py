@@ -4,7 +4,10 @@ import datetime as dt
 import os
 import re
 import sys
+import json
+import subprocess
 import unittest
+from unittest import mock
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
@@ -57,7 +60,62 @@ class WorkingDaysTest(unittest.TestCase):
         self.assertEqual(router.add_working_days(fri, 1), mon)
 
 
+class BlockerRefsTest(unittest.TestCase):
+    def test_blocker_line_forms(self):
+        body = ("> **Blocked by** yalesites-org/YaleSites-Internal#1161, the Views rework.\n"
+                "Do not start this until #1561 reaches a recommendation.\n"
+                "Depends on https://github.com/yalesites-org/YaleSites-Internal/issues/1593 landing.")
+        self.assertEqual(router.blocker_refs(body), {1161, 1561, 1593})
+
+    def test_ignores_lines_without_blocker_wording(self):
+        body = "Related: #1754, #1099.\nFixed in #1827 last month."
+        self.assertEqual(router.blocker_refs(body), set())
+
+    def test_ignores_other_repos_and_agent_block(self):
+        body = ("Blocked by yalesites-org/component-library-twig#728.\n"
+                "<!-- yalesites:agent\nblocked by #999\n-->")
+        self.assertEqual(router.blocker_refs(body), set())
+
+
+class FindUnblockedTest(unittest.TestCase):
+    """A blocker ref that is a PR or doesn't exist must be skipped, not fail the run."""
+
+    def test_skips_pr_and_missing_refs(self):
+        candidate = {"number": 1900, "title": "Waiting", "url": "u", "state": "OPEN",
+                     "lastEditedAt": None, "createdAt": "2026-10-01T00:00:00Z",
+                     "body": "Blocked by #1991, #1161 and #99999.", "repository": {}, "issueType": None}
+        # What gh api graphql prints (with exit 1) when one alias is NOT_FOUND.
+        payload = {"data": {"repository": {
+            "i1161": {"__typename": "Issue", "number": 1161, "state": "CLOSED",
+                      "closedAt": "2026-10-29T12:00:00Z", "stateReason": "COMPLETED"},
+            "i1991": {"__typename": "PullRequest"},
+            "i99999": None}},
+            "errors": [{"type": "NOT_FOUND", "path": ["repository", "i99999"], "message": "Could not resolve"}]}
+        done = subprocess.CompletedProcess([], 1, stdout=json.dumps(payload), stderr="gh: Could not resolve")
+        with mock.patch.object(router, "search_all", return_value=[candidate]), \
+                mock.patch.object(router.subprocess, "run", return_value=done) as run:
+            out = router.find_unblocked()
+        self.assertIn("issueOrPullRequest(number:1991)", run.call_args[0][0][-1])
+        self.assertEqual([b["number"] for b in out[0]["blockers"]], [1161])
+
+    def test_other_graphql_errors_still_raise(self):
+        payload = {"data": None, "errors": [{"type": "FORBIDDEN", "message": "no"}]}
+        done = subprocess.CompletedProcess([], 1, stdout=json.dumps(payload), stderr="gh: no")
+        with mock.patch.object(router.subprocess, "run", return_value=done):
+            with self.assertRaises(RuntimeError):
+                router.graphql("query{x}", _tolerate={"NOT_FOUND"})
+
+
 class BriefTest(unittest.TestCase):
+    def test_unblocked_section(self):
+        u = [{"node": node(1842, "Card size"), "blockers": [
+            {"number": 1161, "closedAt": "2026-10-29T12:00:00Z", "stateReason": "COMPLETED"},
+            {"number": 1681, "closedAt": "2026-09-24T12:00:00Z", "stateReason": "NOT_PLANNED"}]}]
+        brief = router.build_brief([], [], {}, [], [], [], [], [], {}, dry=True, unblocked=u)
+        self.assertIn("1 may be unblocked.", brief)
+        self.assertIn("#1161 closed Oct 29, #1681 closed Sep 24 as not planned", brief)
+        self.assertNotIn("May be unblocked", router.build_brief([], [], {}, [], [], [], [], [], {}, dry=True))
+
     def test_brief_never_mentions_anyone(self):
         loud = "Ping @miketullo95 about this"
         owed = [{"node": node(1, loud), "kind": "follow-up", "legacy": False, "who": "atiddei",
