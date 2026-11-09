@@ -672,12 +672,13 @@ npx -y @playwright/cli@0.1.22 -s=<session> close
 ```
 
 Never run the `pkill` without a port: `storybook dev -p ` alone matches every Storybook on the
-machine, including the user's own on 6006. Confirm nothing listens on `$PORT` any more (`lsof -iTCP:$PORT -sTCP:LISTEN` prints nothing)
-and the worktree is gone (`git worktree list`). Keep the skill's `yale-ui-cl` clone and its
-`node_modules` cache; only the per-PR worktree goes. A run that died skips this step and leaves
-its worktree behind; the next run's U0 handles it by the rule there: removed when its Storybook
-is gone, left alone and named to the user when it is still running. Report cleanup in one line. Leave the screenshots,
-clips, `results.md`, and `storybook.log` in the run folder.
+machine, including the user's own on 6006. Confirm nothing listens on `$PORT` any more
+(`lsof -iTCP:$PORT -sTCP:LISTEN` prints nothing) and the worktree is gone (`git worktree list`).
+Keep the skill's `yale-ui-cl` clone and its `node_modules` cache; only the per-PR worktree goes.
+A run that died skips this step and leaves its worktree behind; the next run's U0 handles it by
+the rule there: removed when its Storybook is gone, left alone and named to the user when it is
+still running. Report cleanup in one line. Leave the screenshots, clips, `results.md`, and
+`storybook.log` in the run folder.
 
 ## Handing results to the rest of the skill
 
