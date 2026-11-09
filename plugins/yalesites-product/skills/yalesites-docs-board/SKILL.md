@@ -290,7 +290,8 @@ wait as in Step 6 again. Delete the file first, or the new wait ends at once on 
 Repeat until nothing is left at `changes`.
 
 If the reviewer wants the approved tickets built while others are still in revision, build them
-now. Otherwise build after the board settles, so the CAS login in Step 8 covers the whole batch.
+now. Otherwise build after the board settles, so one login in Step 8 (the saved one, or a fresh CAS
+login) covers the whole batch.
 
 ## Step 8: Build what was approved
 
@@ -306,7 +307,7 @@ that is already live, for `published`) or a second commit on the branch, and the
 ### Site pages (`edit` and `new`)
 
 Hand each approved ticket to `yalesites-page-build`, one at a time, in one logged-in browser for
-the whole batch. Its preflight, CAS login, Create New Draft flow, save, and verify pass all apply
+the whole batch. Its preflight, login (saved or CAS), Create New Draft flow, save, and verify pass all apply
 unchanged. The item is the build plan: `draft.md` for title, teaser, and config, and the ops for
 the layout.
 
