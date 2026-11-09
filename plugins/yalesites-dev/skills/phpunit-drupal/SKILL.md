@@ -1,9 +1,19 @@
 ---
 name: phpunit-drupal
-description: Run Drupal PHPUnit Unit, Kernel, and Functional tests in a YaleSites Lando environment. Use this whenever the user wants to run, write, debug, or verify PHPUnit tests in a yalesites-* or Drupal checkout — the correct `lando ssh -c` invocation is non-obvious and the commonly copied form fails silently, so reach for the skill even for a request as plain as "run the tests" or a bare test file path. Reach for it just as readily when a run is going wrong rather than being started: "Class ... not found", a run killed with exit 143, exit 1 while every test shows green, HTTP 500 on every route in a BrowserTestBase test, "Could not read phpunit.xml", SIMPLETEST_DB errors, or tests that will not run from a git worktree. It is also the place that records why a green suite here is not a CI gate. Use it even if the user never says PHPUnit, Lando, or kernel test.
+description: Run Drupal PHPUnit Unit, Kernel, and Functional tests in a YaleSites local Docker environment (Lando, or DDEV when `YALESITES_LOCAL_DOCKER_TOOL=ddev`). Use this whenever the user wants to run, write, debug, or verify PHPUnit tests in a yalesites-* or Drupal checkout — the correct `lando ssh -c` / `ddev exec` invocation is non-obvious and the commonly copied form fails silently, so reach for the skill even for a request as plain as "run the tests" or a bare test file path. Reach for it just as readily when a run is going wrong rather than being started: "Class ... not found", a run killed with exit 143, exit 1 while every test shows green, HTTP 500 on every route in a BrowserTestBase test, "Could not read phpunit.xml", SIMPLETEST_DB errors, or tests that will not run from a git worktree. It is also the place that records why a green suite here is not a CI gate. Use it even if the user never says PHPUnit, Lando, or kernel test.
 ---
 
-# PHPUnit on YaleSites / Lando
+# PHPUnit on YaleSites / Lando (or DDEV)
+
+## Pick the tool first
+
+`echo $YALESITES_LOCAL_DOCKER_TOOL`: `ddev` means DDEV; unset or anything else means Lando.
+Use only that tool and never start the other. Everything below is written for Lando; for DDEV
+substitute: `lando ssh -c` becomes `ddev exec`, `lando info` becomes `ddev describe`,
+`lando phpunit` has no equivalent (always pass a path), container root `/app` becomes
+`/var/www/html`, `SIMPLETEST_DB=mysql://db:db@db/db`, `SIMPLETEST_BASE_URL=http://localhost`.
+`ddev exec` runs a real shell, so the no-shell traps below do not apply (the `env` form
+still works). `scripts/run-kernel-test.sh` does the switch for you.
 
 ## Use the bundled script
 
@@ -151,7 +161,7 @@ A subagent does not inherit this judgment and **will** reach for the whole suite
 and burn hours. Put the scope in the prompt. Include all of:
 
 - **The exact test paths to run** — you derive them from the diff; do not make
-  the subagent guess — plus the full working `lando ssh -c` invocation above, and
+  the subagent guess — plus the full working invocation above (`lando ssh -c` or `ddev exec`), and
   the instruction to run **one path per invocation** (see below).
 - **An explicit prohibition:** "Run ONLY these paths. Do NOT run the module's
   whole `tests/` directory, the default suite, or anything under `web/core` or
@@ -204,7 +214,7 @@ calls `composer unit-test`, and that script is literally
 
 **A git worktree cannot run tests.** A worktree contains only tracked files;
 `web/core`, `web/modules/contrib`, `web/themes/contrib`, and `vendor` are
-composer-installed and gitignored, so they do not exist there. Lando is bound to
+composer-installed and gitignored, so they do not exist there. Lando (and DDEV, at `/var/www/html`) is bound to
 the main checkout at `/app`, and Drupal's test class loader scans relative to
 that DRUPAL_ROOT — it never sees the worktree. Symptom: `Class ... not found`.
 
@@ -213,7 +223,7 @@ into the main checkout, run there, then restore
 (`git checkout HEAD -- <tracked files>`, `rm` the new ones). Do not disturb
 unrelated uncommitted work in the main checkout while doing it.
 
-## Picking the right Lando app
+## Picking the right Lando app (DDEV: `ddev describe` from the checkout)
 
 Multiple YaleSites checkouts run Lando simultaneously, so `lando list` alone does
 not tell you which app maps to your directory. Read `.lando.local.yml` → `name:`
