@@ -39,10 +39,12 @@ Epics are not the only tickets that go stale when another one moves. A ticket of
 
   ```bash
   gh api repos/yalesites-org/YaleSites-Internal/issues/{NNN}/timeline --paginate \
-    -q '.[] | select(.event=="cross-referenced") | .source.issue | select(.state=="open" and .pull_request==null) | "\(.number) \(.title)"'
+    -q '.[] | select(.event=="cross-referenced") | .source.issue | select(.state=="open" and .pull_request==null) | "\(.repository_url | split("/") | .[-2:] | join("/"))#\(.number) \(.title)"'
   ```
 
-- **Backward: this ticket depends on others.** When checking a ticket directly or during grooming, collect the issues its body names (`#NNN` and `owner/repo#NNN`) and check which of them have closed since this ticket was last edited (`gh issue view {NNN} --json state,closedAt`).
+  Each line is `owner/repo#NNN title`. Cross-references can come from any repo, so keep the repo with the number and pass it as `--repo` when you read or edit that issue. A bare number from another repo is a different ticket in YaleSites-Internal.
+
+- **Backward: this ticket depends on others.** When checking a ticket directly or during grooming, collect the issues its body names (`#NNN` and `owner/repo#NNN`) and check which of them have closed since this ticket was last edited (`gh issue view {NNN} --repo {owner}/{repo} --json state,closedAt`). Use `yalesites-org/YaleSites-Internal` for a bare `#NNN` and the named repo for `owner/repo#NNN`.
 
 For each pair, read the open ticket only for wording that assumed the other ticket was still open: future tense about its fix ("releases," "once it lands"), "until," "today," "currently," or version numbers and pins that the closed ticket changed. Unrelated mentions need nothing. Don't re-review the whole related ticket.
 
