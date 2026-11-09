@@ -22,7 +22,7 @@ def blocks():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
         src = f.read()
     found = dict(re.findall(r"// test:begin (\w+)\n(.*?)// test:end", src, re.S))
-    for name in ("calibration", "isAnswered", "quietGroups", "verdicts"):
+    for name in ("calibration", "isAnswered", "quietGroups", "reveal", "verdicts"):
         assert name in found, f"index.html lost its test:{name} block"
     return "\n".join(found.values())
 
@@ -99,6 +99,40 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(got, ["Merge as is", "Merge as is", "merge as is",
                                "Merge as is (not recommended)", "This is not recommended because it skips tests",
                                "Recommended reading is linked in the brief"])
+
+    def test_reveal_follows_every_pick_on_a_non_blind_question(self):
+        # The pick handler redraws the reveal from revealKind after every pick, not only the first blind one.
+        code = """
+        const rec = { value: 'ship', label: 'Ship it' };
+        const a = { choice: null, blindChoice: null, prefilled: false };
+        const seen = [];
+        for (const v of ['ship', '__other', 'fix', '__other']) { pickAnswer(a, v, false); seen.push(revealKind(a, false, rec)); }
+        const pre = { choice: 'ship', blindChoice: null, prefilled: true };
+        const before = revealKind(pre, false, rec);
+        pickAnswer(pre, 'fix', false);
+        const afterSwitch = revealKind(pre, false, rec);
+        pickAnswer(pre, 'ship', false);
+        out = { seen, before, afterSwitch, back: revealKind(pre, false, rec), prefilled: pre.prefilled, blindChoice: a.blindChoice };
+        """
+        got = run({"questions": []}, {}, [], code)
+        # "Something else" shows the close-or-not chips even when it is not the first pick.
+        self.assertEqual(got["seen"], [None, "grade", None, "grade"])
+        self.assertIsNone(got["blindChoice"])
+        # Switching away from a pre-filled pick drops the note, and coming back does not restore it.
+        self.assertEqual(got["before"], "prefilled")
+        self.assertIsNone(got["afterSwitch"])
+        self.assertIsNone(got["back"])
+        self.assertFalse(got["prefilled"])
+
+    def test_reveal_scores_only_the_first_blind_pick(self):
+        code = """
+        const rec = { value: 'ship', label: 'Ship it' };
+        const a = { choice: null, blindChoice: null, prefilled: false };
+        const first = pickAnswer(a, 'fix', true), k1 = revealKind(a, true, rec);
+        const second = pickAnswer(a, 'ship', true), k2 = revealKind(a, true, rec);
+        out = [first, k1, second, k2, a.blindChoice];
+        """
+        self.assertEqual(run({"questions": []}, {}, [], code), [True, "miss", False, "miss", "fix"])
 
     def test_option_without_verdict_is_not_guessed(self):
         # Labels the old regex got wrong both ways.

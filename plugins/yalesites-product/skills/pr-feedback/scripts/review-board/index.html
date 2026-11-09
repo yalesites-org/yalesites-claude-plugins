@@ -526,22 +526,40 @@ function renderIntro(main, call, g) {
 // optional tag for the Friday misses board. On "Something else", whether it was
 // close to our pick (close counts as a match). Shown for non-blind questions
 // only for the close-or-not grade, and for a pre-filled pick as a reminder.
-function revealBox(q, a, blind, rec) {
+// test:begin reveal
+// Which reveal a question shows for its current answer: 'grade' (close or not),
+// 'prefilled', 'hit', 'miss', or null for none.
+function revealKind(a, blind, rec) {
   if (!rec || !a.choice) return null;
+  const first = a.blindChoice ?? a.choice;
+  if (first === '__other' || (!blind && a.choice === '__other')) return 'grade';
+  if (!blind) return a.prefilled && a.choice === rec.value ? 'prefilled' : null;
+  return first === rec.value ? 'hit' : 'miss';
+}
+// Records a pick on the answer. Returns true for the first pick on a blind
+// question, the one we score, which reveals our pick in the option list too.
+function pickAnswer(a, value, blind) {
+  const firstBlind = blind && a.blindChoice == null;
+  if (firstBlind) a.blindChoice = value;
+  if (a.choice !== value) a.prefilled = false;
+  a.choice = value;
+  return firstBlind;
+}
+// test:end
+function revealBox(q, a, blind, rec) {
+  const kind = revealKind(a, blind, rec);
+  if (!kind) return null;
   const chips = (list, key) => h('div', { class: 'chips' }, ...list.map(([v, label]) => h('button', {
     class: 'chip', type: 'button', 'aria-pressed': a[key] === v ? 'true' : 'false',
     onclick: () => { a[key] = a[key] === v ? null : v; save(); rerenderCurrent(); }
   }, label)));
-  const first = a.blindChoice ?? a.choice;
   const ours = h('span', {}, rec.hidden ? 'Our private guess was ' : 'We guessed ', h('strong', {}, rec.label), rec.detail ? `: ${rec.detail}` : '.');
-  if (first === '__other' || (!blind && a.choice === '__other')) {
+  if (kind === 'grade') {
     return h('div', { class: 'reveal' }, ours, h('div', { style: 'margin-top:6px' }, 'Was what you wrote close to that?'),
       chips([['close', 'Close'], ['miss', 'Not close']], 'otherGrade'));
   }
-  if (!blind) return a.prefilled && a.choice === rec.value
-    ? h('div', { class: 'reveal' }, 'Pre-filled with our pick: this kind of call has a strong record. Change it if it is wrong.')
-    : null;
-  if (first === rec.value) return h('div', { class: 'reveal hit' }, h('strong', {}, 'Match. '), ours);
+  if (kind === 'prefilled') return h('div', { class: 'reveal' }, 'Pre-filled with our pick: this kind of call has a strong record. Change it if it is wrong.');
+  if (kind === 'hit') return h('div', { class: 'reveal hit' }, h('strong', {}, 'Match. '), ours);
   return h('div', { class: 'reveal' }, h('strong', {}, 'Miss. '), ours,
     h('div', { style: 'margin-top:6px' }, 'Why the difference? (optional)'),
     chips([['missing-context', 'Missing context'], ['wrong-rule', 'Wrong rule'], ['taste', 'Taste'], ['changed-mind', 'Changed my mind']], 'missTag'));
@@ -604,13 +622,14 @@ function renderQuestion(main, call, qi) {
   const pick = (o, btn) => {
     if (a.choice !== o.value) clearOverride(qi);
     // Your first, cold pick on a blind question is the one we score.
-    const firstBlind = blind && a.blindChoice == null;
-    if (firstBlind) a.blindChoice = o.value;
-    if (a.choice !== o.value) a.prefilled = false;
-    a.choice = o.value; err.hidden = true; save();
+    const firstBlind = pickAnswer(a, o.value, blind);
+    err.hidden = true; save();
     if (firstBlind) { rerenderCurrent(); return; }
     opts.querySelectorAll('.opt').forEach(b => b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'));
     otherBox.hidden = o.value !== '__other';
+    // Redraw just the reveal, so the grade chips or the pre-filled note follow every
+    // pick while focus stays on the picked option.
+    drawReveal();
     if (!otherBox.hidden) otherBox.focus();
     renderHeader();
     // Picking stays on the page, so a note can follow the pick. Next (or →) moves on.
@@ -626,8 +645,10 @@ function renderQuestion(main, call, qi) {
   });
   keyPick = n => { const b = opts.querySelectorAll('.opt')[n - 1]; if (b) pick(choices[n - 1], b); };
   call.append(opts, h('div', { style: 'margin-top:8px' }, otherBox), err);
-  const rv = revealBox(q, a, blind, rec);
-  if (rv) call.append(rv);
+  const revealSlot = h('div', { class: 'reveal-slot' });
+  const drawReveal = () => revealSlot.replaceChildren(...[revealBox(q, a, blind, rec)].filter(Boolean));
+  drawReveal();
+  call.append(revealSlot);
 
   const notes = h('textarea', { placeholder: 'Note for the developer: why, edge cases, wording you want', hidden: !a.notes || null });
   notes.value = a.notes;
