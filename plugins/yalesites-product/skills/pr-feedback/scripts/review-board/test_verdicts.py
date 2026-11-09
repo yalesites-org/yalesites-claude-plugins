@@ -22,7 +22,7 @@ def blocks():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
         src = f.read()
     found = dict(re.findall(r"// test:begin (\w+)\n(.*?)// test:end", src, re.S))
-    for name in ("isAnswered", "quietGroups", "verdicts", "groups", "prUrl"):
+    for name in ("isAnswered", "quietGroups", "verdicts", "unitOf", "prUrl"):
         assert name in found, f"index.html lost its test:{name} block"
     return "\n".join(found.values())
 
@@ -72,6 +72,24 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(verdict(qs, [answer("hold"), answer("ok")])["verdict"], "comment")
         v = verdict(qs, [answer("hold"), answer("fix")])
         self.assertEqual((v["verdict"], v["because"]), ("changes", [2]))
+
+    def test_subject_is_the_title_never_a_bare_ref(self):
+        def subject(q, u=None):
+            return run({"questions": [q]}, {}, [], f"out = subjectOf(packet.questions[0], {json.dumps(u)});")
+        pr = {"ref": "o/r#82", "url": "https://github.com/o/r/pull/82"}
+        titled = dict(pr, title="feat: count block positions")
+        issue = {"ref": "o/i#5", "title": "Bug: thing breaks"}
+        # The unit's PR title wins, then its ticket, then the question's own refs.
+        self.assertEqual(subject({"pr": pr}, {"pr": titled})["title"], titled["title"])
+        self.assertEqual(subject({"pr": pr}, {"pr": pr, "issue": issue})["title"], issue["title"])
+        self.assertEqual(subject({"pr": titled})["title"], titled["title"])
+        # A ref with no title is reported as missing, not shown as if it were a title.
+        self.assertIsNone(subject({"pr": pr}))
+
+    def test_rulings_are_on_unless_the_packet_turns_them_off(self):
+        code = "out = [hasRulings(), noun()];"
+        self.assertEqual(run({"questions": []}, {}, [], code), [True, "PR"])
+        self.assertEqual(run({"questions": [], "rulings": False}, {}, [], code), [False, "item"])
 
     def test_option_without_verdict_is_not_guessed(self):
         # Labels the old regex got wrong both ways.
@@ -129,6 +147,22 @@ class VerdictTest(unittest.TestCase):
         """)
         self.assertEqual(out, {"groups": [[a, [0, 1]], [b, [2]]], "quiet": 0,
                                "pr": {"ref": a, "url": "https://github.com/yalesites-org/yale-ui-cl/pull/76"}})
+
+    def test_units_with_no_pr_group_by_issue_and_need_no_ruling(self):
+        packet = {"rulings": False,
+                  "questions": [{"issue": {"ref": "o/i#5"}}, {"issue": {"ref": "o/i#6"}}, {"issue": {"ref": "o/i#5"}}],
+                  "units": [{"issue": {"ref": "o/i#5", "title": "Five"}}, {"issue": {"ref": "o/i#6"}, "short": "Six"}]}
+        out = run(packet, {"answers": [answer(None)] * 3}, [], """
+            groups = buildGroups();
+            out = { groups: groups.map(g => [g.key, g.qs, g.noPr, g.label]), quiet: quietGroups().length };
+        """)
+        self.assertEqual(out, {"groups": [["o/i#5", [0, 2], True, "Five"], ["o/i#6", [1], True, "Six"]], "quiet": 0})
+
+    def test_pr_units_still_match_by_pr_ref(self):
+        packet = {"questions": [{"pr": {"ref": "o/r#2"}}, {"pr": {"ref": "o/c#9"}}],
+                  "units": [{"pr": {"ref": "o/r#1"}}, {"pr": {"ref": "o/r#2"}, "extraPrs": ["o/c#9"], "issue": {"ref": "o/i#1"}}]}
+        out = run(packet, {}, [], "out = buildGroups().map(g => [g.key, g.qs, g.noPr]);")
+        self.assertEqual(out, [["o/r#2", [0, 1], False]])
 
 
 if __name__ == "__main__":

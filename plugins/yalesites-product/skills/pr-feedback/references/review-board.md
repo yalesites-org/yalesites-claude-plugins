@@ -13,9 +13,11 @@ normal, half, or quarter speed, and the reviewer can leave a note at any moment 
 The reviewer runs this several times a day, a handful of PRs each time, so the board is built for
 someone arriving cold. Each PR opens with a **lead-in page**: what it is for, what it changes,
 where to test it, and the numbered list of decisions coming up. Each question then shows a few
-context bullets and one plain question beside the answer cards, which stay in a sticky panel
-while the evidence scrolls. A header row of PR chips and a stepper, color-coded per PR, shows
-where they are. Picking an answer moves to the next question (number keys pick, arrows move).
+the PR or ticket title, a plain-words gist, a few context bullets, and one plain question beside
+the answer cards, which stay in a sticky panel while the evidence scrolls. A header row of PR
+chips and a stepper, color-coded per PR, shows where they are. Picking an answer stays on the
+page so a note can follow it; Next or the right arrow moves on (number keys pick, N opens the
+note, arrows move).
 The last page shows each PR's ruling, worked out from the answers and open to override, and what
 sending will post.
 
@@ -129,6 +131,7 @@ delete it.
       "title": "Swatch row cuts off",
       "dimension": "design",
       "question": "The last swatch is cut off and a scrollbar shows under the row. This PR did not cause it. How should we handle it?",
+      "gist": "The color swatches in the section settings get cut off on the right. It was already broken before this PR. Do we fix it here or later?",
       "brief": ["The last swatch is cut off at the modal edge.", "This PR did not cause it; it shows on `dev` too."],
       "ask": "Ticket the clipping, or fix it in this PR?",
       "context": [
@@ -151,6 +154,16 @@ delete it.
   ]
 }
 ```
+
+**`"rulings": false` for a board that is not a PR review.** The board also carries backlog
+cleanup, planning calls, and other decisions where "Approve / Request changes / Comment" means
+nothing. Set `"rulings": false` on those packets. The board then drops the per-PR ruling row from
+the last page, recaps the answers alone as "Your answers", sends with "Send answers", says
+"item" instead of "PR" in its labels, and writes `"verdicts": null`. Options on such a board
+need no `verdict`. Leave the field off (rulings on) for any PR review: there, an option without
+a `verdict` still makes the reviewer pick a ruling, on purpose. Write `units` on such a board
+too, one per ticket with `issue` and no `pr`, and tag each question with that ticket's
+`issue.ref` (see `units` below), so every ticket gets its own lead-in and "item" label.
 
 **Every question ends with a "Decide later" option:** `{ "value": "defer", "label": "Decide later", "detail": "Raise it as needs-decision on the PR so it waits in your queue." }`. A `defer` answer is not a ruling. It becomes a `needs-decision` block on the PR, deciding by the reviewer, per "Open calls go on the record" in `SKILL.md`. Play it back as "Deferred: raising a decision" so the reviewer can still change it.
 
@@ -212,12 +225,18 @@ and what the PR does, then lists the plain question (`ask`) of every question in
 The same facts fold into an "About" line on each question. Write one unit per PR, or per set of
 PRs reviewed together. Every packet gets `units`, a single-PR one included.
 
+On a board with no PRs (backlog cleanup, planning, usually `"rulings": false`), write one unit
+per ticket with `issue` and leave `pr` off. Give each question the same `issue` object (at least
+its `ref`), and the question joins the unit whose `issue.ref` matches. The lead-in and the About
+line then show the ticket in place of a PR, and the unit's group never asks for an
+Approve / Request changes ruling, even with rulings on.
+
 | Field | What goes in it |
 |---|---|
 | `short` | Two to four words for the header chip and the lead-in (`LB resize edge`, `Audio transcript`). The chip shows it next to the short ref |
 | `issue` | `ref`, `url`, and `title` of the ticket the PR closes. Leave it off if there is none, and say so in `change` |
 | `ask` | One to three sentences: what the ticket asks for and why, in the reviewer's terms. Not the acceptance criteria list (a `text` block carries that), the point of the ticket |
-| `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly |
+| `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly. Required on a PR review; leave it off only on a no-PR board, where the question's `issue.ref` finds the unit instead |
 | `extraPrs` | Optional. Refs of the other PRs in the same unit (`yalesites-org/atomic#545`). A question tagged with one of them joins this unit's group |
 | `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised |
 | `status` | Optional. The drive-it result in one line (`8 pass, 2 fail, 1 ask`), or why there was no run |
@@ -265,6 +284,25 @@ the object.
 
 ### Writing the questions
 
+**Write for a reviewer moving fast, not a developer.** The reviewer clears many boards a day and
+should get each question in one read. This is a blanket rule for everything the reviewer reads
+first: `gist`, `ask`, option `label` and `detail`, and a unit's `ask` and `change`. Say what
+happens to editors, sites, or the team, in everyday words. Leave out file paths, function and
+script names, commit hashes, and internal jargon unless the decision is about that exact thing,
+and then say what it is in a few words ("the script that rebuilds the portfolio skill's data").
+The technical detail is still welcome; it goes in `brief`, the evidence blocks, and the full
+`question`, where it backs up the gist instead of standing in for it.
+
+- **Every question has a title to show, by name.** The page leads with the PR or ticket title
+  (`feat: count block positions`), not just its ref, because `plugins#82` alone says nothing.
+  The board takes it from the unit's `pr.title`, then its `issue.title`, then the question's own
+  `pr.title` or `issue.title`. Give every `pr` and `issue` a `title`. A page with none shows
+  "no title in this packet", which is a packet bug to fix, not something to send.
+- **`gist` first: what we are asking, explained like to a smart friend outside the team.** One
+  to three short sentences, shown in a highlighted box above the context: what this thing is,
+  what is going on with it, and what we need decided. "This is the plan to track where blocks
+  sit on a page. Nobody needs that data yet, and another change has to land first. Park it?"
+  Every question gets one.
 - **Context first, then one plain question.** `brief` is two to four short bullets, one fact
   each: what was built, what was measured, what is already settled elsewhere. No PR ref and
   ticket number preamble, since the lead-in and the tag carry those. `ask` is the decision
@@ -278,6 +316,9 @@ the object.
   the call is shown, not what is asked.
 - **Answerable from the page.** If the reviewer needs to open another tab to decide, put the
   thing they would look at into a context block instead.
+- **Option `detail` says what happens, not why again.** The gist and brief already gave the
+  reasoning; repeating it in the recommended option makes the panel a wall of text. One short
+  sentence of consequence ("Moves it to Backlog with a note on when to bring it back").
 - **Two to four options, each with a `detail` naming its cost.** "Widens a small bug fix" is the
   part that makes the choice real. The board always adds a "Something else" option with a free
   text box, so do not add an "Other" option yourself.
@@ -286,7 +327,7 @@ the object.
   recommendation, and that is fine.
 - **`dimension`** is the Step 0 dimension the call belongs to (`product`, `design`, `a11y`,
   `functional`, `code`).
-- **Every option carries a `verdict`:** `approve` if the PR can merge with that answer, `changes`
+- **On a PR review, every option carries a `verdict`** (skip it on a `"rulings": false` board): `approve` if the PR can merge with that answer, `changes`
   if it means the developer has to change something before merge (Step 6's rule: even one small
   edit), `comment` if it leaves the PR waiting on someone (decide later, ask April, hold for a
   site owner). The last page combines them per PR: any `changes` wins, then any `comment`, else
@@ -406,13 +447,14 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
   Describe it the same way ("right after Escape, about 7 seconds in"). A screenshot or clip
   with markups is one worth suggesting they drag into the review comment, since `gh` cannot
   upload images or video. For a clip, suggest the MP4.
-- **`verdicts`** holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
+- **`verdicts`** is `null` on a packet with `"rulings": false`: act on the answers alone.
+  Otherwise it holds one entry per PR group: `{ "pr": "<ref>", "verdict": "approve" | "changes"
   | "comment", "inferred": true, "because": [5] }`. `inferred: false` means the reviewer picked
   it on the last page, either changing the inferred one or ruling where the board had none.
   Changing any answer for a PR drops a ruling picked that way, so it always reflects the final
   answers. That is the Step 6 ruling for that PR. Do not ask for it again. A unit in
   `units` with no questions gets an entry too, always with `inferred: false`, because the board
-  makes the reviewer pick it rather than guessing.
+  makes the reviewer pick it rather than guessing. A unit with no `pr` gets no entry.
 - **Do not wait for a playback confirmation.** The board's last page already showed every ruling
   and what sending would post, so go straight on to Step 4 and post. List the rulings in Step 10's
   report instead, so the transcript still has them.
