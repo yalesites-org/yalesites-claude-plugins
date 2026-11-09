@@ -111,7 +111,7 @@ Each developer should always have work ready to start. A lane's floor is the few
 - **Candidates** are open YaleSites-Internal tickets on the board, in `Backlog` or `To Do`, with no assignee and a Priority set. They skip epics, Communications, feature parents (anything with sub-issues), `forming`, `needs-decision`, `follow-up`, anything blocked by an open ticket, and anything with an open PR. Embed tickets without an approval are left out too (see "New embed providers").
 - **Order.** A lane with no Areas sorts like the agent pickup order: `Hotfix` first, then by milestone due date (no milestone last), Priority, and Risk, oldest first on a tie. A lane with Areas sorts for fit instead, in four groups, each in pickup order:
   1. Bugs.
-  2. Features whose title matches one of the person's Areas (title keywords, any case).
+  2. Features whose title matches one of the person's Areas (title keywords as whole words, any case; a plural `s` still matches).
   3. `Low` Priority work.
   4. Everything else.
 - **Laura's lane.** Laura is external and works about 8 hours a week, so her tickets move week to week. Give her bugs first, then features in areas she has built before (her Areas), then work that is `Low` Priority or well siloed: something that can sit half-done for a week without blocking anyone. The router can't tell siloed work from its title, so the approver checks that. Add an Area when she builds something new.
@@ -122,7 +122,7 @@ Each developer should always have work ready to start. A lane's floor is the few
 
 Every new Embed block provider needs `miketullo95`'s explicit approval before anyone builds it. Each one adds a third party that runs on every YaleSites site that uses it, so it is a platform call, not a grooming call.
 
-- **Which tickets.** Any ticket titled `Embed:` or `Embed Request:`, or that is a sub-issue of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373). Bugs on embeds that already ship are not covered.
+- **Which tickets.** Any ticket titled `Embed:` or `Embed Request:` (including with `Hotfix:` stacked in front), or that is a sub-issue of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373). Bugs on embeds that already ship are not covered.
 - **How to ask.** Raise a `needs-decision` for `miketullo95` on the ticket (see the blocks below), asking whether to add the provider.
 - **How it's approved.** `miketullo95` replies `## Decision: approved, decided by Michael on <date>. Reason: ...` and removes `needs-decision`. That comment is the approval. Nothing else counts: not a Priority, a milestone, the `claude` label, or a Status of `To Do`.
 - **Until then.** No `claude` label, no assignee, and no agent or lane floor picks it up. The router checks for the approval comment before it lists an embed ticket as a lane floor candidate.

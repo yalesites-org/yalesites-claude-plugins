@@ -51,7 +51,8 @@ LANE_CANDIDATES = 5
 CANDIDATE_SKIP_TYPES = {"Epic", "Communications"}
 # Issue Types that never count toward a lane floor.
 FLOOR_SKIP_TYPES = {"Communications"}
-EMBED_TITLE = re.compile(r"^\s*Embed(?: Request)?:", re.I)
+# `Hotfix:` is the one title prefix that stacks in front of another (see the ticket skill's Title section).
+EMBED_TITLE = re.compile(r"^\s*(?:Hotfix:\s*)?Embed(?: Request)?:", re.I)
 CANDIDATE_SKIP_LABELS = {"forming", "needs-decision", "follow-up", "epic"}
 PRIORITY_RANK = {"Hotfix": 0, "High": 1, "Medium": 2, "Low": 3}
 RISK_RANK = {"Low": 0, "Medium": 1, "High": 2}
@@ -482,7 +483,7 @@ def is_candidate(it):
 
 
 def is_embed(c, epic):
-    """A new embed provider: titled Embed: or Embed Request:, or a child of the Embed Requests epic.
+    """A new embed provider: titled Embed: or Embed Request: (Hotfix: may stack in front), or a child of the Embed Requests epic.
 
     Bugs are not held: a Bug on an embed that already ships needs no provider approval.
     """
@@ -518,6 +519,17 @@ def candidate_key(it):
             PRIORITY_RANK.get(it["priority"], 9), RISK_RANK.get(it["risk"], 1), it["node"]["createdAt"])
 
 
+def area_hit(area, title):
+    """True when the Area appears in the title as whole words, any case.
+
+    Plain substring tests let short Areas hit unrelated words ('import' in 'Important'). The edges
+    are lookarounds rather than \\b so Areas that start or end in punctuation still match, any run of
+    whitespace matches a space in a multi-word Area, and a plural s/es is allowed ('imports').
+    """
+    words = r"\s+".join(re.escape(w) for w in area.split())
+    return re.search(r"(?<!\w)" + words + r"(?:e?s)?(?!\w)", title, re.I) is not None
+
+
 def fit(it, areas):
     """(group, why) for a lane with Areas: Hotfix, bugs, the person's areas, Low priority, the rest."""
     c = it["node"]
@@ -526,7 +538,7 @@ def fit(it, areas):
     if (c.get("issueType") or {}).get("name") == "Bug" or c["title"].lower().startswith("bug:"):
         return 1, "Bug"
     title = c["title"].lower()
-    hit = next((a for a in areas if a in title), None)
+    hit = next((a for a in areas if area_hit(a, title)), None)
     if hit:
         return 2, f"Area: {hit}"
     if it["priority"] == "Low":

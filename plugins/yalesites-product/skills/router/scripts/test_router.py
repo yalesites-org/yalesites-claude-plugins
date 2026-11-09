@@ -196,6 +196,29 @@ class LaneFloorTest(unittest.TestCase):
         self.assertEqual(held, [])
         self.assertEqual(nums(under[0]), [65])
 
+    def test_hotfix_embeds_are_still_held(self):
+        hot = board_item(66, priority="Hotfix", title="Hotfix: Embed: Panopto")
+        hot_req = board_item(67, priority="Hotfix", title="hotfix:Embed Request: Loom")
+        self.assertTrue(router.is_embed(hot["node"], 1373))
+        self.assertTrue(router.is_embed(hot_req["node"], 1373))
+        self.assertFalse(router.is_embed(board_item(68, title="Hotfix: Bug: Embed height")["node"], 1373))
+        under, held = router.lane_report([hot, hot_req, board_item(69)], {"dblanken-yale": self.DAVE}, 1373,
+                                         approved_embeds=set())
+        self.assertEqual(nums(under[0]), [69])
+        self.assertEqual(sorted(it["node"]["number"] for it in held), [66, 67])
+
+    def test_areas_match_whole_words(self):
+        areas = ["import", "manage content", "csv"]
+        self.assertEqual(router.fit(board_item(70, title="Important: fix menu z-index"), areas), (4, ""))
+        self.assertEqual(router.fit(board_item(71, title="Re-import people from CSV"), areas), (2, "Area: import"))
+        self.assertEqual(router.fit(board_item(72, title="Bulk imports for events"), areas), (2, "Area: import"))
+        self.assertEqual(router.fit(board_item(73, title="Manage  Content filters"), areas),
+                         (2, "Area: manage content"))
+        self.assertEqual(router.fit(board_item(74, title="Managed contentious pages"), areas), (4, ""))
+        self.assertEqual(router.fit(board_item(75, title="CSVs (export)"), areas), (2, "Area: csv"))
+        self.assertTrue(router.area_hit("c++", "Add C++ snippet support"))
+        self.assertFalse(router.area_hit("c++", "Add C snippet support"))
+
     def test_brief_lists_short_lane_and_candidates(self):
         lane = {"handle": "laura-johnson", **self.LAURA, "to_do": 1,
                 "candidates": [(board_item(70, milestone=DEC), "Bug")]}
