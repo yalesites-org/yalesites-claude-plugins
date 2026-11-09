@@ -22,7 +22,7 @@ def blocks():
     with open(os.path.join(HERE, "index.html"), encoding="utf-8") as f:
         src = f.read()
     found = dict(re.findall(r"// test:begin (\w+)\n(.*?)// test:end", src, re.S))
-    for name in ("isAnswered", "quietGroups", "verdicts"):
+    for name in ("calibration", "isAnswered", "quietGroups", "verdicts"):
         assert name in found, f"index.html lost its test:{name} block"
     return "\n".join(found.values())
 
@@ -90,6 +90,15 @@ class VerdictTest(unittest.TestCase):
         code = "out = [hasRulings(), noun()];"
         self.assertEqual(run({"questions": []}, {}, [], code), [True, "PR"])
         self.assertEqual(run({"questions": [], "rulings": False}, {}, [], code), [False, "item"])
+
+    def test_unrec_strips_only_the_marker_and_keeps_not_recommended(self):
+        cases = ["Merge as is (Recommended)", "Merge as is (our recommendation)", "Recommended: merge as is",
+                 "Merge as is (not recommended)", "This is not recommended because it skips tests",
+                 "Recommended reading is linked in the brief"]
+        got = run({"questions": []}, {}, [], f"out = {json.dumps(cases)}.map(unrec);")
+        self.assertEqual(got, ["Merge as is", "Merge as is", "merge as is",
+                               "Merge as is (not recommended)", "This is not recommended because it skips tests",
+                               "Recommended reading is linked in the brief"])
 
     def test_option_without_verdict_is_not_guessed(self):
         # Labels the old regex got wrong both ways.

@@ -121,6 +121,13 @@ class Leaks(unittest.TestCase):
         self.assertTrue(calibration.leaks({"question": "We recommend closing it."}, rec))
         self.assertFalse(calibration.leaks({"brief": ["The packet shipped before the meeting."]}, rec))
 
+    def test_not_recommended_option_is_a_leak(self):
+        rec = {"value": "fix", "label": "Fix first", "detail": ""}
+        q = {"options": [{"value": "fix", "label": "Fix first"}, {"value": "merge", "label": "Merge as is (not recommended)"}]}
+        self.assertTrue(calibration.leaks(q, rec))
+        q["options"][1]["label"] = "Merge as is"
+        self.assertFalse(calibration.leaks(q, rec))
+
 
 class Snapshot(unittest.TestCase):
     def test_copies_and_keeps_different_packets_apart(self):

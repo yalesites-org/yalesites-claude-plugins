@@ -124,6 +124,11 @@ def leaks(question, rec):
     ("Close with a short comment..."). Hiding the badge would not make that
     question blind, so it stays visible and is scored as anchored.
     """
+    # "Not recommended" on an option marks every other option as our pick, and hiding the
+    # phrase would flip its meaning, so such a question is never blind.
+    for o in question.get("options") or []:
+        if re.search(r"\bnot recommended\b", _norm(f"{o.get('label') or ''} {o.get('detail') or ''}")):
+            return True
     shown = _norm(" ".join([*(question.get("brief") or []), question.get("question") or "", question.get("ask") or ""]))
     if not shown:
         return False

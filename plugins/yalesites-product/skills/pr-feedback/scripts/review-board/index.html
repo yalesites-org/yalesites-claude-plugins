@@ -282,8 +282,13 @@ function prefillOf(q) {
   const r = recOf(q);
   return r && !r.hidden && (seal.prefill || []).includes(q.id) ? r : null;
 }
-// Some packets write the recommendation into the label or detail itself; a blind question hides that too.
-const unrec = t => String(t || '').replace(/\s*\((?:our )?recommend(?:ed|ation)\)/gi, '').replace(/\s*\b(?:recommended|our recommendation)\b[.:]?\s*/gi, ' ').trim();
+// Some packets write the recommendation into the label or detail itself, as a "(Recommended)" tag or a
+// leading "Recommended:"; a blind question hides that marker. Prose like "not recommended" is left alone:
+// stripping the bare word would flip its meaning (calibration.leaks keeps such a question out of blind).
+const unrec = t => String(t || '')
+  .replace(/\s*\((?:our )?recommend(?:ed|ation)\)/gi, '')
+  .replace(/^\s*(?:recommended|our recommendation)\s*[:.\u2014-]\s*/i, '')
+  .trim();
 // A blind question must not give our pick away by its position, so its options
 // are shuffled, the same way every time for the same question.
 function stableShuffle(list, key) {
