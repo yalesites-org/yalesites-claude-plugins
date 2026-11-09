@@ -795,8 +795,8 @@ apply here. If a write does fail, read the error rather than retrying blindly:
 | `gh: Not Found` or `HTTP 404` | Wrong repo for that PR number, and the number exists in more than one repo | Re-confirm the repo with the user, do not guess |
 | `Can not approve your own pull request` | The user authored it | Step 6's `--comment` fallback |
 | Label set comes back wrong from Step 8's verify | A label was sent that the repo does not define, or the computed set dropped something | Step 8's per-repo tables, then re-send the corrected full set |
-| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | Switch to the connector fallback for this review, per Step 6's preflight. Offer `gh auth login` with `repo` scope as the durable fix, but do not block the review on it |
-| `403 Resource not accessible by personal access token` | You are on the connector fallback and hit its write gap | Do not retry. Show the user the drafted body and computed label set verbatim, and tell them `gh auth login` with `repo` scope clears this permanently |
+| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | Switch to the connector fallback for this review, per Step 6's preflight. Offer `gh auth login -h github.com -s project,repo,read:org,workflow,gist` as the durable fix (never plain `gh auth login`, which resets scopes and drops `project`), but do not block the review on it |
+| `403 Resource not accessible by personal access token` | You are on the connector fallback and hit its write gap | Do not retry. Show the user the drafted body and computed label set verbatim, and tell them `gh auth refresh -h github.com -s project,repo,read:org,workflow,gist` clears this permanently (`gh auth login -h github.com -s project,repo,read:org,workflow,gist` if `gh` is not logged in at all; never plain `gh auth login`, which drops `project`) |
 | Anything else | Unclear | Show the user the drafted body and label plan verbatim so nothing is lost, then ask |
 
 **On the connector fallback path, confirm the review landed before reporting success**, because
