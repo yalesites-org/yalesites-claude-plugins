@@ -174,6 +174,9 @@ python3 scripts/check-github-text.py draft.md --surface ticket
 
 Surfaces: `ticket`, `pr-body`, `pr-review`, `release-notes`, `report`, `page-draft`.
 
+The `pr-body` surface also checks structure: the body needs the `### Description of work` and
+`### Functional testing steps:` headings. A body that links a `docs/adr/` file (an ADR PR) is exempt.
+
 The checker flags candidates, not verdicts. A 22-word descriptive sentence is fine. A
 22-word acceptance criterion is not. It only measures the visible layer, so a long
 collapsed block is never a finding.

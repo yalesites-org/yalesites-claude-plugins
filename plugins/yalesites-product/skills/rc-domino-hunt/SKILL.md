@@ -1,7 +1,7 @@
 ---
 name: rc-domino-hunt
-description: "Hunt a YaleSites release candidate for the edge cases and domino effects that PR-level testing never looked at: cross-PR collisions, shared component, token, and contrib-patch changes rippling into blocks nobody tested, new validation landing on old real content, and filter, theme, color, and layout combinations next to the ones a PR tested. Tests read-only on the RC multidevs, which are cloned from real sites, and ends with a short morning report a human triages. Never posts to GitHub. Use when someone asks to hunt, stress, poke at, or look for dominoes or blast radius in the RC, e.g. '/rc-domino-hunt', 'hunt the RC for an hour', 'what could 1666 and 1672 break together', 'check the RC for things PR testing missed', 'mini-hunt this hotfix PR before it ships'. Also the skill the Tuesday-night drain routine calls with --drain during an RC window. Not for reviewing a single PR (that is pr-feedback) or for retesting a ticket's own Release Testing Steps (that is release-prep)."
-argument-hint: "[--drain] [--dry-run <release-branch>] [PR numbers] [--site <site>] [--budget <time>] [--hotfix <PR>]"
+description: "Hunt a YaleSites release candidate for the edge cases and domino effects that PR-level testing never looked at: cross-PR collisions, shared component, token, and contrib-patch changes rippling into blocks nobody tested, new validation landing on old real content, and filter, theme, color, and layout combinations next to the ones a PR tested. Tests on the RC multidevs, which are cloned from real sites (read-only on the ones testers share, full read and write on a reserved hunt site), and ends with a short morning report a human triages. Never posts to GitHub. Use when someone asks to hunt, stress, poke at, or look for dominoes or blast radius in the RC, e.g. '/rc-domino-hunt', 'hunt the RC for an hour', 'what could 1666 and 1672 break together', 'check the RC for things PR testing missed', 'mini-hunt this hotfix PR before it ships'. Also the skill the Tuesday-night drain routine calls with --drain during an RC window. Not for reviewing a single PR (that is pr-feedback) or for retesting a ticket's own Release Testing Steps (that is release-prep)."
+argument-hint: "[--drain] [--dry-run <release-branch>] [PR numbers] [--site <site>] [--reserved <site>] [--budget <time>] [--hotfix <PR>]"
 ---
 
 # RC domino hunt
@@ -12,8 +12,8 @@ Why it exists: a lookback over Oct 2025 to Oct 2026 found 23 functional hotfixes
 
 **Ground rules, in every mode:**
 
-- **Read-only on the RC.** The RC multidevs are the team's shared QA environment. The `yalesites-web-content` skill already says to create nothing there. This skill follows that. The only allowed change is opening a Layout Builder form on an existing page and then discarding it, under the rules in `references/rc-sites.md`.
-- **Nothing outbound.** No form submissions, no webform sends, and no writes to Localist, ServiceNow, or CAS.
+- **Read and write on the reserved site, read-only everywhere else.** RC multidevs are temporary clones of live sites, and they are deleted after the release ships, so nothing done on them lasts. When a run has a reserved hunt site (`--reserved`), the hunt tests there as hard as an editor would: it edits existing content, creates content, saves layouts, and changes settings. Editing the existing, copied-from-live content is the main use: that is where old data meets the new code. The other RC multidevs are still the human testers' shared QA environment, so a saved change there would look like a release bug to them. On those, the only allowed change is opening a Layout Builder form on an existing page and then discarding it. Both sets of rules are in `references/rc-sites.md`, "What the hunt may change".
+- **Nothing outbound.** No form that sends something off the site (contact forms, webform sends, newsletter sign-ups, event registration), and no writes to Localist, ServiceNow, or CAS. Saving a node, layout, or reusable block form on the reserved site is not outbound.
 - **Nothing to GitHub.** No comments, reviews, labels, or issues. Findings go into the morning report. A human triages them, and real bugs go through the `ticket` skill.
 - **Screenshots of real sites stay local.** Only use them on private repos, through `github-screenshots`.
 - **Evidence or it did not happen.** Every finding needs a screenshot of the RC beside the same view on live, repro steps, and one re-run that fails again (see `references/charters.md`).
@@ -25,6 +25,7 @@ Why it exists: a lookback over Oct 2025 to Oct 2026 found 23 functional hotfixes
 | `/rc-domino-hunt` | Full hunt on the open RC, attended. Runs phases 1 to 3 and asks before anything that needs a ruling. |
 | `/rc-domino-hunt 1666 1672` | Scoped to those PRs and their overlaps. The impact map is still built for the whole RC, since overlaps need it. |
 | `--site <site>` | Only that RC site, e.g. `--site ys-registrar-yale-edu`. |
+| `--reserved <site>` | Run only on that RC site, and treat it as the reserved hunt site: one taken out of the tester communication so only the hunt uses it, e.g. `--reserved ys-registrar-yale-edu`. Writes are allowed there (see `references/rc-sites.md`). If its multidev is missing or not on the release branch, stop. Never fall back to a shared site. Record it as `reserved: true` in `release.json`. Works with `--drain`. |
 | `--budget 1h` | Stop after that much time, then report. |
 | `--hotfix <PR>` | Mini-hunt on a hotfix PR before it ships. Hotfixes skip the RC, and one hotfix has caused the next before (see the lookback). Phases 1 and 2 run for that one PR, and the state folder is `hotfix-<N>/`. Phase 3 runs on the PR's `pr-<N>` multidev under `pr-feedback`'s rules for that environment, not on RC sites. That multidev is a copy of the visreg site, not real content, so it cannot show problems that need real data or scale (like update hooks timing out on big sites). The report says so, and lists the old-data queries a human could run on one RC site. Never in `--drain`. |
 | `--dry-run <branch>` | Run against an old release branch whose multidevs still exist (e.g. `v2260`). It tests the skill, not the release: say so at the top of the report. |
@@ -50,6 +51,7 @@ Everything for one RC lives in one folder, so a fresh session can pick up where 
   impact-map.json       Phase 1
   vendor-diff.json      Phase 1, contrib and patch changes
   hypotheses.json       Phase 2, one entry per hypothesis with status
+  changes.md            every change the hunt made on the reserved site, across all runs
   runs/<YYYY-MM-DD-HHMM>/
     charters/<NN>-<slug>.md     the charter and its debrief
     screenshots/
@@ -114,7 +116,7 @@ The Tuesday routine calls `/rc-domino-hunt --drain` the night before the weekly 
 - **Do not stop because the ranked list ran out.** Generators always have more.
 - **Stop when** usage is at about 99% of the weekly limit, or 20 minutes before the reset, whichever comes first. Read both from the session usage tool (`get_usage`) at the start and after every charter. The reset time moves with daylight saving, so never hard-code it. If `get_usage` is missing or errors, do not guess: finish the ranked list without the generators, then stop, and make the report's first line `usage not readable, stopped at the end of the ranked list`.
 - **A second wake-up at about 3:30 AM** resumes from `hypotheses.json` if usage is still under about 97%. This is a second scheduled task, not something the first run schedules (see "The routine" below).
-- **Ask nothing.** A charter that needs a ruling (a role user, creating content, a fleet-wide scan) is marked `blocked` with the reason, and the next charter starts.
+- **Ask nothing.** A charter that needs a ruling (a fleet-wide scan, or on shared sites a role user or creating content) is marked `blocked` with the reason, and the next charter starts. On the reserved site, role users and creating content are already allowed (see "What the hunt may change" in `references/rc-sites.md`), so they are not blockers there.
 - **No Lando.** Everything runs against Pantheon. Never start a local site on a drain night.
 - **Keep the session small.** Charters run in subagents, state lives in files, and nothing reports progress between charters.
 - **Write the report even if the run fails.** If the run stopped with more than 3% of the weekly usage left, the report's first line says so, as a failure, with the reason.
@@ -128,16 +130,21 @@ Two scheduled tasks, both created **disabled** and turned on by hand when an RC 
 | `rc-domino-hunt-tuesday` | Tuesday about 9 PM ET | `/rc-domino-hunt --drain` |
 | `rc-domino-hunt-resume` | Wednesday about 3:30 AM ET | `/rc-domino-hunt --drain`, only if usage is under about 97% and the reset has not passed |
 
+When you turn the tasks on for an RC window and the team has reserved a hunt site, add `--reserved <site>` to both prompts (e.g. `/rc-domino-hunt --drain --reserved ys-registrar-yale-edu`). Without it, the drain runs read-only on the shared sites.
+
 `create_scheduled_task` has no enabled flag, so create each task and then set `enabled: false` with `update_scheduled_task`. Set `notifyOnCompletion: false`, since it defaults to true. Scheduled tasks only run while the desktop app is open. Unattended runs cannot read production with drush, so the skill already avoids that in `--drain`. Any other permission prompt blocks the charter and gets reported.
 
-## Pending team decisions
+## Team decisions
+
+Decided: the hunt may edit existing content, create `DOMINO TEST` content, and change settings on a reserved hunt site (Michael, 2026-11-02). RC multidevs are deleted after release, so nothing there lasts. Shared RC sites stay read-only because testers are using them.
+
+### Still open
 
 These are open questions to Vincent. Until he answers, the defaults here apply. Each one lists the setting to change once he does.
 
 | Question | Default until answered | Where it changes |
 |---|---|---|
-| Can we create `qa-<role>` users on RC sites, and remove them after? | No. Logged out plus user 1 for read-only setup only. Permission hypotheses are marked `blocked: needs role users`. | `references/rc-sites.md`, "Logins" |
-| Can the hunt create `[domino-hunt]` content on RC sites? | No. Read-only, plus Layout Builder discard. | `references/rc-sites.md`, "What the hunt may change" |
+| Can we create `qa-<role>` users on RC sites, and remove them after? | Yes on the reserved site (Michael, 2026-11-02). Still no on shared RC sites: there, permission hypotheses are marked `blocked: needs role users`. | `references/rc-sites.md`, "Logins" |
 | Can a read-only config scan run across all ~299 sites? | Attended mode only, with the user's yes each time. Never in `--drain`. | `references/charters.md`, "Fleet config scan" |
 | RC cleanup and the `RELEASE_SITES_DEPLOYED` flag | Do not rely on the "Environments ready" comment. | `references/rc-sites.md`, "Find the RC" |
 
@@ -147,4 +154,4 @@ These are open questions to Vincent. Until he answers, the defaults here apply. 
 - `yalesites-portfolio`: block adoption numbers and per-page block data, used for blast radius and for picking which RC sites to test on.
 - `release-prep`: owns each ticket's Release Testing Steps. This skill reads them as one source of what was already tested.
 - `ticket` and `github-screenshots`: turn a triaged finding into a ticket.
-- `yalesites-web-content`: the source of the "create nothing on the RC" rule and the Layout Builder discard rule.
+- `yalesites-web-content`: the source of the "create nothing on the RC" rule and the Layout Builder discard rule, which still apply on shared RC sites.
