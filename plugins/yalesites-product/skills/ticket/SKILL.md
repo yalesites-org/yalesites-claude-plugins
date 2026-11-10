@@ -525,12 +525,20 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
 ### Steps
 
 1. **Pick the phases.** Ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
-2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
-3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
-4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
-5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
-6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
-7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
+2. **Allowed regions, when the feature is a new block or changes where a block can go.** Ask which Layout Builder regions it may be placed in. There are six regions, more than the 4-option cap above allows in one question, so ask two multi-select questions in one `AskUserQuestion` call:
+   1. **Full-width and equal columns:** One column, Banner, Two column (50/50), Three column (33/33/33).
+   2. **Two column (70/30) or (30/70):** The main region, The sidebar region, Neither.
+
+   "Not decided yet" has no option of its own: say in the first question that the user can answer Other with "not decided", and treat any answer like that as not decided. Write the answer into the parent's Scope as an **Allowed regions** line, and into the parent's machine block as `allowed_regions: [one_col, half, third, main, sidebar, banner]` (only the ones allowed), or as `allowed_regions` in its `open_decisions` list when not decided. Then carry it into the children:
+   - **Design child:** an AC line "Mockups at each allowed region width, plus 360px", with the narrowest one named (the 70/30 sidebar is about 305px at 1440, and it is the width that broke Office Hours late in yalesites-org/YaleSites-Internal#1710).
+   - **Not decided yet:** make it an AC item on the UX child ("Decide which regions the block is allowed in"), so it is settled before design starts. Don't guess it, and don't leave it out: `yalesites-design-pass` stops and asks when it is missing.
+   - **Dev and QA children:** an AC line that the block is offered in exactly those regions and no others.
+3. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
+4. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
+5. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
+6. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
+7. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
+8. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
    ```bash
    # Sub-issue: the child's numeric id, not its number
@@ -543,8 +551,8 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
    ```
 
    A child that already has a different parent must be moved: add `-F replace_parent=true` to the sub-issue call. Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the feature as done.
-8. **Milestone.** Every phase child gets the parent's milestone, Docs included.
-9. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
+9. **Milestone.** Every phase child gets the parent's milestone, Docs included.
+10. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
 
 ### Retrofitting a feature already in flight
 
