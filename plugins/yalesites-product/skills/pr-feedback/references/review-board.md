@@ -284,6 +284,29 @@ the object.
 
 ### Writing the questions
 
+**The ELI5 rule.** The reviewer goes through many questions, PRs and boards in a day and
+arrives cold at each one. So every question has to work as one to three plain sentences and
+one straight question, with enough in them to answer without opening anything else. Everything
+longer folds under it. Concretely:
+
+- The `gist` says what this thing is, what is going on, and what we need decided, the way you
+  would explain it to a smart friend who has never seen the code. No file names, function
+  names, or ticket numbers; name the thing by what an editor or visitor sees.
+- The `ask` is a single question of 25 words or fewer that can be answered by picking an option.
+- If the gist needs a fourth sentence, the question is really two questions. Split it.
+- Detail is welcome, below the fold: `brief`, the evidence blocks, and `question`.
+
+Run the check on every packet before the board opens, and fix what it prints. It exits 1 on a
+missing or long gist, code in the gist, an ask that is not one short question, a brief with
+more than four bullets, and options with no cost:
+
+```bash
+python3 <skill-dir>/scripts/review-board/check_packet.py <packet-dir>/packet.json
+```
+
+It checks shape, not sense. After it passes, read each gist once as someone who has never seen
+the PR. This rule holds for every board built from this template, not only PR review.
+
 **Write for a reviewer moving fast, not a developer.** The reviewer clears many boards a day and
 should get each question in one read. This is a blanket rule for everything the reviewer reads
 first: `gist`, `ask`, option `label` and `detail`, and a unit's `ask` and `change`. Say what

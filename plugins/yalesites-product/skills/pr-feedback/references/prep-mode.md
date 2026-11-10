@@ -210,6 +210,10 @@ Follow `review-board.md` Step R1, with two differences:
 - **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The lead-in:
   `units`"), a unit with nothing to drive included. The reviewer opens the packet days later with
   no brief in front of them, so the lead-in is their only summary of the ticket and the PR.
+- **Run the ELI5 check on `packet.json` before marking the unit ready**
+  (`python3 <skill-dir>/scripts/review-board/check_packet.py <packetDir>/packet.json`, see
+  `review-board.md`, "Writing the questions"). Nobody is there to notice a wall of text, so fix
+  what it prints and run it again until it passes.
 - **Write `prep.json` next to `packet.json`.** It holds what the review session needs and the
   board does not show:
 
