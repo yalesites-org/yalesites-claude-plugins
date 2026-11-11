@@ -264,6 +264,12 @@ Rules that keep this useful instead of noise:
 
 ## Step B4: Batch the held calls
 
+**A prepped unit the reviewer already answered in a dashboard goes on no board.** Check each
+prepped packet first (`references/review-board.md` Step R1, "Answered already"). Take that
+unit's answers and its `verdicts` entry from its `answers.json`, leave its questions and its
+`units` entry out of the batch packet, and mark the file used after it posts (Step R4). When
+every unit was answered that way, skip the board and go straight to Step 4.
+
 **On the review board** (`references/review-board.md`), build one `batch-<yyyy-mm-dd>` packet
 for every unit. For a prepped unit, copy its questions out of the `packet.json` in its status
 entry's `packetDir` (the versioned folder; never build the path from the id), setting `pr` on

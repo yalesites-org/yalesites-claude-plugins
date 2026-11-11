@@ -78,6 +78,25 @@ the id: prep mode builds every run into its own folder and leaves the older ones
 the link is what pins this review to the packet it opened. A rebuild while the board is open
 lands in a new folder and does not touch this one.
 
+**Answered already: a prepped packet the reviewer answered somewhere else.** A reviewer can
+answer a prepped board before any session opens it, from a dashboard that draws the packet
+itself (the work dashboard does this). That tool writes `answers.json` into the prepped packet,
+in the same format as Step R3, with three extra fields: `"source": "dashboard"`, `packetDir` (the
+packet folder's real path), and `submittedAt`. Before archiving anything, read the packet's
+`answers.json`. When all of these hold, those are this review's answers:
+
+- `source` is `"dashboard"`,
+- `packetDir` is the real path of this packet folder (`realpath <packetDir>`), so the answers
+  were given on this build and not copied from another,
+- there is no `usedAt` field (Step R4 adds it once the answers have been posted).
+
+Then do not archive it, do not start the server, and skip Steps R2 and R3. Read the answers back
+exactly as Step R3 describes (`choice: "other"`, `markups`, `verdicts`) and go on to Step 4.
+Finishing the board finished the review, the same as pressing Send on this board, so nothing on
+it is asked again in chat. Tell the reviewer in one line that their dashboard answers from
+`submittedAt` are being used. Anything else, including dashboard answers that fail a check
+above, is a leftover: archive it as below and open the board as usual.
+
 Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
 built here. The server follows the link, so the board reads the prepped files, and `answers.json`
 still lands inside the prepped packet, where Step R4 expects it. Archive a leftover `answers.json`
@@ -477,3 +496,8 @@ When the review is posted, or abandoned:
   the packet, the new build goes into its own versioned folder and this one stays exactly as it
   is (`references/prep-mode.md` Step P4); nothing is renamed. The symlink in this session's
   packets folder holds nothing and goes with the scratchpad.
+- **Mark dashboard answers as used** once the review they gave has posted (Step R1, "Answered
+  already"): add `"usedAt": "<time now, ISO>"` to that `answers.json` and leave it in place. A
+  later review on the same packet then reads it as a leftover and archives it, instead of
+  posting the same review twice. Do not mark it when the review was abandoned before posting:
+  the reviewer's answers still stand, and the next session picks them up.
