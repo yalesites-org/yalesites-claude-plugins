@@ -166,7 +166,7 @@ def load_phases():
     phases = {}
     for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 6 or not re.fullmatch(r"`[a-z]+`", cells[1] or ""):
+        if len(cells) < 6 or not re.fullmatch(r"`[a-z-]+`", cells[1] or ""):
             continue
         owner = re.search(r"`([A-Za-z0-9-]+)`", cells[2])
         gate = re.search(r"`([A-Za-z0-9-]+)`", cells[4])
@@ -221,6 +221,21 @@ def agent_field(body, key):
     return None
 
 
+# A phase whose Gate is `release` waits for the feature's release to ship, not for a person.
+RELEASE_GATE = "release"
+
+
+def release_day(title):
+    """The ship date in a release milestone title like "12-01-26 Feature Release", or None."""
+    m = re.match(r"\s*(\d{1,2})-(\d{1,2})-(\d{2})\b", title or "")
+    if not m:
+        return None
+    try:
+        return dt.date(2000 + int(m.group(3)), int(m.group(1)), int(m.group(2)))
+    except ValueError:
+        return None
+
+
 # --- 1. promotions ---------------------------------------------------------
 
 STATUS_FRAGMENT = "projectItems(first:5){nodes{id project{number} fieldValueByName(name:\"Status\"){... on ProjectV2ItemFieldSingleSelectValue{name}}}}"
@@ -229,7 +244,7 @@ STATUS_FRAGMENT = "projectItems(first:5){nodes{id project{number} fieldValueByNa
 def find_promotions(phases):
     fields = f"""number title url state body updatedAt repository{{nameWithOwner}}
       assignees(first:5){{nodes{{login}}}} labels(first:30){{nodes{{name}}}}
-      parent{{number title url state repository{{nameWithOwner}}}}
+      parent{{number title url state repository{{nameWithOwner}} milestone{{title}}}}
       blockedBy(first:20){{nodes{{number title url state repository{{nameWithOwner}} {STATUS_FRAGMENT}}}}}
       {STATUS_FRAGMENT}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open in:body "phase:"', fields, include_prs=False)
@@ -241,7 +256,8 @@ def find_promotions(phases):
         if phase not in phases:
             waiting.append((n, f"unknown phase `{phase}`"))
             continue
-        if board_status(n) != "Backlog":
+        release_gate = phases[phase]["gate"] == RELEASE_GATE
+        if board_status(n) not in ({"Backlog", "Blocked"} if release_gate else {"Backlog"}):
             continue
         blockers = n["blockedBy"]["nodes"]
         if not blockers:
@@ -257,7 +273,16 @@ def find_promotions(phases):
             waiting.append((n, f"blockers done, held by an open `{sorted(held)[0]}`"))
             continue
         assignees = [a["login"] for a in n["assignees"]["nodes"]]
-        if phases[phase]["gate"]:
+        if release_gate:
+            ms = (n["parent"].get("milestone") or {}).get("title")
+            day = release_day(ms)
+            if not day:
+                waiting.append((n, "blockers done, but the parent has no dated release milestone"))
+                continue
+            if day > TODAY:
+                waiting.append((n, f"waits for the {ms} release to ship"))
+                continue
+        elif phases[phase]["gate"]:
             gated.append({"issue": n, "phase": phase, "blockers": blockers, "gate": phases[phase]["gate"],
                           "owner": assignees[0] if assignees else phases[phase]["owner"]})
             continue

@@ -12,6 +12,7 @@ Work gets lost at hand-offs: a phase finishes and nobody tells the next person, 
 Each run it:
 
 1. **Hands off phases.** When every blocker of a feature's phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the feature parent.
+   - **Release-gated phases wait for the release.** A phase gated on `release` in `routing.md` (today: Visreg site pages) sits in `Blocked`, not `Backlog`. The router moves it to `To Do` once its blockers are done and the feature parent's release date (from its milestone title) has passed. Until then it lists it under waiting.
    - **Gated phases wait.** If the phase has a Gate in `routing.md` (today: Development and Docs, both `miketullo95`), the router does not move it. It lists it under "Waiting on a go." The gatekeeper approves by moving it to To Do, or sends it back with a `follow-up`.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
 3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
@@ -73,7 +74,7 @@ Run a dry run and check, in order:
 
 0. Is its phase gated? Then it's waiting for a go, not stuck. Check "Waiting on a go" in the brief.
 1. Does the child's `<!-- yalesites:agent -->` block have a `phase:` line with a key from `routing.md`?
-2. Is the child's board Status exactly `Backlog`? The router never moves anything from another status.
+2. Is the child's board Status exactly `Backlog` (or `Blocked`, for a `release`-gated phase)? The router never moves anything from another status.
 3. Does it have native blocked-by dependencies? A child with none is treated as parked on purpose.
 4. Is every blocker closed or `Done`?
 5. Is the feature parent open, and is the child free of `needs-decision` and `follow-up`?

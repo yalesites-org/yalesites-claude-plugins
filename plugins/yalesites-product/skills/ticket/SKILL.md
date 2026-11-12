@@ -445,6 +445,8 @@ A single bulleted list of everything required to close the issue. Cover all rele
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over. Also raise it as a `needs-decision` with its block (see "Raising a Decision or a Follow-up" below), so it shows up in the decider's queue instead of waiting for someone to reread the ticket.
 
+**Visreg site page tickets** (anything that adds or changes pages on the visreg site, `/blocks-for-visreg`) can't be worked until the feature they cover is live. Put the ticket in the **next** release milestone after the feature's, set its Status to `Blocked`, and add a line saying which release it waits for. When it is a phase child, use the `visreg-site` phase so the router releases it. Storybook visreg stories are different: they are code that ships with the feature, so they take the feature's milestone like any other ticket.
+
 **Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Under a feature parent the Docs phase child is the exception: it starts in `Backlog` and waits for its gatekeeper's go once Development finishes (see the Gate column in `references/routing.md`, and "Scoping a Feature" below).
 
 ---
@@ -537,7 +539,7 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
 4. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
 5. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
 6. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
-7. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
+7. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`, except a `release`-gated phase (Visreg site pages), which goes to `Blocked`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
 8. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
    ```bash
@@ -551,7 +553,7 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
    ```
 
    A child that already has a different parent must be moved: add `-F replace_parent=true` to the sub-issue call. Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the feature as done.
-9. **Milestone.** Every phase child gets the parent's milestone, Docs included.
+9. **Milestone.** Every phase child gets the parent's milestone, Docs included. The exception is a `release`-gated phase (Visreg site pages): it gets the **next** release milestone after the parent's, because its work can't start until the parent's release ships.
 10. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
 
 ### Retrofitting a feature already in flight
@@ -711,6 +713,7 @@ Before submitting or updating an issue, check:
 - [ ] No `status:*`, `priority:*`, or `size:*` label is on the ticket
 - [ ] Relevant labels are applied
 - [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first
+- [ ] A visreg site page ticket is in the release **after** the feature's, and in `Blocked`
 - [ ] Assignee is set, or the user explicitly chose to leave it unassigned
 - [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure
