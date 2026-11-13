@@ -107,6 +107,18 @@ class Seal(unittest.TestCase):
         write(os.path.join(self.folder, "packet.json"), {"questions": [q("new", "a")]})
         self.assertNotEqual(calibration.seal(self.folder, "batch-1", self.cal)["packetSha"], first["packetSha"])
 
+    def test_packet_level_pr_classifies_like_a_question_pr(self):
+        # The board falls back to the packet's `pr` when a question has none; the seal must too.
+        write(os.path.join(self.cal, "state.json"), {"categories": {"pr-product": {"rung": 1}, "design-calls": {"rung": 0}}})
+        ref = "yalesites-org/yalesites-project#1598"
+        for pr in ({"ref": ref, "url": "https://github.com/yalesites-org/yalesites-project/pull/1598"}, ref):
+            packet = {"pr": pr, "questions": [q("swatch", "a", "b", rec="a")]}
+            self.assertEqual(calibration.build_seal(packet, "batch-1", self.cal, "sha")["prefill"], ["swatch"], pr)
+        on_question = {"questions": [q("swatch", "a", "b", rec="a", pr=ref)]}
+        self.assertEqual(calibration.build_seal(on_question, "batch-1", self.cal, "sha")["prefill"], ["swatch"])
+        no_pr = {"questions": [q("swatch", "a", "b", rec="a")]}
+        self.assertEqual(calibration.build_seal(no_pr, "batch-1", self.cal, "sha")["prefill"], [])
+
     def test_demo_packets_get_nothing(self):
         demo = os.path.join(self.tmp, "packets", "demo")
         shutil.copytree(self.folder, demo)
@@ -120,6 +132,12 @@ class Leaks(unittest.TestCase):
         self.assertTrue(calibration.leaks({"brief": ["Packet done. Close with a short comment recording what the meeting decided."]}, rec))
         self.assertTrue(calibration.leaks({"question": "We recommend closing it."}, rec))
         self.assertFalse(calibration.leaks({"brief": ["The packet shipped before the meeting."]}, rec))
+
+    def test_title_or_gist_that_restates_our_pick_is_not_blind(self):
+        rec = {"value": "close", "label": "Close as done", "detail": "Close with a short comment recording what the meeting decided."}
+        self.assertTrue(calibration.leaks({"gist": "Close with a short comment recording what the meeting decided."}, rec))
+        self.assertTrue(calibration.leaks({"title": "We recommend closing it"}, rec))
+        self.assertFalse(calibration.leaks({"title": "Close or keep?", "gist": "The packet shipped before the meeting."}, rec))
 
     def test_not_recommended_option_is_a_leak(self):
         rec = {"value": "fix", "label": "Fix first", "detail": ""}

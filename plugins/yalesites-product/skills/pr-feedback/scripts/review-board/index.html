@@ -366,7 +366,9 @@ function shortRef(ref) {
 // test:begin unitOf
 // `pr` on a question is `{ref, url}`. A hand-built or older packet may carry a bare ref string;
 // without this every question lands in one untagged group and every unit reads as quiet.
+// The packet-level `pr` gets the same treatment, so the exported answer keeps its ref.
 function normalizePrs() {
+  if (typeof packet.pr === 'string') packet.pr = { ref: packet.pr, url: prUrl(packet.pr) };
   (packet.questions || []).forEach(q => { if (typeof q.pr === 'string') q.pr = { ref: q.pr, url: prUrl(q.pr) }; });
 }
 const unitKey = u => u?.pr?.ref || u?.issue?.ref || null;

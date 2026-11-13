@@ -129,7 +129,8 @@ def leaks(question, rec):
     for o in question.get("options") or []:
         if re.search(r"\bnot recommended\b", _norm(f"{o.get('label') or ''} {o.get('detail') or ''}")):
             return True
-    shown = _norm(" ".join([*(question.get("brief") or []), question.get("question") or "", question.get("ask") or ""]))
+    shown = _norm(" ".join([question.get("title") or "", question.get("gist") or "", *(question.get("brief") or []),
+                            question.get("question") or "", question.get("ask") or ""]))
     if not shown:
         return False
     if re.search(r"\brecommend", shown):
@@ -156,6 +157,11 @@ def _playbook_version(cal_dir):
         return None
 
 
+def _pr_ref(pr):
+    """The ref of a `pr` field, which is `{ref, url}` or a bare ref string."""
+    return (pr.get("ref") if isinstance(pr, dict) else pr) or ""
+
+
 def build_seal(packet, packet_id, cal_dir, packet_sha, now=None):
     cats = _read_json(os.path.join(cal_dir, "categories.json"), {})
     state = _read_json(os.path.join(cal_dir, "state.json"), {})
@@ -168,10 +174,9 @@ def build_seal(packet, packet_id, cal_dir, packet_sha, now=None):
             guess = guess_of(q)
             if not qid or not guess:
                 continue
-            pr = q.get("pr")
-            pr = pr.get("ref") if isinstance(pr, dict) else pr
+            pr = _pr_ref(q.get("pr")) or _pr_ref(packet.get("pr"))
             cat = classify({"source": "board", "packet": packet_id, "dimension": q.get("dimension") or "",
-                            "pr": pr or "", "kind": "question"}, cats)
+                            "pr": pr, "kind": "question"}, cats)
             rung = int((rungs.get(cat) or {}).get("rung") or 0)
             if not guess["visible"]:
                 blind.append(qid)  # a hidden guess is blind by nature and never pre-filled
