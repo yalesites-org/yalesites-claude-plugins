@@ -272,7 +272,7 @@ Approve / Request changes ruling, even with rulings on.
 | `ask` | One to three sentences: what the ticket asks for and why, in the reviewer's terms. Not the acceptance criteria list (a `text` block carries that), the point of the ticket |
 | `pr` | `ref`, `url`, and `title`. This is how a question finds its unit, so it must match the question's `pr.ref` (or the packet's `pr.ref`) exactly. Required on a PR review; leave it off only on a no-PR board, where the question's `issue.ref` finds the unit instead |
 | `extraPrs` | Optional. Refs of the other PRs in the same unit (`yalesites-org/atomic#545`). A question tagged with one of them joins this unit's group |
-| `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised |
+| `change` | One to three sentences: what the PR actually does, and anything it leaves out that the ticket or an earlier PR promised. Required when the unit has a `pr`; a no-PR unit can leave it off |
 | `status` | Optional. The drive-it result in one line (`8 pass, 2 fail, 1 ask`), or why there was no run |
 | `test` | Optional. `label` and `url` of where to check it: the multidev, the Storybook deploy preview |
 | `related` | Optional. `ref`, `url`, `note` for each ticket or PR a question mentions that the reviewer would otherwise have to look up: a closed earlier attempt, a parent epic, a follow-up |
@@ -317,6 +317,33 @@ turns a bare ref string into `{ref, url}` when it loads, so an older packet stil
 the object.
 
 ### Writing the questions
+
+**The ELI5 rule.** The reviewer goes through many questions, PRs and boards in a day and
+arrives cold at each one. So every question has to work as one to three plain sentences and
+one straight question, with enough in them to answer without opening anything else. Everything
+longer folds under it. Concretely:
+
+- The `gist` says what this thing is, what is going on, and what we need decided, the way you
+  would explain it to a smart friend who has never seen the code. No file names, function
+  names, or ticket numbers; name the thing by what an editor or visitor sees.
+- The `ask` is a single question of 25 words or fewer that can be answered by picking an option.
+- If the gist needs a fourth sentence, the question is really two questions. Split it.
+- Detail is welcome, below the fold: `brief`, the evidence blocks, and `question`.
+
+Run the check on every packet before the board opens, and fix what it prints. It exits 1 on a
+missing or long gist, code in the gist, an ask that is not one short question, a brief with
+more than four bullets, options with no cost, and a unit with no `ask` (or no `change`, when the
+unit has a `pr`). A packet with units and no questions passes: a unit whose brief held nothing
+still gets its ruling row. It exits 3 when the file cannot be read or is not valid JSON, which
+means the packet itself is broken, not its wording:
+
+```bash
+python3 <skill-dir>/scripts/review-board/check_packet.py <packet-dir>/packet.json
+```
+
+It checks shape, not sense. After it passes, read each gist once as someone who has never seen
+the PR. This rule holds for every board built from this template, not only PR review; on a
+board with no PR, the check asks each unit for its `ask` only.
 
 **Write for a reviewer moving fast, not a developer.** The reviewer clears many boards a day and
 should get each question in one read. This is a blanket rule for everything the reviewer reads
