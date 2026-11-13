@@ -111,7 +111,8 @@ yalesites-org/YaleSites-Internal#1903, so match it, not older icons):
   one SVG per block, named for the block in kebab case (`facts-and-figures.svg`,
   `office-hours.svg`).
 - **Format:** SVG, `width="501" height="261" viewBox="0 0 501 261"`, with
-  `role="img" aria-label="<file name>"`. Flat shapes only (`rect`, `circle`, `polygon`, `line`),
+  `role="img" aria-label="<file name>"`. Flat shapes only (`rect`, `circle`, `ellipse`, `polygon`, `polyline`, `line`,
+  `path`, grouped with `g` as needed),
   no text, no gradients, no embedded images, no fonts.
 - **Palette:** white `#ffffff` background, a light gray `#d9d9d9` band or panel, Yale Blue
   `#00356b` for the one thing that makes the block what it is, and grays for placeholder text:
@@ -119,7 +120,8 @@ yalesites-org/YaleSites-Internal#1903, so match it, not older icons):
   Figures is a good model: two blue pictograms, each over a dark gray bar (the figure) and a
   lighter one (the label).
 - **Wiring:** a config file per block,
-  `config/sync/layout_builder_browser.layout_builder_browser_block.<id>.yml`, with
+  `web/profiles/custom/yalesites_profile/config/sync/layout_builder_browser.layout_builder_browser_block.<id>.yml`,
+  with
   `block_id: 'inline_block:<block type>'`, `category`, `label`, `image_path` (the SVG's path
   from `/profiles/...`), `image_alt` and `weight`. A block without its own icon falls back to
   `fallback-general.jpg`, which is the placeholder we are avoiding.
