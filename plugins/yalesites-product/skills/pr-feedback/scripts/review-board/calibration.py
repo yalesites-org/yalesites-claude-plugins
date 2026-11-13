@@ -71,8 +71,12 @@ def hidden_guess(question):
 
     For held calls with no recommendation, the packet writer still records
     what it thinks Michael will pick. The board never shows it until he has
-    answered, so these questions are always blind.
+    answered, so these questions are always blind. A question with a
+    `recommended` option is not a held call: the recommendation is the guess,
+    on the visible path, and any `guess` on it is ignored here.
     """
+    if recommended(question):
+        return None
     g = question.get("guess")
     values = {o.get("value") for o in question.get("options") or []}
     if isinstance(g, dict) and g.get("value") in values:

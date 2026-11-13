@@ -270,7 +270,9 @@ function blankAnswer() { return { choice: null, other: '', notes: '', markups: [
 // test:begin calibration
 // Our guess: the packet's hidden `guess` (a held call, never shown before you answer),
 // else the option marked recommended. A question with neither has no guess.
+// A guess is hidden only on a held call. With a recommended option, the recommendation is the guess (visible path).
 function hiddenGuessOf(q) {
+  if ((q.options || []).some(o => o.recommended)) return null;
   const g = q.guess, o = g && (q.options || []).find(x => x.value === g.value);
   return o ? { ...o, detail: g.reason || o.detail, hidden: true } : null;
 }

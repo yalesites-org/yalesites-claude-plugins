@@ -328,8 +328,10 @@ The technical detail is still welcome; it goes in `brief`, the evidence blocks, 
 - **Always record a `guess`, even with no recommendation.** `"guess": {"value": "<option value>",
   "reason": "<one line>"}` is what you expect Michael to pick and why. The board never shows it
   until he has answered, then puts it beside his call. It feeds his calibration loop (below), so
-  write it before the board opens and do not change it after. A `recommended` option counts as
-  the guess when there is no `guess`.
+  write it before the board opens and do not change it after. A `recommended` option is the
+  guess whenever there is one: a `guess` on that question is ignored, so the question takes the
+  visible path (sampled 1 in 4 blind in shadow, pre-filled on a strong record). Only a held call,
+  with no `recommended` option, uses its `guess` as a hidden guess.
 - **Keep the brief neutral.** Do not restate the recommended option's wording in `brief`,
   `question` or `ask`, and do not write "recommended" there. A question whose text gives our pick
   away cannot be shown blind, so it is only scored as anchored.
@@ -480,7 +482,7 @@ never uses them:
 - **Seal on open.** The first GET of a packet writes `<packet>/seal.json`: the time, a hash of
   `packet.json`, and which questions are blind or pre-filled. A packet changed before anyone
   answers is re-sealed; after answers exist it is not, and the dashboard voids its rows.
-- **Blind and pre-filled questions.** A question with a hidden `guess` is always blind, at every rung,
+- **Blind and pre-filled questions.** A held call with a `guess` (no `recommended` option) is always blind, at every rung,
   and never pre-filled. Of the
   questions with a visible recommendation, 1 in 4 is blind while its category is in shadow: the
   Recommended badge and any "(recommended)" wording are hidden and the options shuffled, until

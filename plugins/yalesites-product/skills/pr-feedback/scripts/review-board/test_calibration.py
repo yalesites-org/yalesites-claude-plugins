@@ -71,6 +71,20 @@ class Classify(unittest.TestCase):
         finally:
             shutil.rmtree(tmp)
 
+    def test_a_recommended_option_wins_over_a_guess(self):
+        # The doc says to always record a guess, so a recommended question usually has both.
+        both = {**q("q1", "a", "b", rec="a"), "guess": {"value": "a", "reason": "r"}}
+        self.assertEqual(calibration.guess_of(both), {"value": "a", "visible": True})
+        other = {**both, "guess": {"value": "b"}}
+        self.assertEqual(calibration.guess_of(other), {"value": "a", "visible": True})
+        tmp = tempfile.mkdtemp()
+        try:
+            write(os.path.join(tmp, "state.json"), {"categories": {"other": {"rung": 1}}})
+            s = calibration.build_seal({"questions": [both]}, "b", tmp, "sha")
+            self.assertEqual((s["blind"], s["prefill"]), ([], ["q1"]))
+        finally:
+            shutil.rmtree(tmp)
+
 
 class Seal(unittest.TestCase):
     def setUp(self):
@@ -224,6 +238,16 @@ class BoardJs(unittest.TestCase):
           out.hSealed = isBlind(h);
         """)
         self.assertEqual(out, {"hBlind": False, "hPre": None, "vPre": "x", "hSealed": True})
+
+    def test_a_recommended_option_wins_over_a_guess(self):
+        packet = {"questions": [{**q("v", "x", "y", rec="x"), "guess": {"value": "y", "reason": "r"}}]}
+        out = run(packet, {"answers": []}, [], """
+          seal = { blind: [], prefill: ['v'] };
+          const v = packet.questions[0];
+          out = { hidden: hiddenGuessOf(v), rec: recOf(v).value, recHidden: !!recOf(v).hidden,
+                  pre: prefillOf(v).value, blind: isBlind(v) };
+        """)
+        self.assertEqual(out, {"hidden": None, "rec": "x", "recHidden": False, "pre": "x", "blind": False})
 
 
 if __name__ == "__main__":
