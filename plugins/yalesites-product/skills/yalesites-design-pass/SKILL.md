@@ -22,6 +22,9 @@ The shape comes from work that went well:
   handoff details" page listed every state with its contrast ratio, the keyboard focus order,
   screen reader labels, and the block form choices. That page is a Storybook docs page in all
   but format, which is why round 3 drafts one.
+- **Timeline** (yalesites-org/YaleSites-Internal#2033): the acceptance criteria asked for a
+  block picker icon, and none of the 15 signed-off mockups had one, so the developer used a
+  placeholder. That is why every new block gets its picker icon in round 2.
 
 ## Setup: where the design runs (once per person)
 
@@ -197,7 +200,13 @@ will need it:
 
 - Every allowed region width at desktop, plus phone (360) and tablet (768). Measure on a
   multidev or the published Storybook layout stories when the ticket depends on exact widths.
-- At least two global themes plus one dark or colored section theme.
+- Screenshots in at least two global themes plus one dark or colored section theme.
+- **A contrast check against every section color.** Editors can put the block on any section
+  color, and each section color changes with the site's global theme, so a block that passes
+  on white can fail on a colored section nobody mocked up. Measure every text, icon, border and
+  focus color in every state against all seven section themes (`default`, `one` to `six`) in
+  each of the seven global themes. Screenshots stay a sample; the contrast table covers every
+  pairing. How to measure it is in `references/rounds.md`, "Section color contrast".
 - Edge cases: empty, one item, the most items allowed, the longest realistic title, a missing
   optional field, past and today states where dates are involved.
 - The editor side: the block form in Layout Builder, field labels and help text a New Recruit
@@ -205,12 +214,23 @@ will need it:
 
 - The inventory, updated: iterating often turns a "new" piece back into an existing one with a
   variant, or the reverse. Say what moved.
+- **The block picker icon, for any ticket that adds a new block.** The tile editors see in
+  Layout Builder's "Add a block" picker, drawn to match the existing set: an SVG at 501 by 261
+  in the same flat style and palette, plus the picker category it goes in. A change to an
+  existing block needs a new icon only when its look changes enough that the old icon misleads.
+  Spec and files are in `references/rounds.md`, "Block picker icon".
 
 Board: one question per area that still needs a call, each with the screenshots as a
 `compare` block, then one question per new or changed component ("New molecule: Filmstrip.
 Keep it new / Use <existing> with a variant / Rethink"), with the existing one it was weighed
-against shown next to it. Close with "Sign off / Iterate again / Back to approaches". Sign-off
-means every new and changed component has been accepted on its own question.
+against shown next to it. Any pairing that fails the contrast check gets its own question
+with the failing section and global theme shown beside a passing one ("Use <token> on this
+section / Hide <part> on this section / Rethink"). A new block adds its own **"Block picker icon"** question: the icon
+beside two or three existing icons from the same category, with the category named
+("Use this icon in Featured Content / Change the icon (notes) / Different category (notes) /
+Decide later"). Close with "Sign off / Iterate again / Back to approaches". Sign-off
+means every new and changed component, and a new block's picker icon, has been accepted on its
+own question, and the contrast table has no open failure.
 Iterate as many times as the reviewer asks. Each iteration is a new packet with its own id
 (`design-<number>-r2-i2`, then `-i3`), so it opens on a blank board; see `references/rounds.md`.
 
@@ -221,12 +241,17 @@ After sign-off, write two things (templates in `references/handoff.md`):
 1. **Handoff spec**, shaped like the Office Hours one in yalesites-org/YaleSites-Internal#1710:
    where each piece lands (which ticket), the component inventory with every new and changed
    atom, molecule and organism called out and its CL folder named, the structure and stack
-   rule, theming, the states, what to check first and report in the PR, plus the mockup zip.
+   rule, theming with the section color contrast table, the states, the Storybook stories the
+   library's testing guide requires, what to check first and report in the PR, plus the
+   mockup zip.
+   A new block's spec also carries its signed-off **block picker icon**: the image, the SVG
+   in the zip, its file path in yalesites-project, and its picker category.
 2. **Draft Storybook docs page** for the component: when to use it, anatomy, states with
-   contrast, accessibility, regions and widths, theming, block form and help text, do and
-   don't. The developer turns it into the component's `.mdx` in component-library-twig. Today
-   most CL docs pages are a canvas, controls and a props table; this is the part that keeps the
-   component supportable after the people who designed it move on.
+   contrast, accessibility, regions and widths, theming, block form and help text (with the
+   picker category and icon for a new block), do and don't. The developer turns it into
+   the component's `.mdx` in component-library-twig. Today most CL docs pages are a canvas,
+   controls and a props table; this is the part that keeps the component supportable after
+   the people who designed it move on.
 
 Both are **drafts**. Show them to the reviewer on the board. Posting the spec as a ticket comment
 happens only when the reviewer says so, with images through `github-screenshots`. Neither
@@ -241,9 +266,11 @@ The ticket's acceptance criteria often ask for each answer as a comment; draft t
   status, never closes a ticket. The router hands the phase off once the reviewer closes it.
 - On `claude-design-other`, never sends anything beyond `brief.md`.
 - Never ships one approach as "the" design. Round 1 always offers a real choice.
-- Region widths are a gate, not a nice-to-have.
+- Region widths are a gate, not a nice-to-have. So is contrast on every section color.
 - Never adds a new or changed atom, molecule, organism or token without calling it out by name
   and level, with the existing component it was weighed against.
+- A new block never reaches round 3 without a signed-off picker icon. Leaving it to the
+  developer means a placeholder ships.
 - Write as "we", no em dashes, `owner/repo#N` refs, per `ticket/references/github-writing.md`.
 
 ## Orchestrator

@@ -55,6 +55,10 @@ design-<number>-r<round>[-i<n>]/
   r1-<approach>-1440.png   round 1, one desktop and one phone per approach
   r1-<approach>-360.png
   r2-<region>-<theme>.png  round 2
+  <block>.svg              round 2, new blocks only: the block picker icon, named as it will be
+                           in yalesites-project (e.g. timeline.svg); carried into r3 and the zip
+  r2-picker-<category>.png round 2: the icon beside its category neighbors
+  contrast.json            round 2: every section x global theme pairing, carried into r3
   handoff.md               round 3 spec draft
   storybook-docs.mdx       round 3 docs draft
   answers.json             written by the board
@@ -62,6 +66,81 @@ design-<number>-r<round>[-i<n>]/
 
 Name images by what they show, never by letter. Copy the Claude Design export (zip or PNGs from the
 config's `exportFolder`) into the folder; never point the board at the export folder directly.
+
+## Section color contrast
+
+Section themes are the background colors editors pick per Layout Builder section. The
+component library (`components/_storybook/theme-constants.js` on `develop`) lists seven:
+`default` and `one` to `six`. A section theme is a slot, not a color: its real color comes from
+the site's global theme (seven of them, from the tokens repo), and the mapping lives in
+`03-organisms/layout/layout/_yds-layout.scss`. So the check is 7 section themes by 7 global
+themes, 49 backgrounds, per state. Read both lists fresh; they grow.
+
+**How to measure:**
+
+- Render the round 2 HTML mockup once per pairing: wrap it in
+  `data-global-theme="<global>"` and a section with `data-section-theme="<section>"`, the way
+  the library's own stories do, on the published component library CSS. On a Claude Design
+  setup, rebuild just the block's colored parts this way for the check; never read contrast
+  off an exported PNG.
+- In headless Chromium, read the computed foreground and background colors of every text,
+  icon, border, divider and focus ring, at rest, on hover and on keyboard focus.
+- Thresholds (WCAG 2.2 AA): 4.5:1 for text, 3:1 for large text (24px, or 18.66px bold), icons,
+  borders that carry meaning and focus rings. A part that sits on its own fill (a card on a
+  colored section) is measured against that fill, and the fill against the section for 3:1
+  when its edge is what shows the part is there.
+
+**Output:** `contrast.json` (every pairing, part, state and ratio) and a summary table on the
+board: one row per section theme, one column per global theme, the lowest ratio in each cell,
+failures marked in words as well as color. Each failure becomes a round 2 question (see
+SKILL.md). A failure is fixed with an existing token pairing first; a token change is a
+changed token in the inventory, called out like any other.
+
+## Block picker icon
+
+Every ticket that adds a new block gets its picker icon in round 2 (a product ruling of 2026-11-12,
+after the Timeline block, yalesites-org/YaleSites-Internal#2033, shipped its handoff without
+one). The icon is the tile editors see in Layout Builder's "Add a block" picker, from the
+`layout_builder_browser` contrib module.
+
+**How the existing set is made** (yalesites-project `develop`; the whole set was redrawn and
+signed off in yalesites-org/YaleSites-Internal#1963 and
+yalesites-org/YaleSites-Internal#1903, so match it, not older icons):
+
+- **Folder:** `web/profiles/custom/yalesites_profile/modules/custom/ys_core/images/preview-icons/`,
+  one SVG per block, named for the block in kebab case (`facts-and-figures.svg`,
+  `office-hours.svg`).
+- **Format:** SVG, `width="501" height="261" viewBox="0 0 501 261"`, with
+  `role="img" aria-label="<file name>"`. Flat shapes only (`rect`, `circle`, `polygon`, `line`),
+  no text, no gradients, no embedded images, no fonts.
+- **Palette:** white `#ffffff` background, a light gray `#d9d9d9` band or panel, Yale Blue
+  `#00356b` for the one thing that makes the block what it is, and grays for placeholder text:
+  `#5e5e5e` for headings, `#757575` for body lines, `#bababa` for secondary shapes. Facts and
+  Figures is a good model: two blue pictograms, each over a dark gray bar (the figure) and a
+  lighter one (the label).
+- **Wiring:** a config file per block,
+  `config/sync/layout_builder_browser.layout_builder_browser_block.<id>.yml`, with
+  `block_id: 'inline_block:<block type>'`, `category`, `label`, `image_path` (the SVG's path
+  from `/profiles/...`), `image_alt` and `weight`. A block without its own icon falls back to
+  `fallback-general.jpg`, which is the placeholder we are avoiding.
+- **Categories** (the picker's tabs, `layout_builder_browser_blockcat.*.yml`): Text & Content
+  (`text_and_content`), Featured Content (`featured_content`), Dynamic Content
+  (`dynamic_content`), Media (`media`), Calls to Action (`calls_to_action`), Basic (`basic`),
+  and the Views tabs (Post, People, Page and Resource Views). Read the folder fresh, since
+  categories change.
+
+**What round 2 makes:**
+
+1. Draw the icon as hand-written SVG to the spec above, from the signed-off design's most
+   recognizable feature (the Timeline's dated markers on a line, say), not a shrunken mockup.
+   Write it ourselves on every renderer, so it matches the flat set exactly.
+2. Pick the category: the one the nearest existing block sits in, unless the ticket says
+   otherwise. Name the nearest block as the reason.
+3. Render `r2-picker-<category>.png`: the new icon beside two or three icons from the same
+   category (read from `develop`), at the same size with their labels under them, so the
+   reviewer judges it as an editor will see it.
+4. Ask it on the board as its own question (see SKILL.md, round 2). On "Change the icon",
+   redraw it in the next iteration with the rest.
 
 ## The board
 
