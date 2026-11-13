@@ -78,6 +78,40 @@ the id: prep mode builds every run into its own folder and leaves the older ones
 the link is what pins this review to the packet it opened. A rebuild while the board is open
 lands in a new folder and does not touch this one.
 
+**Answered already: a prepped packet the reviewer answered somewhere else.** A reviewer can
+answer a prepped board before any session opens it, from a dashboard that draws the packet
+itself (the work dashboard does this). That tool writes `answers.json` into the prepped packet,
+in the same format as Step R3, with three extra fields: `"source": "dashboard"`, `packetDir` (the
+packet folder's real path), and `submittedAt`. Before archiving anything, read the packet's
+`answers.json`. When all of these hold, those are this review's answers:
+
+- `source` is `"dashboard"`,
+- `packetDir` is the real path of this packet folder (`realpath <packetDir>`), so the answers
+  were given on this build and not copied from another,
+- there is no `usedAt` field (Step R4 adds it once the answers have been posted).
+
+Then do not archive it, do not start the server, and skip Steps R2 and R3. Read the answers back
+exactly as Step R3 describes (`choice: "other"`, `markups`, `verdicts`) and use them in place of
+the board in `SKILL.md` Step 3b. Only the board is skipped: the rest of Step 3b still runs,
+including "Before asking anything, check what's already open" and turning any `defer` answer
+into a `needs-decision` block per "Open calls go on the record". Then go on to Step 4.
+Finishing the board finished the review, the same as pressing Send on this board, so nothing on
+it is asked again in chat. Tell the reviewer in one line that their dashboard answers from
+`submittedAt` are being used. Anything else, including dashboard answers that fail a check
+above, is a leftover: archive it as below and open the board as usual.
+
+**Unattended: a dashboard run with nobody watching.** The work dashboard can post a review in
+the background (`claude -p`) right after the reviewer sends the board. Its prompt says nobody is
+watching. In that run, never call `AskUserQuestion`, never open a browser or the board server,
+and never wait for input. Every place this skill would stop to confirm (the open-call list in
+Step 3b, the follow-up ticket offers in Step 5, the approve-with-edits check in Step 6, the
+ticket-sync answer in Step 9b) takes the board's answer. Where no answer settles it, do not post
+that piece: post the rest and report the piece as left for the reviewer, with one plain sentence
+on why. Follow-up tickets still go through the `ticket` skill, with every field picked by its
+own rules instead of asked. Never merge, close, or delete anything. Step 10's report becomes
+the JSON receipt the prompt asks for, written as the last message; the dashboard reads each PR
+back from GitHub against it.
+
 Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
 built here. The server follows the link, so the board reads the prepped files, and `answers.json`
 still lands inside the prepped packet, where Step R4 expects it. Archive a leftover `answers.json`
@@ -504,3 +538,8 @@ When the review is posted, or abandoned:
   the packet, the new build goes into its own versioned folder and this one stays exactly as it
   is (`references/prep-mode.md` Step P4); nothing is renamed. The symlink in this session's
   packets folder holds nothing and goes with the scratchpad.
+- **Mark dashboard answers as used** once the review they gave has posted (Step R1, "Answered
+  already"): add `"usedAt": "<time now, ISO>"` to that `answers.json` and leave it in place. A
+  later review on the same packet then reads it as a leftover and archives it, instead of
+  posting the same review twice. Do not mark it when the review was abandoned before posting:
+  the reviewer's answers still stand, and the next session picks them up.

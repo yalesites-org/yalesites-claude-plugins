@@ -1,6 +1,6 @@
 ---
 name: yalesites-pr-feedback
-description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, tokens, and yale-ui-cl (UICL). Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig), runs that plan itself in a visible Playwright browser on yalesites-project multidevs with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and multidev run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
+description: "The human half of YaleSites PR review, and the only way a PR reaches an approved state. Use whenever the user asks to review, look at, check, approve, or give feedback on a PR, even without the words 'PR feedback' explicitly, e.g. 'can you check PR 1288', 'review this PR', 'is this one ready to merge', 'approve #452', 'what do you think of this pull request'. Covers yalesites-project, component-library-twig, atomic, tokens, and yale-ui-cl (UICL). Picks up the brief the automated pr-prereview pass already wrote (diff read, acceptance criteria mapped, mechanical findings already sent to the dev) instead of re-deriving it, then does what that pass cannot: walks the user through exactly what to test and where (multidev for yalesites-project, Storybook deploy preview for component-library-twig, the PR's own Storybook for yale-ui-cl), runs that plan itself in a visible Playwright browser on yalesites-project multidevs and on yale-ui-cl Storybook (a deployed preview if the PR has one, otherwise built locally from the PR branch) with a screenshot for every pass and fail, settles the product and UX calls the pass held back, turns the answers into actionable developer feedback with exact file/line locations, and posts the review with the right approval state and labels, @-mentioning the assigned developer. Also handles several PRs in one pass when more than one is named or the whole queue is in scope, e.g. 'review 1560, 1572 and clt 728', 'go through my review queue', 'clear out needs review'. With --prep it runs unattended instead: it does the brief, test plan, and driven run ahead of time and leaves a review board packet for the later review to open, posting nothing to GitHub."
 argument-hint: "[repo#number, or several for batch mode, or nothing to sweep the review queue] [--as code|functional|design|a11y|product] [--prep]"
 ---
 
@@ -148,7 +148,7 @@ brief, not from the diff.** Re-deriving it is the single biggest waste in this r
 |---|---|
 | Present, SHA matches head | **Use it. Skip Step 2 entirely.** This is the normal path. |
 | Present, SHA is behind head | Use it for context, then read only the new commits: `gh pr diff NUMBER --repo yalesites-org/REPO` and compare against the brief's claims. Tell the user which parts of the brief may be stale. |
-| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. On `yalesites-project`, the Step 3 browser run still happens: start its setup while this brief is written. |
+| Absent | Invoke the `pr-prereview` skill scoped to this one PR, in dry-run mode: `pr-prereview {repo}#{number} --dry-run`. It writes the brief without posting anything to GitHub or touching a label. Then continue here. On `yalesites-project` and `yale-ui-cl`, the Step 3 browser run still happens: start its setup (for UICL, the preview check, checkout, install, and Storybook start) while this brief is written. |
 
 The dry-run fallback matters: it means this skill has exactly one deep-dive implementation
 to maintain, living in `pr-prereview`, and a PR the schedule never saw still gets reviewed
@@ -177,7 +177,7 @@ title is missing its ticket number, so run the review the normal way.
 
 | `state` | What to do |
 |---|---|
-| `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir` (a versioned folder, `packets/<id>-<sha7>-<builtAt>`; take the path from the entry, never build it from the id), and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done |
+| `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir` (a versioned folder, `packets/<id>-<sha7>-<builtAt>`; take the path from the entry, never build it from the id), and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done. If the reviewer already answered this packet in a dashboard (`references/review-board.md` Step R1, "Answered already"), do not open the board: go to Step 3b and use those answers in place of the board. Only the board is skipped: still run "Before asking anything, check what's already open" and turn any `defer` answer into a `needs-decision` block per "Open calls go on the record" |
 | `running` | A prep run is working on it now. Say so, and offer to wait for it or to review now. Never drive the same multidev from two sessions at once |
 | `stale` | The developer pushed after the prep, or the packet was built for a different reviewer scope: `reason` says which. Say so, then run the review the normal way. The old packet is not reused. If `previousState` is `running`, a prep run is still driving the old head on this multidev: wait for it to finish, or for its 90-minute TTL, before any browser run of your own |
 | `failed` | Say the recorded reason in one line, then run the review the normal way, **after clearing what the prep run left on the multidev** (below). An `interrupted` reason means the run died before its own cleanup and never wrote `prep.json`. A failure from the environment (no multidev, branch not deployed) usually fails the live run too, so check it first. A failure is only reported against the head it was recorded on; after a push it reads as `stale` |
@@ -263,7 +263,7 @@ because it changes what this review can conclude.
 | `component-library-twig` | Netlify deploy preview, Storybook only | Layout Builder placement, editor field labels, role gating, anything that depends on Drupal passing real values in |
 | `atomic` | No preview of its own. The sibling `yalesites-project` PR's multidev, if one exists | If there is no sibling, there is no deployed way to see this. Say so. |
 | `tokens` | No preview of its own. The sibling `component-library-twig` preview, if one exists | Same. Say so. |
-| `yale-ui-cl` | No PR preview. Its Storybook on GitHub Pages (`https://yalesites-org.github.io/yale-ui-cl/`) builds from `main` only | Anything on the PR branch. Run Storybook locally from the branch, or say there is no deployed way to see it |
+| `yale-ui-cl` | The PR's deployed Storybook preview if it has one (none do yet), otherwise Storybook built locally from the PR head (`drive-it.md`, "The `yale-ui-cl` path"). Its GitHub Pages Storybook (`https://yalesites-org.github.io/yale-ui-cl/`) builds from `main` only, so it is the baseline, never the PR's environment | Anything that depends on a consuming site: how YaleSites or another app passes real values in |
 
 Full patterns and the direct visreg content URLs are in
 `pr-prereview`'s `references/preview-environments.md`. Do not restate the block slug table
@@ -327,15 +327,26 @@ Show the screenshots as the run goes, failures first. Checks marked `ask` in
 `references/beyond-ac-checks.md` are never ruled on by the browser run; they go to Step 3b with
 their screenshots.
 
+**Every `yale-ui-cl` review gets a driven browser run too,** under the same rules: required,
+not offered, and not repeated when a current prepped board already carries one. Follow "The
+`yale-ui-cl` path" in `references/drive-it.md`: check first for a deployed Storybook preview
+and drive that if the PR has one; otherwise build Storybook locally from the PR head in a
+checkout the skill owns, drive the stories, screenshot every result at the widths the plan
+names, record clips for behavior over time (focus order, menus, tabs and accordions, pagers),
+and capture side-by-sides against the published UICL Storybook on `main` and the matching CLT
+story for parity and change questions. Then stop the server and remove the checkout.
+
 **No brief yet is not a reason to skip the run.** When Step 1 has to write the brief itself,
 open the browser and do the setup (log in, create the test page) while the brief is being
 written, then start testing once the plan exists. The user gets something to watch without the
 run getting ahead of the plan.
 
 **The hand-off walkthrough is for what cannot be driven, and only that.** That covers
-Storybook, `atomic`, `tokens` and `yale-ui-cl`, and a `yalesites-project` PR whose drive-it preflight fails
-(no multidev, a server not running the branch, a cloud session, a machine without Terminus or
-Node). For a failed preflight, say which check failed, hand the plan to the user, and offer to
+`component-library-twig` Storybook, `atomic`, and `tokens`; a `yalesites-project` PR whose
+drive-it preflight fails (no multidev, a server not running the branch, a cloud session, a
+machine without Terminus or Node); and a `yale-ui-cl` PR with no deployed preview whose local
+preflight fails (no Node, no `YALESITES_BUILD_TOKEN`, `npm ci` failed, Storybook did not
+build, a cloud session). For a failed preflight, say which check failed, hand the plan to the user, and offer to
 run the browser pass as soon as the cause is fixed: a skipped run is a gap in the review, not
 a different kind of review. Write the hand-off plan for someone reading it on a second monitor
 with the PR open.
@@ -353,7 +364,10 @@ the cases that reference lists (no in-lane calls, no local browser, or a reviewe
 chat). The sorting rules below decide what goes on the board, and they do not change.
 When Step 1 found a current prepped board, the packet is already built: serve it from this
 session's own packets folder through a symlink (`review-board.md` Step R1) instead of building a
-new one. Its `prep.json` carries every held call tagged by dimension, so the out-of-lane calls to
+new one. When the reviewer already answered that packet in a dashboard (Step R1, "Answered
+already"), those answers stand in for the board: do not open it, but the rest of this step still
+applies, including the open-decision check and the `defer` handling under "Open calls go on the
+record". Its `prep.json` carries every held call tagged by dimension, so the out-of-lane calls to
 name below come from there.
 
 **Part 1, the held calls.** Put the brief's **Your calls** items to the user. They
@@ -795,8 +809,8 @@ apply here. If a write does fail, read the error rather than retrying blindly:
 | `gh: Not Found` or `HTTP 404` | Wrong repo for that PR number, and the number exists in more than one repo | Re-confirm the repo with the user, do not guess |
 | `Can not approve your own pull request` | The user authored it | Step 6's `--comment` fallback |
 | Label set comes back wrong from Step 8's verify | A label was sent that the repo does not define, or the computed set dropped something | Step 8's per-repo tables, then re-send the corrected full set |
-| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | Switch to the connector fallback for this review, per Step 6's preflight. Offer `gh auth login` with `repo` scope as the durable fix, but do not block the review on it |
-| `403 Resource not accessible by personal access token` | You are on the connector fallback and hit its write gap | Do not retry. Show the user the drafted body and computed label set verbatim, and tell them `gh auth login` with `repo` scope clears this permanently |
+| `HTTP 401` / `gh auth status` shows no active account | The CLI is not authenticated | Switch to the connector fallback for this review, per Step 6's preflight. Offer `gh auth login -h github.com -s project,repo,read:org,workflow,gist` as the durable fix (never plain `gh auth login`, which resets scopes and drops `project`), but do not block the review on it |
+| `403 Resource not accessible by personal access token` | You are on the connector fallback and hit its write gap | Do not retry. Show the user the drafted body and computed label set verbatim, and tell them `gh auth refresh -h github.com -s project,repo,read:org,workflow,gist` clears this permanently (`gh auth login -h github.com -s project,repo,read:org,workflow,gist` if `gh` is not logged in at all; never plain `gh auth login`, which drops `project`) |
 | Anything else | Unclear | Show the user the drafted body and label plan verbatim so nothing is lost, then ask |
 
 **On the connector fallback path, confirm the review landed before reporting success**, because

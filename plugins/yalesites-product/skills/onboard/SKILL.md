@@ -57,18 +57,20 @@ Follow the system file. On a Mac, the file has a short table to choose the path:
 **Login (`gh-auth`, `gh-scope`).** Claude cannot do this part. Ask them to run this in the Terminal (Mac) or PowerShell (Windows), after you read them the plan:
 
 ```
-gh auth login -h github.com -p https -w -s project
+gh auth login -h github.com -p https -w -s project,repo,read:org,workflow,gist
 ```
 
-What will happen, in plain words: it shows an 8-character one-time code, then asks them to press Return to open the browser. They paste the code on the GitHub page, sign in, and click Authorize. Any other question can take the default. The `-s project` part gives the login permission to edit the YaleSites Board. Without it, tickets can be created but the board fields cannot be set. The login is saved for the user, so it works in every folder.
+What will happen, in plain words: it shows an 8-character one-time code, then asks them to press Return to open the browser. They paste the code on the GitHub page, sign in, and click Authorize. Any other question can take the default. The `-s` part lists every permission the YaleSites skills use. The one that matters most is `project`, which lets the login edit the YaleSites Board. Without it, tickets can be created but the board fields cannot be set. The login is saved for the user, so it works in every folder.
 
-If they are already logged in but the check says `FAIL gh-scope`, the login is missing that permission. They run:
+Only use `gh auth login` when they are not logged in at all (a new computer, or a login that was revoked), and always with the full `-s` list. A plain `gh auth login` resets the login to GitHub's default permissions and silently drops `project`.
+
+If they are already logged in but the check says `FAIL gh-scope`, the login is missing that permission. Do not log in again. They run:
 
 ```
-gh auth refresh -h github.com -s project
+gh auth refresh -h github.com -s project,repo,read:org,workflow,gist
 ```
 
-`read:project` alone is not enough, because it can read the board but cannot write to it.
+`refresh` keeps what the login already has and adds what is missing, so it is safe to run again. `read:project` alone is not enough, because it can read the board but cannot write to it.
 
 Re-run the check after they say they are done.
 

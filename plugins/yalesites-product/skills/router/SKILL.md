@@ -1,6 +1,6 @@
 ---
 name: router
-description: "Run the YaleSites router: hand each feature phase (UX, Design, Development, QA, Visual regression, Docs) to its next owner when the phase before it finishes, and post a brief of who owes what: open `needs-decision` and `follow-up` items grouped by person with their due dates, plus In progress tickets that have gone quiet. Built to run unattended as a weekday scheduled task; also runnable on demand. Use when the user says 'run the router', 'who owes what', 'what's waiting on me', 'what decisions are open', 'what's stuck', 'post the router brief', or asks to dry-run or debug a hand-off that didn't happen. To create the phase children or raise a follow-up in the first place, use the ticket skill."
+description: "Run the YaleSites router: hand each feature phase (UX, Design, Development, QA, Visual regression, Docs) to its next owner when the phase before it finishes, and post a brief of who owes what: open `needs-decision` and `follow-up` items grouped by person with their due dates, plus In progress tickets that have gone quiet, and developers whose To Do queue is under its floor, with candidate tickets to top it up. Built to run unattended as a weekday scheduled task; also runnable on demand. Use when the user says 'run the router', 'who owes what', 'what's waiting on me', 'what decisions are open', 'what's stuck', 'does Laura have enough tickets', 'who needs work queued', 'post the router brief', or asks to dry-run or debug a hand-off that didn't happen. To create the phase children or raise a follow-up in the first place, use the ticket skill."
 ---
 
 # YaleSites Router
@@ -9,14 +9,16 @@ description: "Run the YaleSites router: hand each feature phase (UX, Design, Dev
 
 Work gets lost at hand-offs: a phase finishes and nobody tells the next person, or a question sits on a ticket until someone happens to reread it. The router closes those gaps with plain rules, no judgment.
 
-It does these things each run:
+Each run it:
 
 1. **Hands off phases.** When every blocker of a feature's phase child is Done or closed, it moves that child from `Backlog` to `To Do`, assigns the phase's default owner if nobody is assigned, and comments on the feature parent.
+   - **Release-gated phases wait for the release.** A phase gated on `release` in `routing.md` (today: Visreg site pages) sits in `Blocked`, not `Backlog`. The router moves it to `To Do` once its blockers are done and the feature parent's release date (from its milestone title) has passed. Until then it lists it under waiting.
    - **Gated phases wait.** If the phase has a Gate in `routing.md` (today: Development and Docs, both `miketullo95`), the router does not move it. It lists it under "Waiting on a go." The gatekeeper approves by moving it to To Do, or sends it back with a `follow-up`.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
 3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
 4. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 5. **Lists what may be unblocked.** Open tickets whose body says they are blocked by a ticket that has since closed. List only, no writes. See "May be unblocked" in `routing.md`.
+6. **Checks lane floors.** Counts each developer's `To Do` tickets (Communications left out) against their floor in `routing.md` (today: Laura 2, Dave 5). A lane under its floor shows under "Lane floors" with up to 5 groomed, unassigned candidates: in pickup order, or for a lane with Areas (Laura), bugs first, then her areas, then Low priority. New embed providers stay out until `miketullo95` has approved them, and the brief names the ones it left out. A person checks fit and assigns one. The router never assigns a candidate, since picking work for someone takes judgment the rules can't make.
 
 Then it posts a brief to the pinned Router brief issue. On Mondays the brief opens with the meeting agenda: a count per section, linked to the Monday view on the YaleSites Board (grouped by the router-set Stage field), plus a Features in flight table (see "Monday meeting" in `routing.md`). The agenda counts leave Communications items out, since those go to the weekly comms meeting.
 
@@ -25,7 +27,7 @@ The rules (phases, owners, labels, block formats, and the exact list of what the
 ## Hard rules
 
 - **The script decides, not you.** All routing comes from `scripts/router.py`. Don't promote, assign, relabel, or comment on anything by hand during a router run, even when it looks obviously right. If the script missed something, report it in your summary so the rules get fixed.
-- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child, the default assignee on a child it just promoted, one parent comment per promotion, the `awaiting-go` label on gated children waiting on a go, the board's Stage field, one brief comment per run. Nothing else, ever: no closing, no PRs, no agent runs.
+- **Only the writes listed in `routing.md`.** Status Backlog → To Do on a phase child (or Blocked or Backlog → To Do on a `release`-gated child once its release date has passed), the default assignee on a child it just promoted, one parent comment per promotion, the `awaiting-go` label on gated children waiting on a go, the board's Stage field, one brief comment per run. Lane floor candidates are suggestions in the brief, never writes. Nothing else, ever: no closing, no PRs, no agent runs.
 - **No @-mentions.** The brief writes handles in backticks. Nudging people is a human call.
 
 ## Running it
@@ -62,16 +64,17 @@ At the top of `scripts/router.py`:
 | `STALE_WORKING_DAYS` | In progress idle threshold (3) |
 | `STALE_BY_TYPE` | Per Issue Type overrides. Communications gets 20 working days, since comms work moves slower. Epics are never listed; their children carry the activity |
 | `DEFAULT_BY_WORKING_DAYS` | Due date when a block has none (5 working days after the label went on) |
+| `LANE_CANDIDATES` | How many candidates a short lane lists (5) |
 
-Phase owners are not set here. They come from the table in `routing.md`, so owners change in one place.
+Phase owners and lane floors are not set here. They come from the tables in `routing.md`, so they change in one place.
 
 ## When a hand-off didn't happen
 
 Run a dry run and check, in order:
 
-0. Is its phase gated? Then it's waiting for a go, not stuck. Check "Waiting on a go" in the brief.
+0. Is its phase gated? Then it's waiting for a go, not stuck. Check "Waiting on a go" in the brief. A `release`-gated child (Visreg site pages) instead waits until the day after its parent's release date; check the waiting list in the brief.
 1. Does the child's `<!-- yalesites:agent -->` block have a `phase:` line with a key from `routing.md`?
-2. Is the child's board Status exactly `Backlog`? The router never moves anything from another status.
+2. Is the child's board Status exactly `Backlog` (or `Blocked`, for a `release`-gated phase)? The router never moves anything from another status.
 3. Does it have native blocked-by dependencies? A child with none is treated as parked on purpose.
 4. Is every blocker closed or `Done`?
 5. Is the feature parent open, and is the child free of `needs-decision` and `follow-up`?
@@ -80,4 +83,4 @@ If all five hold and it still didn't move, it's a bug in the script. Report it r
 
 ## Not in v0
 
-These are in yalesites-org/YaleSites-Internal#1915 sections 5 and 6 and come later: the PR bounce cap and `needs help`, ready-to-merge sets, the reconcile list, the multidev cap, park timers, lane floors, and nudges.
+These are in yalesites-org/YaleSites-Internal#1915 sections 5 and 6 and come later: the PR bounce cap and `needs help`, ready-to-merge sets, the reconcile list, the multidev cap, park timers, and nudges.
