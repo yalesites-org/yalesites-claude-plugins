@@ -91,11 +91,26 @@ packet folder's real path), and `submittedAt`. Before archiving anything, read t
 - there is no `usedAt` field (Step R4 adds it once the answers have been posted).
 
 Then do not archive it, do not start the server, and skip Steps R2 and R3. Read the answers back
-exactly as Step R3 describes (`choice: "other"`, `markups`, `verdicts`) and go on to Step 4.
+exactly as Step R3 describes (`choice: "other"`, `markups`, `verdicts`) and use them in place of
+the board in `SKILL.md` Step 3b. Only the board is skipped: the rest of Step 3b still runs,
+including "Before asking anything, check what's already open" and turning any `defer` answer
+into a `needs-decision` block per "Open calls go on the record". Then go on to Step 4.
 Finishing the board finished the review, the same as pressing Send on this board, so nothing on
 it is asked again in chat. Tell the reviewer in one line that their dashboard answers from
 `submittedAt` are being used. Anything else, including dashboard answers that fail a check
 above, is a leftover: archive it as below and open the board as usual.
+
+**Unattended: a dashboard run with nobody watching.** The work dashboard can post a review in
+the background (`claude -p`) right after the reviewer sends the board. Its prompt says nobody is
+watching. In that run, never call `AskUserQuestion`, never open a browser or the board server,
+and never wait for input. Every place this skill would stop to confirm (the open-call list in
+Step 3b, the follow-up ticket offers in Step 5, the approve-with-edits check in Step 6, the
+ticket-sync answer in Step 9b) takes the board's answer. Where no answer settles it, do not post
+that piece: post the rest and report the piece as left for the reviewer, with one plain sentence
+on why. Follow-up tickets still go through the `ticket` skill, with every field picked by its
+own rules instead of asked. Never merge, close, or delete anything. Step 10's report becomes
+the JSON receipt the prompt asks for, written as the last message; the dashboard reads each PR
+back from GitHub against it.
 
 Then start the server on `<scratchpad>/review-board/packets` (Step R2), exactly as for a packet
 built here. The server follows the link, so the board reads the prepped files, and `answers.json`

@@ -177,7 +177,7 @@ title is missing its ticket number, so run the review the normal way.
 
 | `state` | What to do |
 |---|---|
-| `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir` (a versioned folder, `packets/<id>-<sha7>-<builtAt>`; take the path from the entry, never build it from the id), and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done. If the reviewer already answered this packet in a dashboard (`references/review-board.md` Step R1, "Answered already"), do not open the board: use those answers and go on to Step 4 |
+| `ready` | **Start from the packet.** Read `prep.json` and `plan.md` in its `packetDir` (a versioned folder, `packets/<id>-<sha7>-<builtAt>`; take the path from the entry, never build it from the id), and the brief its `briefSha` names. Tell the reviewer in two or three lines when it was prepped, the driven result counts, and how many questions the board holds. Show every `fail` screenshot from `prep.json` in chat, failures first, as `drive-it.md` does live. Then skip to Step 3b and open the board on the prepped packet. Steps 2 and 3 are done. If the reviewer already answered this packet in a dashboard (`references/review-board.md` Step R1, "Answered already"), do not open the board: go to Step 3b and use those answers in place of the board. Only the board is skipped: still run "Before asking anything, check what's already open" and turn any `defer` answer into a `needs-decision` block per "Open calls go on the record" |
 | `running` | A prep run is working on it now. Say so, and offer to wait for it or to review now. Never drive the same multidev from two sessions at once |
 | `stale` | The developer pushed after the prep, or the packet was built for a different reviewer scope: `reason` says which. Say so, then run the review the normal way. The old packet is not reused. If `previousState` is `running`, a prep run is still driving the old head on this multidev: wait for it to finish, or for its 90-minute TTL, before any browser run of your own |
 | `failed` | Say the recorded reason in one line, then run the review the normal way, **after clearing what the prep run left on the multidev** (below). An `interrupted` reason means the run died before its own cleanup and never wrote `prep.json`. A failure from the environment (no multidev, branch not deployed) usually fails the live run too, so check it first. A failure is only reported against the head it was recorded on; after a push it reads as `stale` |
@@ -364,7 +364,10 @@ the cases that reference lists (no in-lane calls, no local browser, or a reviewe
 chat). The sorting rules below decide what goes on the board, and they do not change.
 When Step 1 found a current prepped board, the packet is already built: serve it from this
 session's own packets folder through a symlink (`review-board.md` Step R1) instead of building a
-new one. Its `prep.json` carries every held call tagged by dimension, so the out-of-lane calls to
+new one. When the reviewer already answered that packet in a dashboard (Step R1, "Answered
+already"), those answers stand in for the board: do not open it, but the rest of this step still
+applies, including the open-decision check and the `defer` handling under "Open calls go on the
+record". Its `prep.json` carries every held call tagged by dimension, so the out-of-lane calls to
 name below come from there.
 
 **Part 1, the held calls.** Put the brief's **Your calls** items to the user. They
