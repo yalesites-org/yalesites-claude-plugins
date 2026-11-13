@@ -300,5 +300,58 @@ class LaneFloorTest(unittest.TestCase):
             router.TODAY = saved
         self.assertNotIn("Lane floors", brief)
 
+
+class ReleaseGateTest(unittest.TestCase):
+    """Visreg site pages wait in Blocked for the feature's release, then go to To Do."""
+
+    PHASES = {"dev": {"name": "Development", "owner": "dblanken-yale", "gate": "miketullo95"},
+              "visreg-site": {"name": "Visreg site pages", "owner": "miketullo95", "gate": "release"}}
+
+    def child(self, status, milestone):
+        st = {"nodes": [{"id": "x", "project": {"number": router.PROJECT},
+                         "fieldValueByName": {"name": status}}]}
+        done = {"nodes": [{"id": "y", "project": {"number": router.PROJECT}, "fieldValueByName": {"name": "Done"}}]}
+        return {"number": 50, "title": "Thing: Visreg site pages", "url": "u", "state": "OPEN",
+                "body": "<!-- yalesites:agent\nphase: visreg-site\n-->", "updatedAt": "2026-11-01T00:00:00Z",
+                "repository": {"nameWithOwner": "yalesites-org/YaleSites-Internal"},
+                "assignees": {"nodes": [{"login": "miketullo95"}]}, "labels": {"nodes": []},
+                "parent": {"number": 49, "title": "Feature: Thing", "url": "p", "state": "OPEN",
+                           "repository": {}, "milestone": {"title": milestone}},
+                "blockedBy": {"nodes": [{"number": 48, "title": "dev", "url": "d", "state": "CLOSED",
+                                         "repository": {}, "projectItems": done}]},
+                "projectItems": st}
+
+    def run_find(self, n, today):
+        with mock.patch.object(router, "search_all", return_value=[n]), mock.patch.object(router, "TODAY", today):
+            return router.find_promotions(self.PHASES)
+
+    def test_waits_before_release(self):
+        promos, gated, waiting = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 11, 12))
+        self.assertEqual((promos, gated), ([], []))
+        self.assertIn("waits for 12-01-26 Feature Release to ship", waiting[0][1])
+
+    def test_waits_on_release_day(self):
+        promos, gated, waiting = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 12, 1))
+        self.assertEqual((promos, gated), ([], []))
+        self.assertIn("waits for 12-01-26 Feature Release to ship", waiting[0][1])
+
+    def test_promotes_from_blocked_after_release(self):
+        promos, gated, _ = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 12, 2))
+        self.assertEqual([p["issue"]["number"] for p in promos], [50])
+        self.assertEqual(gated, [])
+
+    def test_no_dated_milestone_waits(self):
+        _, _, waiting = self.run_find(self.child("Backlog", "Ready For Work"), router.dt.date(2027, 1, 1))
+        self.assertIn("no dated release milestone", waiting[0][1])
+
+    def test_other_phases_still_need_backlog(self):
+        n = self.child("Blocked", "12-01-26 Feature Release")
+        n["body"] = "<!-- yalesites:agent\nphase: dev\n-->"
+        self.assertEqual(self.run_find(n, router.dt.date(2027, 1, 1)), ([], [], []))
+
+    def test_release_day(self):
+        self.assertEqual(router.release_day("03-02-27 Feature Release"), router.dt.date(2027, 3, 2))
+        self.assertIsNone(router.release_day("Backlog"))
+
 if __name__ == "__main__":
     unittest.main()

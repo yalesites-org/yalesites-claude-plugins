@@ -20,14 +20,17 @@ A feature almost never fits in one ticket. It needs some mix of UX, design, deve
 | Design | `design` | `miketullo95` (Michael) | `ux` | auto | Designs are attached and the owner sets Done |
 | Development | `dev` | `dblanken-yale` (Dave). `vinmassaro` for CI, deploy, and upgrade work | `design` (or `ux` if no design phase) | `miketullo95`: design is approved | PRs merge. Merge automation or `/merge-prs` sets Done |
 | QA | `qa` | `miketullo95` (functional review on the multidev) | `dev` | auto | The owner signs off on the ticket and sets Done |
-| Visual regression | `visreg` | `dblanken-yale` | `dev` | auto | Visreg baselines are updated or the diff is approved |
+| Visreg stories | `visreg` | `dblanken-yale` | `dev` | auto | Storybook visreg stories exist and Chromatic baselines are updated or the diff is approved |
+| Visreg site pages | `visreg-site` | `miketullo95` | `dev` | `release` | The `/blocks-for-visreg` pages show the feature |
 | Docs | `docs` | `miketullo95` (drafts). Chris and Rachel for comms | `dev` | `miketullo95`: feature is accepted | The docs draft is staged. Publishing waits for the release |
 
 Rules:
 
 - **Create only the phases that apply.** Most features skip one or more.
 - **Blocked by skips missing phases.** If there is no Design child, Development is blocked by UX. If there is no UX or Design child, Development starts first.
-- **QA, Visreg, and Docs run in parallel** once Development is done.
+- **QA, Visreg stories, and Docs run in parallel** once Development is done.
+- **Visreg is two phases, because the work lands at two different times.** Storybook stories are code that ships with the feature, so they start when Development is done. Pages on the visreg site (`/blocks-for-visreg`) can't be built until the feature is live, so they wait for the release. A feature that needs both gets both children.
+- **The `release` gate.** A phase gated on `release` waits for the feature's release, not a person. It goes in the **next** release milestone after the parent's (that is when its work can actually finish), starts in `Blocked`, and the router moves it to `To Do` once its blockers are done and the parent milestone's release date has passed.
 - **Product calls are not a phase.** They come up inside any phase and go through `needs-decision` (below). The decider is `miketullo95` unless the block names someone else.
 - **Gates.** A phase with a handle in the Gate column needs that person's go before it starts. When its blockers finish, the router does not move it. It lists it under "Waiting on a go" instead. `auto` means the router moves it on its own. Gates are set per phase here, so adding or removing one is a one-cell edit.
 - **Defaults, not rules.** Reassign any child when the work calls for it. The router only assigns the default owner when a child it promotes has no assignee.
@@ -47,7 +50,7 @@ The router finds phase children through the `phase:` line, not the title, so a r
 
 - Each child is a direct native **sub-issue** of the feature parent.
 - Order is set with native **"blocked by"** dependencies, per the table above. Not a checklist.
-- The first phase starts in `To Do`, assigned to its owner. Every later phase starts in `Backlog`, assigned to its owner. The router moves each one to `To Do` when all its blockers are Done or closed.
+- The first phase starts in `To Do`, assigned to its owner. Every later phase starts in `Backlog`, assigned to its owner. The router moves each one to `To Do` when all its blockers are Done or closed. A `release`-gated phase starts in `Blocked` instead (see the gate rule above).
 
 A phase is "done" for routing when its ticket is **closed** or its board Status is **`Done`**. Design, UX, and Docs have no PR to merge, so their owners set Done by hand when they finish.
 
@@ -181,6 +184,7 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 | Write | When |
 |---|---|
 | Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the parent is open, the child has no open `needs-decision` or `follow-up`, and its phase's Gate is `auto` |
+| Set Status `Blocked` or `Backlog` → `To Do` on a phase child gated on `release` | Same checks as above, and the parent milestone's release date has passed (the day after release day at the earliest) |
 | Assign the phase's default owner | Only on a child it just promoted, and only if that child has no assignee |
 | Comment on the parent | One comment per promotion, naming the child and its owner |
 | Set or clear the board's **Stage** field | Every run, so each board item shows the stage it is in today (see "The Stage field") |
