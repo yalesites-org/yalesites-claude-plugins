@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-security-v0.3.0...yalesites-security-v0.4.0) (2026-11-13)
+
+
+### Features
+
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([c76aa14](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c76aa14fd886089b930721351071ee204e33dbc0))
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([af15aae](https://github.com/yalesites-org/yalesites-claude-plugins/commit/af15aaed25a69c1012328fd8b7eb5efab8fad188)), closes [#86](https://github.com/yalesites-org/yalesites-claude-plugins/issues/86)
+
 ## [0.3.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-security-v0.2.0...yalesites-security-v0.3.0) (2026-09-29)
 
 
