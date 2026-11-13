@@ -26,6 +26,14 @@ in the zip in the next comment. <dev>, this is ready to build in <dev ticket ref
 - **New molecule: <Name>** (`02-molecules/<name>`). <Why <existing component> could not do it>. Reusable for <other blocks>.
 - **Changed atom: <Name>** (`01-atoms/<name>`). <What changes>. Also used by <components>, so check them in the PR.
 
+**Block picker icon** <new blocks only; drop this section for a change to an existing block>
+<img src="<github-screenshots URL of r2-picker-<category>.png>" alt="The <block> picker icon beside <neighbors> in <category>" width="600">
+
+The signed-off icon is `<block>.svg` in the zip. It goes in
+`web/profiles/custom/yalesites_profile/modules/custom/ys_core/images/preview-icons/<block>.svg`,
+wired by `layout_builder_browser.layout_builder_browser_block.<id>.yml` with
+`category: <category id>` (<category label>, next to <nearest block>).
+
 **Check these first, and report back in the PR**
 1. <the thing most likely to be wrong, e.g. a theme the library has not supported before>
 2. <a width or token pairing we did not measure>
@@ -51,8 +59,25 @@ The reference files are mockups, not production code. Rebuild them in component-
 <every state, each with its colors and contrast ratio>
 </details>
 
-<details><summary><b>Theming</b></summary>
+<details><summary><b>Theming and section colors</b></summary>
 <which theme slots it reads; "no new colors" unless a token change is part of the work>
+
+Contrast was checked on all seven section themes in all seven global themes. Lowest ratio per cell:
+
+| Section theme | <global one> | <global two> | ... |
+|---|---|---|---|
+| default | 7.1:1 | | |
+| one | | | |
+| ... | | | |
+
+<Any pairing that needed a different token, and the token it uses there.>
+</details>
+
+<details><summary><b>Storybook stories</b></summary>
+Per component-library-twig's `components/_storybook/TESTING.md`: a playground story with the
+Section Theme and Global Theme controls, and an "All Section Theme Variations" story, so visual
+regression and the link contrast check cover every section color. <Plus one story per state in
+the States table, which the docs page shows.>
 </details>
 
 <details><summary><b>Editor form</b></summary>
@@ -120,10 +145,15 @@ to its own docs page. Any piece added for this component says so.>
 - Motion: <respects prefers-reduced-motion>
 
 ## Theming
-<Which theme slots it reads, and the themes it was checked in.>
+<Which theme slots it reads. Then "Checked on every section theme in every global theme", with
+any section where a part changes color to keep its contrast, and why.>
+
+<Canvas of={Stories.<All Section Theme Variations story>} />
 
 ## In Layout Builder
-<The block form: each option with one sentence an editor understands, and the defaults.>
+<Where editors find it: the "Add a block" picker category (e.g. Featured Content) and its
+picker icon, shown as an image of the signed-off SVG. Then the block form: each option with one
+sentence an editor understands, and the defaults.>
 
 ## Do and don't
 - Do <...>.
