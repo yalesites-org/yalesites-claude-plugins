@@ -46,26 +46,40 @@ STAGE_FIELD = "Stage"
 STAGE_ORDER = ["Gate", "Decision", "Follow-up", "Stuck", "Intake"]
 # The Monday meeting is dev-focused; these Issue Types go to the weekly comms meeting instead.
 MONDAY_SKIP_TYPES = {"Communications"}
+# Lane floors: candidate tickets listed for a person to approve. The router never assigns them.
+LANE_CANDIDATES = 5
+CANDIDATE_SKIP_TYPES = {"Epic", "Communications"}
+# Issue Types that never count toward a lane floor.
+FLOOR_SKIP_TYPES = {"Communications"}
+# `Hotfix:` is the one title prefix that stacks in front of another (see the ticket skill's Title section).
+EMBED_TITLE = re.compile(r"^\s*(?:Hotfix:\s*)?Embed(?: Request)?:", re.I)
+CANDIDATE_SKIP_LABELS = {"forming", "needs-decision", "follow-up", "epic"}
+PRIORITY_RANK = {"Hotfix": 0, "High": 1, "Medium": 2, "Low": 3}
+RISK_RANK = {"Low": 0, "Medium": 1, "High": 2}
 
 TODAY = dt.date.today()
 
 
 # --- helpers ---------------------------------------------------------------
 
-def gh(*args, input_text=None):
+def gh(*args, input_text=None, check=True):
+    """Run gh and return stdout. With check=False a non-zero exit that still printed output returns
+    that output (gh api graphql exits 1 on partial errors but prints the partial data)."""
     r = subprocess.run(["gh", *args], capture_output=True, text=True, input=input_text)
-    if r.returncode != 0:
+    if r.returncode != 0 and (check or not r.stdout.strip()):
         raise RuntimeError(f"gh {' '.join(args[:3])}... failed: {r.stderr.strip()}")
     return r.stdout
 
 
-def graphql(query, **variables):
+def graphql(query, _tolerate=(), **variables):
+    """_tolerate is a set of GraphQL error types (e.g. {"NOT_FOUND"}) to ignore, keeping the partial data."""
     args = ["api", "graphql", "-f", f"query={query}"]
     for k, v in variables.items():
         args += ["-F" if isinstance(v, int) else "-f", f"{k}={v}"]
-    data = json.loads(gh(*args))
-    if data.get("errors"):
-        raise RuntimeError(json.dumps(data["errors"])[:500])
+    data = json.loads(gh(*args, check=not _tolerate))
+    errors = [e for e in data.get("errors") or [] if e.get("type") not in _tolerate]
+    if errors:
+        raise RuntimeError(json.dumps(errors)[:500])
     return data["data"]
 
 
@@ -152,7 +166,7 @@ def load_phases():
     phases = {}
     for line in text.splitlines():
         cells = [c.strip() for c in line.strip().strip("|").split("|")]
-        if len(cells) < 6 or not re.fullmatch(r"`[a-z]+`", cells[1] or ""):
+        if len(cells) < 6 or not re.fullmatch(r"`[a-z-]+`", cells[1] or ""):
             continue
         owner = re.search(r"`([A-Za-z0-9-]+)`", cells[2])
         gate = re.search(r"`([A-Za-z0-9-]+)`", cells[4])
@@ -161,6 +175,39 @@ def load_phases():
     if not phases:
         sys.exit(f"Could not read the phase table from {ROUTING_MD}")
     return phases
+
+
+def load_lanes():
+    """Parse the Lane floors table in routing.md: handle -> {name, floor, approver, areas}."""
+    text = ROUTING_MD.read_text()
+    if "## Lane floors" not in text:
+        return {}
+    section = text.split("## Lane floors", 1)[1].split("\n## ", 1)[0]
+    lanes = {}
+    for line in section.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if len(cells) < 4:
+            continue
+        handle = re.fullmatch(r"`([A-Za-z0-9-]+)`", cells[1])
+        floor = re.fullmatch(r"\d+", cells[2])
+        approver = re.search(r"`([A-Za-z0-9-]+)`", cells[3])
+        if handle and floor:
+            areas = re.findall(r"`([^`]+)`", cells[4]) if len(cells) > 4 else []
+            lanes[handle.group(1)] = {"name": cells[0], "floor": int(floor.group()),
+                                      "approver": approver.group(1) if approver else None,
+                                      "areas": [a.lower() for a in areas]}
+    return lanes
+
+
+def load_embed_rule():
+    """The New embed providers section of routing.md: (approver handle, Embed Requests epic number)."""
+    text = ROUTING_MD.read_text()
+    if "## New embed providers" not in text:
+        return None, None
+    section = text.split("## New embed providers", 1)[1].split("\n## ", 1)[0]
+    approver = re.search(r"`([A-Za-z0-9-]+)`", section)
+    epic = re.search(r"#(\d+)", section)
+    return (approver.group(1) if approver else None), (int(epic.group(1)) if epic else None)
 
 
 AGENT_BLOCK = re.compile(r"<!--\s*yalesites:agent(.*?)-->", re.S)
@@ -174,6 +221,21 @@ def agent_field(body, key):
     return None
 
 
+# A phase whose Gate is `release` waits for the feature's release to ship, not for a person.
+RELEASE_GATE = "release"
+
+
+def release_day(title):
+    """The ship date in a release milestone title like "12-01-26 Feature Release", or None."""
+    m = re.match(r"\s*(\d{1,2})-(\d{1,2})-(\d{2})\b", title or "")
+    if not m:
+        return None
+    try:
+        return dt.date(2000 + int(m.group(3)), int(m.group(1)), int(m.group(2)))
+    except ValueError:
+        return None
+
+
 # --- 1. promotions ---------------------------------------------------------
 
 STATUS_FRAGMENT = "projectItems(first:5){nodes{id project{number} fieldValueByName(name:\"Status\"){... on ProjectV2ItemFieldSingleSelectValue{name}}}}"
@@ -182,7 +244,7 @@ STATUS_FRAGMENT = "projectItems(first:5){nodes{id project{number} fieldValueByNa
 def find_promotions(phases):
     fields = f"""number title url state body updatedAt repository{{nameWithOwner}}
       assignees(first:5){{nodes{{login}}}} labels(first:30){{nodes{{name}}}}
-      parent{{number title url state repository{{nameWithOwner}}}}
+      parent{{number title url state repository{{nameWithOwner}} milestone{{title}}}}
       blockedBy(first:20){{nodes{{number title url state repository{{nameWithOwner}} {STATUS_FRAGMENT}}}}}
       {STATUS_FRAGMENT}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open in:body "phase:"', fields, include_prs=False)
@@ -194,7 +256,8 @@ def find_promotions(phases):
         if phase not in phases:
             waiting.append((n, f"unknown phase `{phase}`"))
             continue
-        if board_status(n) != "Backlog":
+        release_gate = phases[phase]["gate"] == RELEASE_GATE
+        if board_status(n) not in ({"Backlog", "Blocked"} if release_gate else {"Backlog"}):
             continue
         blockers = n["blockedBy"]["nodes"]
         if not blockers:
@@ -210,7 +273,16 @@ def find_promotions(phases):
             waiting.append((n, f"blockers done, held by an open `{sorted(held)[0]}`"))
             continue
         assignees = [a["login"] for a in n["assignees"]["nodes"]]
-        if phases[phase]["gate"]:
+        if release_gate:
+            ms = (n["parent"].get("milestone") or {}).get("title")
+            day = release_day(ms)
+            if not day:
+                waiting.append((n, "blockers done, but the parent has no dated release milestone"))
+                continue
+            if day >= TODAY:  # promote only once the release date has passed
+                waiting.append((n, f"waits for {ms} to ship"))
+                continue
+        elif phases[phase]["gate"]:
             gated.append({"issue": n, "phase": phase, "blockers": blockers, "gate": phases[phase]["gate"],
                           "owner": assignees[0] if assignees else phases[phase]["owner"]})
             continue
@@ -374,6 +446,51 @@ def find_features():
     return sorted(out, key=lambda f: (f["due"], f["done"] / f["total"]))
 
 
+BLOCKER = re.compile(r"\b(blocked by|blocked on|depends on|waiting on|wait for|do(?:n't| not) start\b[^.]*?\buntil)\b", re.I)
+ISSUE_REF = re.compile(r"(?:(?<![\w/])|%s/%s)#(\d{2,5})\b|github\.com/%s/%s/issues/(\d{2,5})\b"
+                       % (ORG, ISSUES_REPO, ORG, ISSUES_REPO), re.I)
+
+
+def blocker_refs(body):
+    """Ticket numbers named on a line that also says the ticket is blocked by or waiting on them."""
+    body = re.sub(r"<!--.*?-->", "", body or "", flags=re.S)
+    out = set()
+    for line in body.splitlines():
+        if BLOCKER.search(line):
+            out |= {int(a or b) for a, b in ISSUE_REF.findall(line)}
+    return out
+
+
+def find_unblocked():
+    """Open tickets whose body says they are blocked by a ticket that closed after the body was last edited.
+    The router only lists these. Native blocked-by links on phase children are handled by find_promotions."""
+    fields = "number title url state lastEditedAt createdAt body repository{nameWithOwner} issueType{name}"
+    candidates = []
+    for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open', fields, include_prs=False):
+        refs = blocker_refs(n["body"]) - {n["number"]}
+        if refs:
+            candidates.append((n, refs))
+    wanted = sorted({r for _, refs in candidates for r in refs})
+    closed = {}
+    for i in range(0, len(wanted), 100):
+        # issueOrPullRequest so a ref to a PR doesn't fail the query; a number that doesn't exist (typo)
+        # comes back null with a NOT_FOUND error, which is tolerated. Only closed issues count as blockers.
+        aliases = " ".join(f"i{r}: issueOrPullRequest(number:{r}){{__typename ... on Issue{{number state closedAt stateReason}}}}"
+                           for r in wanted[i:i + 100])
+        d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, aliases),
+                    _tolerate={"NOT_FOUND"})["repository"]
+        closed.update({v["number"]: v for v in d.values()
+                       if v and v["__typename"] == "Issue" and v["state"] == "CLOSED"})
+    out = []
+    for n, refs in candidates:
+        edited = n["lastEditedAt"] or n["createdAt"]
+        hits = sorted((closed[r] for r in refs if r in closed and closed[r]["closedAt"] > edited),
+                      key=lambda c: c["number"])
+        if hits:
+            out.append({"node": n, "blockers": hits})
+    return sorted(out, key=lambda u: max(b["closedAt"] for b in u["blockers"]), reverse=True)
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login} issueType{name}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -386,11 +503,13 @@ def find_stuck(groomers=frozenset()):
         fieldValueByName(name:"Status"){... on ProjectV2ItemFieldSingleSelectValue{name}}
         stage: fieldValueByName(name:"%s"){... on ProjectV2ItemFieldSingleSelectValue{name}}
         priority: fieldValueByName(name:"Priority"){... on ProjectV2ItemFieldSingleSelectValue{name}}
+        risk: fieldValueByName(name:"Risk"){... on ProjectV2ItemFieldSingleSelectValue{name}}
         content{ ... on Issue{ number title url state createdAt updatedAt repository{nameWithOwner} issueType{name}
           author{login} labels(first:20){nodes{name}}
-          assignees(first:3){nodes{login}}
+          assignees(first:3){nodes{login}} milestone{title dueOn state} parent{number}
+          subIssuesSummary{total} issueDependenciesSummary{blockedBy}
           closedByPullRequestsReferences(first:5, includeClosedPrs:false){nodes{number updatedAt}} } } } } } } }""" % (ORG, PROJECT, STAGE_FIELD)
-    stuck, no_priority, board, after = [], [], {}, None
+    stuck, no_priority, board, open_items, after = [], [], {}, [], None
     cutoff = TODAY - dt.timedelta(days=NEEDS_PRIORITY_DAYS)
     while True:
         vars_ = {"after": after} if after else {}
@@ -399,6 +518,9 @@ def find_stuck(groomers=frozenset()):
             c, s = it.get("content") or {}, (it.get("fieldValueByName") or {}).get("name")
             if c.get("url"):
                 board[c["url"]] = {"id": it["id"], "stage": (it.get("stage") or {}).get("name"), "state": c.get("state")}
+            if c.get("state") == "OPEN":
+                open_items.append({"node": c, "status": s, "priority": (it.get("priority") or {}).get("name"),
+                                   "risk": (it.get("risk") or {}).get("name")})
             if (c.get("state") == "OPEN" and s != "Done" and not it.get("priority")
                     and c["repository"]["nameWithOwner"] == f"{ORG}/{ISSUES_REPO}"
                     and (c.get("author") or {}).get("login") not in groomers
@@ -415,19 +537,136 @@ def find_stuck(groomers=frozenset()):
                 stuck.append({"node": c, "idle": idle, "has_pr": bool(prs),
                               "who": ", ".join(a["login"] for a in c["assignees"]["nodes"]) or "unassigned"})
         if not items["pageInfo"]["hasNextPage"]:
-            return stuck, no_priority, board
+            return stuck, no_priority, board, open_items
         after = items["pageInfo"]["endCursor"]
 
 
-# --- 4. brief --------------------------------------------------------------
+# --- 4. lane floors -------------------------------------------------------
 
-def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None):
+def is_candidate(it):
+    """An open, groomed, unassigned ticket nobody is blocked on, ready for a person to hand out."""
+    c = it["node"]
+    return (it["status"] in ("Backlog", "To Do") and bool(it["priority"])
+            and not c["assignees"]["nodes"]
+            and c["repository"]["nameWithOwner"] == f"{ORG}/{ISSUES_REPO}"
+            and (c.get("issueType") or {}).get("name") not in CANDIDATE_SKIP_TYPES
+            and not labels(c) & CANDIDATE_SKIP_LABELS
+            and not (c.get("subIssuesSummary") or {}).get("total")
+            and not (c.get("issueDependenciesSummary") or {}).get("blockedBy")
+            and not c["closedByPullRequestsReferences"]["nodes"])
+
+
+def is_embed(c, epic):
+    """A new embed provider: titled Embed: or Embed Request: (Hotfix: may stack in front), or a child of the Embed Requests epic.
+
+    Bugs are not held: a Bug on an embed that already ships needs no provider approval.
+    """
+    if (c.get("issueType") or {}).get("name") == "Bug":
+        return False
+    return bool(EMBED_TITLE.match(c["title"])) or (epic is not None and (c.get("parent") or {}).get("number") == epic)
+
+
+def embed_approvals(numbers, approver):
+    """Issue numbers among these whose body or comments hold the approver's `## Decision: approved`."""
+    if not numbers or not approver:
+        return set()
+    rx = re.compile(r"##\s*Decision:\s*approved", re.I)
+    parts = " ".join(f"i{n}: issue(number:{n}){{number author{{login}} body comments(last:50){{nodes{{author{{login}} body}}}}}}"
+                     for n in numbers)
+    d = graphql('query{ repository(owner:"%s", name:"%s"){ %s } }' % (ORG, ISSUES_REPO, parts))["repository"]
+    ok = set()
+    for i in d.values():
+        posts = [(i.get("author") or {}, i["body"])] + [(c.get("author") or {}, c["body"]) for c in i["comments"]["nodes"]]
+        if any(a.get("login") == approver and rx.search(b or "") for a, b in posts):
+            ok.add(i["number"])
+    return ok
+
+
+def open_milestone(c):
+    m = c.get("milestone")
+    return m if m and m.get("state") == "OPEN" else None
+
+
+def candidate_key(it):
+    m = open_milestone(it["node"])
+    return (it["priority"] != "Hotfix", m is None, (m or {}).get("dueOn") or "9999",
+            PRIORITY_RANK.get(it["priority"], 9), RISK_RANK.get(it["risk"], 1), it["node"]["createdAt"])
+
+
+def area_hit(area, title):
+    """True when the Area appears in the title as whole words, any case.
+
+    Plain substring tests let short Areas hit unrelated words ('import' in 'Important'). The edges
+    are lookarounds rather than \\b so Areas that start or end in punctuation still match, any run of
+    whitespace matches a space in a multi-word Area, and a plural s/es is allowed ('imports').
+    """
+    words = r"\s+".join(re.escape(w) for w in area.split())
+    return re.search(r"(?<!\w)" + words + r"(?:e?s)?(?!\w)", title, re.I) is not None
+
+
+def fit(it, areas):
+    """(group, why) for a lane with Areas: Hotfix, bugs, the person's areas, Low priority, the rest."""
+    c = it["node"]
+    if it["priority"] == "Hotfix":
+        return 0, "Hotfix"
+    if (c.get("issueType") or {}).get("name") == "Bug" or c["title"].lower().startswith("bug:"):
+        return 1, "Bug"
+    title = c["title"].lower()
+    hit = next((a for a in areas if area_hit(a, title)), None)
+    if hit:
+        return 2, f"Area: {hit}"
+    if it["priority"] == "Low":
+        return 3, "Low priority"
+    return 4, ""
+
+
+def lane_report(items, lanes, embed_epic=None, approved_embeds=frozenset()):
+    """Lanes under their To Do floor, each with up to LANE_CANDIDATES (item, why) pairs, plus the
+    embed tickets left out for want of an approval."""
+    to_do = {h: 0 for h in lanes}
+    for it in items:
+        if it["status"] == "To Do" and (it["node"].get("issueType") or {}).get("name") not in FLOOR_SKIP_TYPES:
+            for a in it["node"]["assignees"]["nodes"]:
+                if a["login"] in to_do:
+                    to_do[a["login"]] += 1
+    under = [{"handle": h, **lanes[h], "to_do": to_do[h]} for h in lanes if to_do[h] < lanes[h]["floor"]]
+    if not under:
+        return [], []
+    pool, held = [], []
+    for it in items:
+        if not is_candidate(it):
+            continue
+        if is_embed(it["node"], embed_epic) and it["node"]["number"] not in approved_embeds:
+            held.append(it)
+        else:
+            pool.append(it)
+    pool.sort(key=candidate_key)
+    for lane in under:
+        if lane["areas"]:
+            ranked = sorted(((it, fit(it, lane["areas"])) for it in pool), key=lambda p: p[1][0])
+            lane["candidates"] = [(it, why) for it, (_, why) in ranked[:LANE_CANDIDATES]]
+        else:
+            lane["candidates"] = [(it, "") for it in pool[:LANE_CANDIDATES]]
+    return under, sorted(held, key=candidate_key)
+
+
+# --- 5. brief --------------------------------------------------------------
+
+def lanes_phrase(n):
+    return f"{n} lane under its floor" if n == 1 else f"{n} lanes under their floor"
+
+
+def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None,
+                lanes_under=(), embeds_held=(), unblocked=None):
+    unblocked = unblocked or []
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
-            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck.")
+            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck"
+            + (f", {lanes_phrase(len(lanes_under))}" if lanes_under else "")
+            + (f", {len(unblocked)} may be unblocked." if unblocked else "."))
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
 
     if TODAY.weekday() == 0:
@@ -443,16 +682,18 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
                   "Stuck": f"{len(d_stuck)} stuck",
                   "Intake": f"{len(d_intake)} to groom, {len(d_no_pri)} need a priority",
                   "Features": f"{len(features or [])} in flight, release-planning weeks only",
-                  "Gates": f"{len(gated)} waiting on a go"}
-        empty = decisions == 0 and late_follow == 0 and not d_stuck and not d_intake and not d_no_pri and not gated
+                  "Gates": f"{len(gated)} waiting on a go",
+                  "Lane floors": lanes_phrase(len(lanes_under))}
+        empty = (decisions == 0 and late_follow == 0 and not d_stuck and not d_intake and not d_no_pri and not gated
+                 and not lanes_under)
         lines += ["### Monday agenda", "",
                   "Nothing needs the room this week. Skip the meeting." if empty else
                   "30 minutes, top to bottom. Skip any empty section. "
                   "Communications items are left out; they go to the weekly comms meeting.", ""]
         where = {"Decisions & follow-ups": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
                  "Stuck": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
-                 "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})"}
-        for i, name in enumerate(["Decisions & follow-ups", "Stuck", "Intake", "Features", "Gates"], 1):
+                 "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Lane floors": "below"}
+        for i, name in enumerate(["Decisions & follow-ups", "Stuck", "Intake", "Features", "Gates", "Lane floors"], 1):
             lines.append(f"{i}. **{name}**: {counts[name]} ({where[name]})")
         lines.append("")
 
@@ -470,6 +711,30 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             lines.append(f"- `{g['gate']}`: {link(g['issue'])} {quiet(g['issue']['title'])} "
                          f"({phases[g['phase']]['name']}, part of {ref(g['issue']['parent'])}). Approve by moving it to To Do")
         lines.append("")
+
+    if lanes_under:
+        lines += ["### Lane floors", "",
+                  "Check fit first, then top up a lane by assigning a candidate and moving it to To Do. "
+                  "The router never assigns these.", ""]
+        for l in lanes_under:
+            short = l["floor"] - l["to_do"]
+            lines += [f"**`{l['handle']}` ({l['name']})**: {l['to_do']} in To Do, floor {l['floor']}. "
+                      f"Needs {short} more, `{l['approver'] or 'a groomer'}` approves.", ""]
+            if not l["candidates"]:
+                lines += ["No candidates: nothing groomed and unassigned is ready. Groom something for this lane.", ""]
+                continue
+            order = "bugs, then their areas, then Low priority" if l["areas"] else "pickup order"
+            lines += [f"Candidates, {order}:", "",
+                      "| Ticket | Why | Priority | Milestone | Risk | Status |", "|---|---|---|---|---|---|"]
+            for it, why in l["candidates"]:
+                c, m = it["node"], open_milestone(it["node"])
+                lines.append(f"| {link(c)} {quiet(c['title']).replace('|', '/')} | {why or '-'} | {it['priority']} | "
+                             f"{m['title'] if m else 'none'} | {it['risk'] or 'not set'} | {it['status']} |")
+            lines.append("")
+        if embeds_held:
+            refs = ", ".join(link(it["node"]) for it in embeds_held)
+            lines += [f"Left out {len(embeds_held)} embed ticket{'s' if len(embeds_held) != 1 else ''} with no approval "
+                      f"comment: {refs}.", ""]
 
     if intake or no_priority:
         lines += ["### Intake", "",
@@ -516,6 +781,15 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
         lines += ["", "</details>", ""]
 
+    if unblocked:
+        lines += ["<details>", f"<summary><b>May be unblocked: the ticket says it is blocked by one that has since closed "
+                  f"({len(unblocked)})</b></summary>", ""]
+        for u in unblocked:
+            done = ", ".join(f"#{b['number']} closed {parse_date(b['closedAt']):%b %-d}"
+                             + (" as not planned" if b["stateReason"] == "NOT_PLANNED" else "") for b in u["blockers"])
+            lines.append(f"- {link(u['node'])} {quiet(u['node']['title'])}: {done}")
+        lines += ["", "Check each one and update the ticket. The router does not change them.", "", "</details>", ""]
+
     if features:
         lines += ["<details>", f"<summary><b>Features in flight ({len(features)})</b></summary>", "",
                   "| Feature | Milestone | Done |", "|---|---|---|"]
@@ -548,7 +822,18 @@ def main():
     promos, gated, waiting = find_promotions(phases)
     owed = find_owed()
     intake = find_intake()
-    stuck, no_priority, board = find_stuck(load_groomers())
+    stuck, no_priority, board, open_items = find_stuck(load_groomers())
+    lanes = load_lanes()
+    embed_approver, embed_epic = load_embed_rule()
+    lanes_under, embeds_held = lane_report(open_items, lanes, embed_epic)
+    if lanes_under:
+        maybe = [it["node"]["number"] for it in open_items if is_candidate(it) and is_embed(it["node"], embed_epic)]
+        lanes_under, embeds_held = lane_report(open_items, lanes, embed_epic, embed_approvals(maybe, embed_approver))
+    try:
+        unblocked = find_unblocked()  # list-only; never let it stop hand-offs, Stage sync or the brief
+    except Exception as e:  # noqa: BLE001
+        print(f"router: skipping 'may be unblocked' list: {e}", file=sys.stderr)
+        unblocked = []
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -570,6 +855,17 @@ def main():
                         "created": n["createdAt"][:10]} for n in intake],
             "needs_priority": [{**item(n), "number": n["number"], "author": (n.get("author") or {}).get("login"),
                                 "created": n["createdAt"][:10]} for n in no_priority],
+            "lanes_under_floor": [{"handle": l["handle"], "name": l["name"], "floor": l["floor"],
+                                   "to_do": l["to_do"], "approver": l["approver"],
+                                   "candidates": [{**item(it["node"]), "number": it["node"]["number"], "why": why,
+                                                   "priority": it["priority"], "risk": it["risk"], "status": it["status"],
+                                                   "milestone": (open_milestone(it["node"]) or {}).get("title")}
+                                                  for it, why in l["candidates"]]} for l in lanes_under],
+            "embeds_held": [{**item(it["node"]), "number": it["node"]["number"]} for it in embeds_held],
+            "unblocked": [{**item(u["node"]), "number": u["node"]["number"],
+                           "blockers": [{"number": b["number"], "closed": b["closedAt"][:10],
+                                         "not_planned": b["stateReason"] == "NOT_PLANNED"} for b in u["blockers"]]}
+                          for u in unblocked],
         }, indent=2))
         return
 
@@ -596,7 +892,8 @@ def main():
 
     features = find_features() if TODAY.weekday() == 0 else None
     brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases,
-                        dry=not a.apply, features=features)
+                        dry=not a.apply, features=features, lanes_under=lanes_under, embeds_held=embeds_held,
+                        unblocked=unblocked)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

@@ -88,6 +88,23 @@ Run these across every open ticket. No bodies needed.
 - Open more than 6 months with no update and still in `Backlog`
 - Created more than 12 months ago, any status
 
+**Out of date about another ticket**
+
+A ticket often says "blocked by #X," "once #X ships," or "today it's v1.86.0" about a sibling. When #X closes, nothing goes back to update it, so the ticket stays blocked or describes a fix as future work. Find candidates with the bundled script. It makes two bulk GraphQL calls, bodies included, not one call per issue:
+
+```bash
+python3 scripts/stale_refs.py          # markdown table
+python3 scripts/stale_refs.py --json   # for your own filtering
+```
+
+It lists every open ticket naming a YaleSites-Internal ticket that closed after the body's last edit, where the same line uses dependency or time wording. Blocker wording sorts first. Expect about half to be noise: history ("fixed in #X"), related-ticket lists, and test references. Read each line and keep only the ones a reader would act on:
+
+- **May be unblocked:** "blocked by," "depends on," or "don't start until" a ticket that closed as done. The highest-value find, because the work is ready and nobody knows.
+- **Plan no longer holds:** the ticket it was waiting on closed as **not planned**. The plan or acceptance criteria assume something that will never happen.
+- **Says a closed ticket is still open:** future tense about its fix, "until," "currently," "today," or versions that ticket changed.
+
+This check ignores the 14-day skip in Noise control. A ticket can go stale the day after it was written, as yalesites-org/YaleSites-Internal#1986 did. Fixes go through the `ticket-sync` skill, one ticket at a time.
+
 ---
 
 ## Step 3: Deep checks on a bounded candidate set
@@ -165,6 +182,10 @@ Missing native Issue Type, or native type conflicting with a type label.
 field was most likely never written.
 | Ticket | Label(s) still present | Board value |
 
+## Out of date about another ticket
+Names a ticket that has since closed. May be unblocked first, then plan no longer holds, then wording.
+| Ticket | Names | Closed | What's out of date |
+
 ## Possibly stale
 Open 6+ months, no recent activity, still in Backlog. Not a close recommendation.
 | Ticket | Title | Last update |
@@ -186,7 +207,7 @@ When running interactively and the report is long, offer to publish it as an art
 
 A report that flags 400 tickets gets ignored. Be deliberately conservative:
 
-- **Skip tickets updated in the last 14 days.** They're likely in flight.
+- **Skip tickets updated in the last 14 days.** They're likely in flight. The "Out of date about another ticket" check is the exception.
 - **Skip quality nits on tickets already `In progress` or `In review`.** Too late to be useful, and the developer already has context.
 - **Don't flag missing Risk or Priority on `Backlog` tickets** unless the user asked for a full audit. Those get set when work is queued, and flagging all of them buries the real findings.
 - **Cap each section at 15 tickets**, ordered by how actionable they are, and give the total count so nothing looks hidden.
@@ -202,7 +223,7 @@ End the report with the next action, not a list of everything wrong. Something l
 
 > The 6 tickets under "Ready to groom" are the highest-value fixes. Want me to run `/ticket` against them one at a time?
 
-Grooming happens through the `ticket` skill, one ticket at a time, with the user confirming Status, Priority, and Risk. **Don't batch-groom from a hygiene report**, and don't carry findings straight into edits without the user picking them.
+"Out of date about another ticket" findings go to the `ticket-sync` skill instead. Grooming happens through the `ticket` skill, one ticket at a time, with the user confirming Status, Priority, and Risk. **Don't batch-groom from a hygiene report**, and don't carry findings straight into edits without the user picking them.
 
 ---
 

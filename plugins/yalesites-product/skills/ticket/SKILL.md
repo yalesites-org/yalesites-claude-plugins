@@ -244,6 +244,7 @@ Always ask before applying it: *"Do you want to tag this `claude`, so the dev te
 Two things have to be true before it goes on:
 
 - **The ticket is genuinely groomed.** Description, a complete Acceptance Criteria list, Priority, Risk, Type, and a milestone all present (agents never pick up a ticket with no milestone, except a `Hotfix`; a Hotfix still gets its hotfix milestone, see "Milestone" above), and specific enough that an agent with no other context could implement it and know when it's done. If the ticket is still a stub, say so and offer to finish grooming it first instead of tagging it as-is.
+- **A new embed provider has its approval.** See "New embed providers" in `references/routing.md`. A Priority or milestone is not an approval.
 - **Nothing in it is waiting on a human decision.** An open design question, an unresolved debate preserved as an acceptance-criteria item (see "Acceptance Criteria" below), a "conflicts with platform direction" flag from Step 3, or work gated on a spike should not go into the async pool.
 
 On epics, the label belongs on individual child tickets, never the parent. The parent is a container, not a unit of work.
@@ -414,6 +415,8 @@ When grooming an existing stub ticket, check the title along with the other fiel
 | `Community Spotlight:` | A specific Community Spotlight content ticket. |
 | `YS-Email:` | YaleSites training or release email tickets. |
 
+**New embed providers need Michael's approval.** Any `Embed:` or `Embed Request:` ticket, or child of the Embed Requests epic (yalesites-org/YaleSites-Internal#1373), gets a `needs-decision` for `miketullo95` asking whether to add the provider, unless the ticket's Issue Type is Bug (a bug on an embed that already ships) or the ticket already has his `## Decision: approved` comment. Until it does, don't assign it or tag it `claude`, even if the user asks: say why and offer to raise the decision instead. The rule and the approval format are in `references/routing.md` ("New embed providers").
+
 **`Hotfix:` stacks; the rest don't.** Every other prefix in the table is one-per-ticket. `Hotfix:` is the exception: it goes in front of whatever prefix the ticket already earned, so you get `Hotfix: Bug: ...` or `Hotfix: View: ...`. This matters because Priority is a Projects v2 field, which means it doesn't appear in search results, notification emails, or most board views. The title prefix is the only place the urgency is visible to someone skimming. Whenever Priority comes back as Hotfix, prepend it. Reference examples: YaleSites-Internal #1729, #1730, #1732, #1381.
 
 **Epic child tickets** follow a related but distinct pattern: they're prefixed with a short form of their epic's name rather than one of the prefixes above, so they group together visually in the backlog (e.g., `Views Block Rework: Authoring Form UX/UI Audit`, `Publications: Teaser Display`, `Wave 3: Interactive molecules`). When scoping child tickets for a new epic, pick one short, consistent name and apply it to every child ticket — see "Creating an Epic" below.
@@ -441,6 +444,8 @@ A single bulleted list of everything required to close the issue. Cover all rele
 - Spikes and ADRs: when the deliverable is an ADR (architecture decision record), add the criterion that it lands in `yalesites-org/YaleSites-Internal` under `docs/adr/{issue-number}-{short-description}.md`, not in a product repo. This applies to a standalone spike ticket as much as to the first child of an epic, so the dev or their agent does not default to the repo the code lives in. The full convention is the `yalesites` skill's `references/adr-conventions.md`.
 
 If an existing ticket has an unresolved internal debate (e.g., a past comment thread arguing both sides of a design question), don't resolve it unilaterally while grooming — preserve it as an explicit open acceptance-criteria item so it gets a real decision rather than getting silently closed over. Also raise it as a `needs-decision` with its block (see "Raising a Decision or a Follow-up" below), so it shows up in the decider's queue instead of waiting for someone to reread the ticket.
+
+**Visreg site page tickets** (anything that adds or changes pages on the visreg site, `/blocks-for-visreg`) can't be worked until the feature they cover is live. Put the ticket in the **next** release milestone after the feature's, set its Status to `Blocked`, and add a line saying which release it waits for. When it is a phase child, use the `visreg-site` phase so the router releases it. Storybook visreg stories are different: they are code that ships with the feature, so they take the feature's milestone like any other ticket.
 
 **Documentation tickets for features that haven't shipped yet:** these can still be marked `To Do` so the doc can be drafted and staged in parallel with development — mark the ticket as blocked by the feature ticket, and add an explicit acceptance criterion not to publish until the feature ships. Under a feature parent the Docs phase child is the exception: it starts in `Backlog` and waits for its gatekeeper's go once Development finishes (see the Gate column in `references/routing.md`, and "Scoping a Feature" below).
 
@@ -522,12 +527,20 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
 ### Steps
 
 1. **Pick the phases.** Ask which phases apply, as one multi-select `AskUserQuestion` question. The phases, their keys, their default owners, and their order are in `references/routing.md`. Read it fresh each time rather than working from memory, because owners change there first. Preselect the ones the request obviously needs. Product calls are not a phase; they go through `needs-decision`.
-2. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
-3. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
-4. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
-5. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
-6. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
-7. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
+2. **Allowed regions, when the feature is a new block or changes where a block can go.** Ask which Layout Builder regions it may be placed in. There are six regions, more than the 4-option cap above allows in one question, so ask two multi-select questions in one `AskUserQuestion` call:
+   1. **Full-width and equal columns:** One column, Banner, Two column (50/50), Three column (33/33/33).
+   2. **Two column (70/30) or (30/70):** The main region, The sidebar region, Neither.
+
+   "Not decided yet" has no option of its own: say in the first question that the user can answer Other with "not decided", and treat any answer like that as not decided. Write the answer into the parent's Scope as an **Allowed regions** line, and into the parent's machine block as `allowed_regions: [one_col, half, third, main, sidebar, banner]` (only the ones allowed), or as `allowed_regions` in its `open_decisions` list when not decided. Then carry it into the children:
+   - **Design child:** an AC line "Mockups at each allowed region width, plus 360px", with the narrowest one named (the 70/30 sidebar is about 305px at 1440, and it is the width that broke Office Hours late in yalesites-org/YaleSites-Internal#1710).
+   - **Not decided yet:** make it an AC item on the UX child ("Decide which regions the block is allowed in"), so it is settled before design starts. Don't guess it, and don't leave it out: `yalesites-design-pass` stops and asks when it is missing.
+   - **Dev and QA children:** an AC line that the block is offered in exactly those regions and no others.
+3. **Write the parent.** Title `Feature: <name>`, Issue Type `Feature`, no `epic` label. The body is a TL;DR, the outcome, the Scope, and a **Phases** list naming each child and its owner. Status, Priority, and Risk go on the parent like any ticket, and the parent's milestone is the release the feature ships in.
+4. **One child per phase,** more when a phase splits naturally (two design deliverables, say). Title each `<Feature name>: <Phase>`, e.g. `Office Hours: Docs`, or a more specific title when there are several in one phase. Each child still follows the full Issue Format. Its Acceptance Criteria say what "done" means for that phase, which is what lets the next owner start without a meeting.
+5. **Machine block.** Every phase child's closing `<!-- yalesites:agent -->` block includes `phase: <key>` and `parent: yalesites-org/YaleSites-Internal#NNNN`. The router finds phase children by the `phase:` line.
+6. **Assign the phase owner** from `references/routing.md` unless the user names someone else. **UX is the exception: April's time varies week to week.** Before assigning a UX phase to `atiddei`, ask the user whether April has room this week. If not, or if they aren't sure, assign it to `miketullo95`, who can hand it to April later. Ask once for the whole set ("use the default owners?") rather than per child.
+7. **Status.** The first phase goes to `To Do`. Every later phase goes to `Backlog`, except a `release`-gated phase (Visreg site pages), which goes to `Blocked`. Don't move later phases to `To Do` yourself; the router does it when their blockers finish, except gated phases (the Gate column in `references/routing.md`), which wait for the gatekeeper's go.
+8. **Wire it natively.** Add each child as a sub-issue of the parent, then add the blocked-by dependencies from the routing table, skipping phases that weren't created:
 
    ```bash
    # Sub-issue: the child's numeric id, not its number
@@ -540,8 +553,8 @@ The exception is a small enhancement: one developer, one Acceptance Criteria lis
    ```
 
    A child that already has a different parent must be moved: add `-F replace_parent=true` to the sub-issue call. Read both back (`gh api repos/yalesites-org/YaleSites-Internal/issues/<child>/dependencies/blocked_by --jq '.[].number'`) before reporting the feature as done.
-8. **Milestone.** Every phase child gets the parent's milestone, Docs included.
-9. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
+9. **Milestone.** Every phase child gets the parent's milestone, Docs included. The exception is a `release`-gated phase (Visreg site pages): it gets the **next** release milestone after the parent's, because its work can't start until the parent's release ships.
+10. **`claude`.** Only on dev children, only when groomed and with no open `needs-decision`. UX, Design, QA, and Docs children never get it.
 
 ### Retrofitting a feature already in flight
 
@@ -549,7 +562,7 @@ A feature that grew a pile of loose tickets can be gathered under a parent after
 
 - Make it a direct sub-issue of the parent (move it with `replace_parent=true` if it sits under a sibling).
 - Add `phase: <key>` and `parent: ...` to its machine block. **Append** the block to the end of the body if it has none; never rewrite text someone else wrote.
-- Leave Status alone. The router only moves tickets out of `Backlog`, so in-flight work is untouched.
+- Leave Status alone. The router only moves tickets out of `Backlog` (or `Blocked`, for a `release`-gated child), so in-flight work is untouched.
 - Leave out tickets that span many features (e.g. "redo all block picker icons"). Link them from the parent's body instead.
 
 Add blocked-by links only between phases that haven't started yet. Linking finished work is noise.
@@ -700,6 +713,7 @@ Before submitting or updating an issue, check:
 - [ ] No `status:*`, `priority:*`, or `size:*` label is on the ticket
 - [ ] Relevant labels are applied
 - [ ] Milestone is set to the release the work is actually going into, not whichever open milestone sorted first
+- [ ] A visreg site page ticket is in the release **after** the feature's, and in `Blocked`
 - [ ] Assignee is set, or the user explicitly chose to leave it unassigned
 - [ ] `claude` label is on only if the user asked for it and the ticket is complete enough for an agent to work it unattended
 - [ ] For an established ticket with real history, Description and Acceptance Criteria still match what's actually been decided — run the `ticket-sync` skill (see "Checking for Drift, Not Just Gaps" above) if unsure

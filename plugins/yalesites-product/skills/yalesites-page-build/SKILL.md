@@ -13,11 +13,11 @@ argument-hint: "[path to a page draft .md, or a ticket like yalesites-org/YaleSi
 ## Workflow
 
 1. Have a page draft. If there is none, run `yalesites-web-content` first.
-2. Preflight and log in (the user does CAS)
+2. Preflight and log in (reuse the saved login, or the user does CAS)
 3. Decide: new page, or forward draft of a published page
 4. Create the draft
 5. Build the layout, following the layout conventions
-6. Save as Draft, then verify
+6. Save as Draft, then verify (Step 5b first when the pass places screenshots)
 7. Hand off, and record what was created
 
 ---
@@ -46,12 +46,41 @@ cd "$RUN"
 exec npx -y @playwright/cli@0.1.22 -s=ys "\$@"
 EOF
 chmod +x "$RUN/pw"
-"$RUN/pw" open --headed 'https://yalesites.yale.edu/user/login'
+"$RUN/pw" open --headed about:blank
 ```
 
 The Bash tool does not keep `RUN` between calls. Repeat this exact `RUN=...` line at the start of every later call that uses `$RUN`, including each recipe in `references/playwright-recipes.md`.
 
-Then ask the user to log in with CAS in that window, and wait for them to say so. **Never type a NetID, password, or Duo code**, and never use `drush uli` against production. Confirm the login by reading `page.url()` after they reply. The session dies when the browser closes, so a second pass needs a second login.
+### The saved login
+
+The user's CAS login is saved to one file so later passes can skip it. The file is a live session on production in the user's name, so treat it like a password:
+
+- It lives at `~/.claude/yalesites/auth/yalesites-cas.json`, with the folder at `700` and the file at `600`. Never copy it into a repo, a run folder, a ticket, a subagent prompt, or chat, and never print its contents.
+- **Load it only in a run the user started by hand in this session.** A scheduled or unattended run never loads it. Those runs stay off production, and the user doing CAS is the gate that keeps them off.
+- Load it only into the `ys` session, which visits only yalesites.yale.edu and Yale CAS. Save it only from that session, so cookies from other sites never end up in the file.
+
+Try the saved login first, then check it:
+
+```bash
+RUN=~/.claude/yalesites/page-build/runs/<slug>-<YYYY-MM-DD>
+AUTH=~/.claude/yalesites/auth/yalesites-cas.json
+[ -f "$AUTH" ] && "$RUN/pw" state-load "$AUTH"
+"$RUN/pw" goto 'https://yalesites.yale.edu/user'
+"$RUN/pw" eval 'location.pathname'
+```
+
+`/user` sends a logged-in user to `/user/<uid>` and a logged-out one to `/user/login`. If the path is `/user/<uid>`, the saved login works: tell the user it was reused and go on to Step 3.
+
+Otherwise, run `"$RUN/pw" goto 'https://yalesites.yale.edu/user/login'`, ask the user to log in with CAS in that window, and wait for them to say so. **Never type a NetID, password, or Duo code**, and never use `drush uli` against production. Confirm the login with the same `/user` check, then save it:
+
+```bash
+RUN=~/.claude/yalesites/page-build/runs/<slug>-<YYYY-MM-DD>
+AUTH=~/.claude/yalesites/auth/yalesites-cas.json
+mkdir -p "${AUTH:h}" && chmod 700 "${AUTH:h}"
+(umask 077 && "$RUN/pw" state-save "$AUTH") && chmod 600 "$AUTH"
+```
+
+The CAS and Drupal sessions still time out on the server, so the saved login goes stale on its own. The check above catches that, and the user logs in again. To revoke it early, delete the file and select **Log out** on yalesites.yale.edu, which ends the session on the server too.
 
 ## Step 3: New page, or forward draft?
 
@@ -111,6 +140,27 @@ A new page's content region is section `2`, region `content`. A new block always
 
 Read `references/layout-conventions.md` before placing anything. It holds the team's rules for how pages end, how padding works between blocks, and how to match a page's existing rhythm.
 
+## Step 5b: Place screenshots
+
+Only when the user asks for placement in this conversation. `release-prep` Phase 8 hands RC shots over in a manifest (file, node, marker, alt text, caption) and asks whether to place them. Each shot needs an image, so this is the one step that uploads media to production. Recipes are in `references/playwright-recipes.md` (Place screenshots).
+
+1. **Map first.** On every target node, read `/node/<nid>/revisions` (ours by the Step 3 test) and every block that holds a `[SCREENSHOT` marker or an `<img>`. Never trust the manifest's marker text: a copy pass may have reworded it, and some shots have no marker at all (the manifest says "placed after ..."). Find those by a unique phrase in the block.
+2. **Upload once per file.** Search `/admin/content/media?name=<file>` first, then `/media/add/image` with the alt text on the media item. Record `media <mid> <file>` in `.created`. One media item can serve two pages.
+3. **Pick the block.**
+
+| Where the shot goes | Do this |
+|---|---|
+| An existing Image or Wrapped Image block (a placeholder) | Swap its media in the block form. Read the old caption first: the new one replaces it, so report what it said |
+| A marker inside a Text block | Split the Text block: the text before stays, an Image block goes after it, and a new Text block takes the rest with the original's padding and style. Then Move the new blocks into place. The Text editor has no media button, so the image can never go inside the text |
+| A small shot, or the user asked for wrapped text | A **Wrapped Image** block, position Right, style Floated, holding the text from the heading above the marker to the next heading |
+
+4. **Size decides the block.** An Image block stretches the image to the content width (about 900px). A shot narrower than about 450px comes out blurry, so use a Wrapped Image for it and say so in the handoff. Wrapped Image has an Image Size field only from 12-01-26: before that release is on production, list "set Image Size to Small" as a release-day step.
+5. **Fields differ by block.** Image block: caption is `field_text`, padding defaults to No padding (set Padding on both top and bottom). Wrapped Image: caption is `field_caption`, and `field_text` is the body text. Never put the caption in a Wrapped Image's `field_text`.
+6. **Take the marker out with the shot.** Remove the marker paragraph and its `Alt text:` line (and `Caption:` line), then scan every touched node for leftover `[SCREENSHOT`, `Alt text:`, and `Caption:` text before saving.
+7. **Look before you save.** Screenshot each changed area on the layout page and open it. Then Save as Draft (Step 6) per node, after all of that node's changes.
+
+**Alt text edits are live at once.** Media items have no moderation state. Edit the alt on a media item only when the item is used by staged drafts alone (a media item this pass uploaded).
+
 ## Step 6: Save as Draft, then verify
 
 Save from the layout page: set `moderation_state[0][state]` to `draft` **explicitly**, then submit `#edit-submit` (**Save layout**). On a published node the select can default to Published.
@@ -122,7 +172,8 @@ Then prove it:
 | The public cannot see it | `curl -s -o /dev/null -w "%{http_code}"` on the new page's URL, logged out | `403` |
 | The live page did not change (forward draft) | `curl` the live URL, logged out, and grep for a phrase from the new copy | `0` matches |
 | The revision stack is right | `/node/<nid>/revisions` | our revision on top, the old one still **Current revision** |
-| No new accessibility alerts | On `/node/<nid>/latest`, wait 2 seconds, read `ed11y-element-result` elements and their `result.test` | Zero alerts inside the blocks we touched. Pre-existing alerts get reported, not fixed |
+| No new accessibility alerts | On `/node/<nid>/latest` (`/node/<nid>` for a never-published node, where `/latest` is Access denied), wait 2 seconds, read `ed11y-element-result` elements and their `result.test` | Zero alerts inside the blocks we touched. Pre-existing alerts get reported, not fixed. `IMAGE_ALT_TOO_LONG` fires at about 160 characters: shorten the alt on the media item |
+| Placed shots are not live (Step 5b) | `curl` each published page logged out and grep for the new file names | `0` matches |
 | It looks right | Full-page screenshot at 1280 wide, plus a clip of each changed area | Open every image and look before calling it a pass |
 
 If Editoria11y flags something we wrote (for example `LINK_STOPWORD` on link text like "View"), fix it and save again.
