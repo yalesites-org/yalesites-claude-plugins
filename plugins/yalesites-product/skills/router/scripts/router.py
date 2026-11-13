@@ -279,8 +279,8 @@ def find_promotions(phases):
             if not day:
                 waiting.append((n, "blockers done, but the parent has no dated release milestone"))
                 continue
-            if day > TODAY:
-                waiting.append((n, f"waits for the {ms} release to ship"))
+            if day >= TODAY:  # promote only once the release date has passed
+                waiting.append((n, f"waits for {ms} to ship"))
                 continue
         elif phases[phase]["gate"]:
             gated.append({"issue": n, "phase": phase, "blockers": blockers, "gate": phases[phase]["gate"],

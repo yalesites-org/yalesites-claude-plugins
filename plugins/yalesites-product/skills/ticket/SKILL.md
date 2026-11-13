@@ -562,7 +562,7 @@ A feature that grew a pile of loose tickets can be gathered under a parent after
 
 - Make it a direct sub-issue of the parent (move it with `replace_parent=true` if it sits under a sibling).
 - Add `phase: <key>` and `parent: ...` to its machine block. **Append** the block to the end of the body if it has none; never rewrite text someone else wrote.
-- Leave Status alone. The router only moves tickets out of `Backlog`, so in-flight work is untouched.
+- Leave Status alone. The router only moves tickets out of `Backlog` (or `Blocked`, for a `release`-gated child), so in-flight work is untouched.
 - Leave out tickets that span many features (e.g. "redo all block picker icons"). Link them from the parent's body instead.
 
 Add blocked-by links only between phases that haven't started yet. Linking finished work is noise.

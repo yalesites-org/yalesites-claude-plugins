@@ -328,10 +328,15 @@ class ReleaseGateTest(unittest.TestCase):
     def test_waits_before_release(self):
         promos, gated, waiting = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 11, 12))
         self.assertEqual((promos, gated), ([], []))
-        self.assertIn("waits for the 12-01-26 Feature Release release to ship", waiting[0][1])
+        self.assertIn("waits for 12-01-26 Feature Release to ship", waiting[0][1])
+
+    def test_waits_on_release_day(self):
+        promos, gated, waiting = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 12, 1))
+        self.assertEqual((promos, gated), ([], []))
+        self.assertIn("waits for 12-01-26 Feature Release to ship", waiting[0][1])
 
     def test_promotes_from_blocked_after_release(self):
-        promos, gated, _ = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 12, 1))
+        promos, gated, _ = self.run_find(self.child("Blocked", "12-01-26 Feature Release"), router.dt.date(2026, 12, 2))
         self.assertEqual([p["issue"]["number"] for p in promos], [50])
         self.assertEqual(gated, [])
 

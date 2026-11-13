@@ -184,6 +184,7 @@ The router runs unattended, so its writes are a short, fixed list. Anything not 
 | Write | When |
 |---|---|
 | Set Status `Backlog` → `To Do` on a phase child | Every blocker is Done or closed, the parent is open, the child has no open `needs-decision` or `follow-up`, and its phase's Gate is `auto` |
+| Set Status `Blocked` or `Backlog` → `To Do` on a phase child gated on `release` | Same checks as above, and the parent milestone's release date has passed (the day after release day at the earliest) |
 | Assign the phase's default owner | Only on a child it just promoted, and only if that child has no assignee |
 | Comment on the parent | One comment per promotion, naming the child and its owner |
 | Set or clear the board's **Stage** field | Every run, so each board item shows the stage it is in today (see "The Stage field") |
