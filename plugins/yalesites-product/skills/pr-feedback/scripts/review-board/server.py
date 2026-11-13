@@ -23,6 +23,11 @@ must be sent as application/json. A page on another site cannot write the file.
 If the port is taken, the next free one (up to 20 higher) is used, unless
 --exact-port is set, in which case it exits instead. The chosen URL is printed
 as a single line starting with REVIEW_BOARD_URL.
+
+Calibration (pr-feedback boards only, see calibration.py): opening a packet
+seals our guess in <packet>/seal.json, and each save is copied to
+~/.claude/yalesites/calibration/boards/. --no-calibration turns both off; the
+docs board (any --out other than answers.json) never uses them.
 """
 import argparse
 import json
@@ -31,6 +36,8 @@ import re
 import sys
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, unquote, urlparse
+
+import calibration
 
 BOARD_DIR = os.path.dirname(os.path.abspath(__file__))
 APP = "pr-feedback-review-board"
@@ -58,7 +65,7 @@ def packet_file(packets_dir, rel):
     return None
 
 
-def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP):
+def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP, cal_dir=None):
     board_dir = os.path.realpath(board_dir)
 
     class Handler(SimpleHTTPRequestHandler):
@@ -87,9 +94,16 @@ def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP
             self.wfile.write(body)
 
         def do_GET(self):
-            if urlparse(self.path).path == "/api/health":
+            url_path = urlparse(self.path).path
+            if url_path == "/api/health":
                 self.send_json(200, {"app": app, "packets": packets_dir})
                 return
+            # Opening a board seals our guess before the reviewer sees anything.
+            m = re.match(r"^/packets/([A-Za-z0-9._-]+)/packet\.json$", url_path)
+            if cal_dir and m:
+                folder = packet_file(packets_dir, m.group(1))
+                if folder and os.path.isdir(folder):
+                    calibration.seal(folder, m.group(1), cal_dir, out)
             if self.headers.get("Range") and self.send_range():
                 return
             super().do_GET()
@@ -172,6 +186,8 @@ def make_handler(packets_dir, board_dir=BOARD_DIR, route=ROUTE, out=OUT, app=APP
             with open(tmp, "w") as f:
                 json.dump(data, f, indent=2)
             os.replace(tmp, os.path.join(folder, out))
+            if cal_dir:
+                calibration.snapshot(folder, packet, cal_dir, out)
             self.send_response(204)
             self.end_headers()
 
@@ -190,12 +206,17 @@ def main():
     parser.add_argument("--route", default=ROUTE, help="POST path the board sends to")
     parser.add_argument("--out", default=OUT, help="File written next to the packet on POST")
     parser.add_argument("--app", default=APP, help="Name reported by /api/health")
+    parser.add_argument("--no-calibration", action="store_true",
+                        help="Do not seal guesses or copy saves to the calibration folder")
     args = parser.parse_args()
     packets_dir = os.path.realpath(args.packets)
     os.makedirs(packets_dir, exist_ok=True)
     if not os.path.isfile(os.path.join(args.board_dir, "index.html")):
         sys.exit(f"No index.html in {args.board_dir}")
-    handler = make_handler(packets_dir, args.board_dir, args.route, args.out, args.app)
+    cal_dir = None
+    if not args.no_calibration and args.out == OUT:
+        cal_dir = os.environ.get("YALESITES_CALIBRATION_DIR") or calibration.DEFAULT_DIR
+    handler = make_handler(packets_dir, args.board_dir, args.route, args.out, args.app, cal_dir)
     last = args.port if args.exact_port else args.port + 20
     for port in range(args.port, last + 1):
         try:

@@ -386,6 +386,16 @@ The technical detail is still welcome; it goes in `brief`, the evidence blocks, 
 - **`recommended` only with a reason the reviewer can see.** Put the reason in `detail`. These
   are held calls, which the audit was forbidden to decide, so most questions have no
   recommendation, and that is fine.
+- **Always record a `guess`, even with no recommendation.** `"guess": {"value": "<option value>",
+  "reason": "<one line>"}` is what you expect Michael to pick and why. The board never shows it
+  until he has answered, then puts it beside his call. It feeds his calibration loop (below), so
+  write it before the board opens and do not change it after. A `recommended` option is the
+  guess whenever there is one: a `guess` on that question is ignored, so the question takes the
+  visible path (sampled 1 in 4 blind in shadow, pre-filled on a strong record). Only a held call,
+  with no `recommended` option, uses its `guess` as a hidden guess.
+- **Keep the brief neutral.** Do not restate the recommended option's wording in `brief`,
+  `question` or `ask`, and do not write "recommended" there. A question whose text gives our pick
+  away cannot be shown blind, so it is only scored as anchored.
 - **`dimension`** is the Step 0 dimension the call belongs to (`product`, `design`, `a11y`,
   `functional`, `code`).
 - **On a PR review, every option carries a `verdict`** (skip it on a `"rulings": false` board): `approve` if the PR can merge with that answer, `changes`
@@ -522,6 +532,33 @@ reviewer types their answers in chat instead, use those and `TaskStop` the monit
 
 If they press "Edit and resend" later, `answers.json` is overwritten. Re-arm the wait only when
 they say they changed something.
+
+### Calibration: sealed guesses, blind questions
+
+Michael's calibration loop (ruled 2026-11-04) measures how well we predict his calls, per
+category, and lets only low-risk categories climb toward running on their own. The board does
+two things for it, both local files only; `--no-calibration` turns them off, and the docs board
+never uses them:
+
+- **Seal on open.** The first GET of a packet writes `<packet>/seal.json`: the time, a hash of
+  `packet.json`, and which questions are blind or pre-filled. A packet changed before anyone
+  answers is re-sealed; after answers exist it is not, and the dashboard voids its rows.
+- **Blind and pre-filled questions.** A held call with a `guess` (no `recommended` option) is always blind, at every rung,
+  and never pre-filled. Of the
+  questions with a visible recommendation, 1 in 4 is blind while its category is in shadow: the
+  Recommended badge and any "(recommended)" wording are hidden and the options shuffled, until
+  he answers. Then a reveal shows our guess and reason; on a miss he can tag why (missing
+  context, wrong rule, taste, changed my mind), and a "Something else" answer gets a close or
+  not-close grade. His first pick is the one scored. Categories with a strong record open with
+  our pick selected instead (`prefill`).
+- **Copy on save.** Every save copies `packet.json`, `seal.json` and `answers.json` to
+  `~/.claude/yalesites/calibration/boards/<packet>/`, so a board served from a session
+  scratchpad survives cleanup. Scoring, tiers and the ladder live in `~/code/work-dashboard`
+  (`src/calibration/`, `docs/calibration.md`).
+
+Nothing about calibration posts anywhere or changes what Send does. PR approve or request
+changes stays shadow-only: it is scored, never automated (Michael's ruling; revisit in February
+2027 with Dave).
 
 ## Step R4: Clean up
 
