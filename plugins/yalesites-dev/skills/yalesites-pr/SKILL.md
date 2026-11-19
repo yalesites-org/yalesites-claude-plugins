@@ -76,7 +76,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
      scripts/ensure-multidev-branch.sh {branch} yalesites-org/{companion-repo}#{N}
      ```
 
-     It prints `existing` or `created <sha>`, and never switches the checkout. Step 6 then opens that PR as a **draft** with the multidev-only title, body and `don't merge` label (references/pr-template.md, "Multidev-only PR"). `/merge-prs` and `/prove-my-prs` rely on exactly that title suffix and label. A tokens PR also needs a same-named component-library-twig branch that consumes it; if there is none, say so instead of opening an empty yalesites-project PR that tests nothing.
+     It prints `existing` or `created <sha>`, and never switches the checkout. Step 6 then opens that PR as a **draft** with the multidev-only title, body and `don't merge` label (in place of `needs review`) (references/pr-template.md, "Multidev-only PR"). `/merge-prs` and `/prove-my-prs` rely on exactly that title suffix and label. A tokens PR also needs a same-named component-library-twig branch that consumes it; if there is none, say so instead of opening an empty yalesites-project PR that tests nothing.
 
 4. **ADR check** (always runs, with or without an issue, in the current repo plus every companion repo step 3 found)
 

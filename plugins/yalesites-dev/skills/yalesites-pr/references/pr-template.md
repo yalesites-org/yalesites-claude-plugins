@@ -78,8 +78,9 @@ tokens) gets a multidev. It has no code. Rules, all required:
 - **Title:** the usual `{issue number}: {issue title}` plus the suffix ` — For multidev only`
   (`/merge-prs` closes PRs whose title matches `/multidev only/i` instead of merging them).
   The H2 link text in the body matches the title.
-- **Label:** `don't merge`, applied at creation (`--label "don't merge"`). `/prove-my-prs`
-  and `/merge-prs` key off it.
+- **Label:** `don't merge` instead of `needs review`, applied at creation
+  (`--label "don't merge"`). Never `needs review`: there is nothing to review, and the
+  review queue would pick it up. `/prove-my-prs` and `/merge-prs` key off `don't merge`.
 - **Draft**, same reviewer as the companion PR, and the real PR number in the multidev URL
   (Step 7).
 
