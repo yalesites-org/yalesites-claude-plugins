@@ -66,9 +66,17 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json title -q .title
    ```
 
-3. **Detect cross-repo changes**
+3. **Detect cross-repo changes, and make sure a yalesites-project PR will exist**
    - Check if the same branch exists with commits in any other repos (atomic, component-library-twig, tokens)
    - If so, those repos get PRs first — yalesites-project is always last (its CI/CD picks up companion branches during build)
+   - **Every atomic, component-library-twig or tokens PR needs a yalesites-project PR on the same branch name.** That PR is the only thing that builds a multidev, and the multidev is the only place the change can be tested in Drupal (`.ci/build/build_frontend` builds the same-named component library and atomic branches). A component-library-twig PR therefore gets two ways to test: its Netlify Storybook preview and the yalesites-project multidev. Never stop at the companion PR alone, and never skip this because the change has no yalesites-project code.
+   - If the same-named yalesites-project branch has no commits, create the multidev-only branch and PR (below). This is not optional and needs no confirmation; say in chat that you did it.
+
+     ```bash
+     scripts/ensure-multidev-branch.sh {branch} yalesites-org/{companion-repo}#{N}
+     ```
+
+     It prints `existing` or `created <sha>`, and never switches the checkout. Step 6 then opens that PR as a **draft** with the multidev-only title, body and `don't merge` label (references/pr-template.md, "Multidev-only PR"). `/merge-prs` and `/prove-my-prs` rely on exactly that title suffix and label. A tokens PR also needs a same-named component-library-twig branch that consumes it; if there is none, say so instead of opening an empty yalesites-project PR that tests nothing.
 
 4. **ADR check** (always runs, with or without an issue, in the current repo plus every companion repo step 3 found)
 
@@ -189,7 +197,7 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - `--base {base}` (as decided above)
    - When the base is an epic branch, add to Description of work: `- Part of epic yalesites-org/YaleSites-Internal#<epic> ; targets the epic branch <branch>.`
    - Title format: `{issue number}: {issue title}` — identical to the H2 link text in the PR body (e.g. `1025: Ensure Event Date/Time Changes in Campus Groups Sync to Website`). Do not use conventional commit style for the PR title.
-   - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist)
+   - "Other work completed in: yalesites-org/REPO#NNN" for each companion PR (added after all PRs exist). A companion PR and its multidev-only yalesites-project PR always link to each other.
    - `References yalesites-org/YaleSites-Internal#NNN` at the end of every body (omit if no issue)
 
    **An ADR PR from step 4 is the exception.** YaleSites-Internal has no `develop` branch and nothing deploys from it, so that PR uses `--repo yalesites-org/YaleSites-Internal --base main`, the same `{issue number}: {issue title}` title, and a body of a TL;DR line, a link to the ADR file on the branch, and the `References` line. No multidev, Netlify, or testing-step links. It gets the same `--assignee` and reviewer as the product PR and the `needs review` label, and an unattended run opens it without pausing. Once it exists, link it from the issue with `gh issue comment`. The full shape is in the `yalesites` skill's `references/adr-conventions.md`.

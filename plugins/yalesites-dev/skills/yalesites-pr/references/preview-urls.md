@@ -13,14 +13,16 @@ errors" has nowhere to point — but the step that starts the job almost always 
 | Repo changed | Test it on | URL |
 |---|---|---|
 | `yalesites-project` | Pantheon multidev, built by the `Deploy to Pantheon` job | `https://pr-<N>-yalesites-platform.pantheonsite.io` |
-| `component-library-twig` | Netlify deploy preview of Storybook | `https://deploy-preview-<N>--dev-component-library-twig.netlify.app` |
+| `component-library-twig` | Netlify deploy preview of Storybook **and** the multidev of its same-named yalesites-project PR (always opened, see SKILL.md Step 3) | both URLs, each with its own PR number |
 | `atomic` | the multidev of its **cross-linked yalesites-project PR** | that PR's multidev URL |
 | `tokens` | usually nothing — see below | often no link to give |
 | a release candidate (any repo) | the RC multidev on each site in the release PR's `RELEASE_SITES` list; for docs screenshots, the yalesites website's own | `https://<rc>-yalesites-yale-edu.pantheonsite.io`, where `<rc>` is `v` plus the version digits with the dots removed (v2.26.0 gives `v2260`): the `RELEASE_BRANCH` name the release workflow pushes to Pantheon, which has to fit Pantheon's 11-character, no-dots multidev limit. Copy it from the release PR's "Environments ready for review" comment rather than deriving it |
 
 **Only yalesites-project and component-library-twig build a preview of their own.** Neither
 `atomic` nor `tokens` has a deploy workflow, so a change there is seen through a companion
-PR's environment.
+PR's environment. Every companion PR (component-library-twig included) gets a yalesites-project
+PR on the same branch name, a multidev-only one when it has no code, so it can be tested in
+Drupal too.
 
 **An atomic PR should be cross-linked to a yalesites-project PR, and that PR's multidev is
 the one to target.** This is not a special case to work around — Step 3 already detects the

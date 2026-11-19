@@ -69,3 +69,33 @@ When changes span multiple repos, add inside "Description of work":
 ```
 - Other work completed in: yalesites-org/REPO#NNN
 ```
+
+## Multidev-only PR
+
+For the yalesites-project PR that exists only so a companion PR (atomic, component-library-twig,
+tokens) gets a multidev. It has no code. Rules, all required:
+
+- **Title:** the usual `{issue number}: {issue title}` plus the suffix ` — For multidev only`
+  (`/merge-prs` closes PRs whose title matches `/multidev only/i` instead of merging them).
+  The H2 link text in the body matches the title.
+- **Label:** `don't merge`, applied at creation (`--label "don't merge"`). `/prove-my-prs`
+  and `/merge-prs` key off it.
+- **Draft**, same reviewer as the companion PR, and the real PR number in the multidev URL
+  (Step 7).
+
+```
+## [{issue number}: {issue title} — For multidev only](https://github.com/yalesites-org/YaleSites-Internal/issues/{NNN})
+
+**TL;DR:** Multidev only. This PR has no code change. It builds the matching {companion repo} branch into a multidev so the change can be tested in Drupal.
+
+### Description of work
+- No yalesites-project change. CI builds the same-named {companion repo} branch into this PR's multidev.
+- Other work completed in: yalesites-org/{companion repo}#{N}
+
+### Functional testing steps:
+- [ ] (The companion PR's steps, rewritten to run on `https://pr-<N>-yalesites-platform.pantheonsite.io`.)
+
+References yalesites-org/YaleSites-Internal#{NNN}
+
+Created with AI
+```
