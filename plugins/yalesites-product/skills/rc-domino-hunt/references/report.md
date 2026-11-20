@@ -28,7 +28,7 @@ Write it to `runs/<run>/report.md`. In attended mode, show it in chat too. Follo
 
 ## Suspicious
 
-<one line each: what, where, why not confirmed>
+<one line each: what, where, why not confirmed. A finding called pre-existing needs its live screenshot here; without one, list it as "new until proved otherwise".>
 
 ## Coverage
 
@@ -60,6 +60,7 @@ Order the Confirmed list by confidence, then blast radius. If there are more tha
 
 ## Rules
 
+- **Name the class, not just the instance.** For each finding, say which sibling sweep ran and what it found ("same leak on 3 of 46 block types"), or that it has not run yet.
 - **Coverage is part of the result.** A night with no findings and low coverage is a gap, not a pass. Say so.
 - **No GitHub.** Do not post the report or any finding anywhere. In attended mode, offer the `ticket` skill for each confirmed finding. Never create a ticket without the user's yes.
 - **Real-site screenshots stay local**, or go to private repos through `github-screenshots`. Never to a public repo.
@@ -74,3 +75,5 @@ Append one line per run to `~/.claude/yalesites/rc-domino-hunt/ledger.md`:
 ```
 
 After each release ships, for every hotfix in that release window, add whether the hunt was in a position to catch it (did a charter cover that surface?) and whether it did. The baseline from the lookback is 13 release-caused hotfixes in 12 months, about 3 per feature release (`hotfix-lookback.md`).
+
+Do the same for bugs human RC testers report after a hunt ran: was the surface covered, and if so, which check should have caught it? Add each miss to `hotfix-lookback.md`, "Found by RC testers after the hunt", so the next release's checks learn from it.

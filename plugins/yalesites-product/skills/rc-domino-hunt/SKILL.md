@@ -8,7 +8,7 @@ argument-hint: "[--drain] [--dry-run <release-branch>] [PR numbers] [--site <sit
 
 PR testing proves each change works where its developer aimed it. This skill looks everywhere else. It maps what the release candidate (RC) actually touched, works out what each PR's testing steps would **not** have caught, and then explores the RC multidevs, which are copies of real sites, until it finds the dominoes or runs out of budget.
 
-Why it exists: a lookback over Oct 2025 to Oct 2026 found 23 functional hotfixes. 13 were caused by a release, and this method would likely have caught 6 of them and maybe 4 more. The case list is in `references/hotfix-lookback.md`. Read it once per run: it is the best guide to where bugs really come from on this platform.
+Why it exists: a lookback over Oct 2025 to Oct 2026 found 23 functional hotfixes. 13 were caused by a release, and this method would likely have caught 6 of them and maybe 4 more. The case list is in `references/hotfix-lookback.md`, along with the bugs human testers found in the v2.33.0 RC after three hunt rounds missed them. Read it once per run: it is the best guide to where bugs really come from on this platform, and to the hunt's own blind spots.
 
 **Ground rules, in every mode:**
 
@@ -87,13 +87,15 @@ Mechanical, not judgment. See `references/impact-map.md`. The output is a list o
 
 See `references/gap-analysis.md`. For each PR, read its diff next to its testing steps and write down what a plausible unexpected breakage would look like that those steps would not catch. Every gap must be a concrete claim with a named oracle (what you would see if it is broken). Drop vague ones.
 
-Add the standing hypotheses that every RC gets (calendar filter and navigation combinations, new validation on old data, contrast on every section color). Then rank everything by blast radius × overlap × severity.
+Add the standing hypotheses that every RC gets (calendar filter and navigation combinations, new validation on old data, contrast on every section color, the visitor cache, options that do nothing or leak onto the page, Layout Builder re-renders, and widget patterns). Then rank everything by blast radius × overlap × severity.
 
 ## Step 4: Charters
 
 See `references/charters.md`. Each hypothesis becomes a charter: "Explore *surface* on *sites* to find *what*", with a budget. Run each charter in its own subagent (Agent tool), passing the charter file path and the paths to `references/rc-sites.md` and `references/charters.md`. Run at most **two at a time**: the RC multidevs are small Pantheon containers shared with the team, and Playwright sessions must not collide. Name sessions `-s=c<NN>`.
 
-Also run the standing checks once per site per run: log diff, old-data queries, and accessibility on changed surfaces. Every charter that looks at a page checks it on a phone too, in mobile WebKit (`references/charters.md`, "Phones").
+Also run the standing checks once per site per run: log diff, old-data queries, accessibility on changed surfaces, the visitor cache, Layout Builder AJAX parity, and widget patterns. Every charter that looks at a page checks it on a phone too, in mobile WebKit (`references/charters.md`, "Phones").
+
+Every confirmed or suspicious finding also starts a sibling sweep right away: the same setup on every other block type, placement, and value (`references/charters.md`, "Findings are classes"). A finding is a pattern until proved otherwise.
 
 When the ranked list is used up, the generators in `references/charters.md` make new charters. In attended mode, stop and ask whether to keep going. In `--drain`, keep going.
 
