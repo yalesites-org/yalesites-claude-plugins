@@ -67,8 +67,10 @@ gh auth status
 If the scope is missing, the user can add it themselves (this is an interactive browser flow, so it cannot be run unattended):
 
 ```bash
-gh auth refresh -h github.com -s project
+gh auth refresh -h github.com -s project,repo,read:org,workflow,gist
 ```
+
+`refresh` keeps the scopes the token already has, and listing the full set makes it safe to re-run. Only a new machine or a revoked token needs a fresh login, and then with the same scopes: `gh auth login -h github.com -s project,repo,read:org,workflow,gist`. Never suggest plain `gh auth login`: it resets the token to GitHub's default scopes and silently drops `project`.
 
 If `gh` is unavailable or unauthorized, **do not troubleshoot the user's setup mid-task**, and do not reach for labels. Finish the parts that don't need the board, then hand the user the exact field values to set by hand, per "No `gh`: hand the fields to the user" at the bottom of this file.
 
@@ -163,7 +165,7 @@ When `gh` is missing, unauthenticated, or lacks the `project` scope:
 
 1. Create or update the issue itself through whatever path works (the GitHub connector can create issues, set the milestone, assignees, and labels).
 2. Tell the user, in one short block, the exact values to set on the YaleSites Board, with the issue link. For example: `Status: Backlog, Priority: Medium, Risk: Low`.
-3. Mention `gh auth login` plus `gh auth refresh -h github.com -s project` as the durable fix, once. `/yalesites-product:onboard` walks them through it.
+3. Mention `gh auth refresh -h github.com -s project,repo,read:org,workflow,gist` as the durable fix, once (`gh auth login -h github.com -s project,repo,read:org,workflow,gist` only on a new machine or a revoked token, never plain `gh auth login`, which drops `project`). `/yalesites-product:onboard` walks them through it.
 4. Do not report the ticket as complete until the user confirms the fields are set, or says they will do it.
 
 ### Why there is no label fallback
