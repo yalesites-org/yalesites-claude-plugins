@@ -78,6 +78,19 @@ Append this to the charter file:
 
 Set `clean` only when "Not covered" is empty or trivial. Otherwise use `suspicious` or `blocked`, so the hypothesis stays open for a later run on another site.
 
+### Findings are classes
+
+One finding is usually one instance of a pattern. In v2.33.0 the hunt found "Padding Options" printed under a *reusable* listing (yalesites-org/YaleSites-Internal#2127) and stopped there. A tester then found the same text under an ordinary inline View block (yalesites-org/YaleSites-Internal#2312). The same visible-field config sat on 46 block types.
+
+So every `confirmed` or `suspicious` finding gets a sibling sweep charter, ranked just under standing hypotheses:
+
+- **Same cause, other surfaces.** Grep the config, template, or CSS that caused it (`config/sync`, atomic, CLT) and list every other block type, view, or form that has the same thing. Check each one.
+- **Both placements.** Inline and reusable.
+- **Set and unset.** The option at its default, empty, and at every other value. A field that is empty on old content often hides a bug that any edit shows.
+- **Same class of bug on other surfaces.** A cache bug on news listings means checking every other list built from content (filter options, calendars, menus). A dead option on one block means checking the same option on every block that has it.
+
+**"Pre-existing" needs proof.** Only call a finding pre-existing with a live screenshot of the same thing, or a code reference showing the cause shipped before this RC. Without that, report it as `new until proved otherwise`, so the board treats it as an RC bug and not a backlog item. New block types in the RC (for example the per-style listing blocks) cannot have pre-existing bugs.
+
 ## Standing checks
 
 These run once per RC site per run, besides the charters. They are cheap, and they find the bugs no page view shows.
@@ -125,6 +138,51 @@ async page => {
 
 If the selector matches nothing, the snippet falls back to the whole page. Record that, since a whole-page count is not comparable with a scoped one. Run the same check on live. Only violations that are new on the RC are findings. If the script tag is blocked, fall back to Editoria11y's results when logged in (see `yalesites-page-build` Step 6).
 
+axe does not know what a widget is meant to be. A row of `div`s styled as tabs has no rule to break, so axe passes it. Widgets get their own check, below.
+
+### Visitor cache
+
+Charters judge renders with a cache-busting query (`?cb=<n>`), which is right for comparing RC and live. But it hides what a real visitor gets: Pantheon's edge cache serves a saved copy for up to a day (`cache-control: max-age=86400`), and a page is only fresh if Drupal's cache tags purge it. In v2.33.0 every logged-out check was cache-busted, one charter even noted a stale copy after a Save and worked around it, and testers then found an events calendar whose Category filter was empty for visitors (yalesites-org/YaleSites-Internal#2307).
+
+**A stale copy is never noise. It is a finding.**
+
+On the reserved site, for every surface built from other content (listings, filter option lists, calendars, menus, breadcrumbs, counts, "related" blocks):
+
+1. Load the page logged out with **no** cache-busting query, twice, and record `x-cache`, `age`, and `cache-control`. The second load should be a `HIT`.
+2. Change what the surface is built from: add a taxonomy term, publish or unpublish an event or post, rename a term, add a menu link. Log it in `changes.md`.
+3. Wait about 60 seconds for the purge, then load the same URL logged out, again without busting, and record the headers.
+4. Load it once more with a cache-busting query. If the plain load and the busted load differ, the surface is missing a cache tag. Confirmed if it repeats after another 60 seconds.
+
+Also test the empty state: build the surface while it has nothing to show (a filter with no terms yet), let a logged-out load cache it, then add the content. That is exactly how yalesites-org/YaleSites-Internal#2307 happened.
+
+On shared RC sites, only step 1 is allowed (it is a read). Compare a plain logged-out load with a busted one on pages that show recent content, and report any difference as `suspicious`.
+
+### Layout Builder AJAX parity
+
+Layout Builder re-draws the whole layout over AJAX after each add, remove, move, or configure. That response can render blocks with a different theme or template than a full page load, so blocks nobody touched change. Testers found a View block's filter form turning into a floating card after a *different* block was removed (yalesites-org/YaleSites-Internal#2310).
+
+On the reserved site, on a page with several changed block types (listings with filters, calendars, and anything with JS behaviors):
+
+1. Load `/node/<nid>/layout` and snapshot every block: the class list of the block wrapper and its first two levels of children, plus the computed `display`, `position`, `box-shadow`, `background-color`, and bounding box of each.
+2. Do one action: add a block, remove a block, move a block, or configure and Update a block.
+3. Snapshot every block again, *except* the one acted on.
+4. Reload the page and snapshot a third time.
+
+Any block whose AJAX snapshot differs from its reload snapshot is a finding. Run all four actions, and repeat with two View blocks of different types on one page. Discard or save as the charter needs, and log it. Skip this on shared sites: it needs real edits.
+
+### Widget patterns
+
+For every widget in the impact map's `widgets` list (visitor pages and authoring screens alike), check it against its pattern in the WAI-ARIA Authoring Practices Guide (https://www.w3.org/WAI/ARIA/apg/patterns/). Read the Playwright accessibility snapshot, then drive it with the keyboard only:
+
+| Pattern | Must have |
+|---|---|
+| Tabs | `tablist`, `tab` with `aria-selected`, `tabpanel` linked by `aria-controls`. Arrow keys move between tabs, one tab stop for the bar. |
+| Switch or toggle | A name and Space to toggle, plus an exposed on/off state: a `switch` or `checkbox` role needs `aria-checked`, while a native `input[type="checkbox"]` uses its HTML `checked` state instead and is not a gap without `aria-checked`. |
+| Multi-select or listbox | A name, `aria-expanded` on the trigger, options hidden while closed, `aria-selected` on chosen options, a labeled remove button for each selection, labeled option groups. |
+| Dropdown, popover, or dialog | A **visible** way to close it, plus Escape and click outside. Focus returns to the trigger. While a popover is open, decide whether the rest of the page should still react. |
+
+Compare with live where the widget exists there. A gap that live shares is still reported, marked pre-existing with the live evidence, because a widget the RC newly puts in front of editors raises its weight. Testers found the Views block form's tabs and switches with no roles (yalesites-org/YaleSites-Internal#2323), a multi-select screen readers can't use (yalesites-org/YaleSites-Internal#2324), and no way to close it (yalesites-org/YaleSites-Internal#2313) after the hunt's axe passes came back clean.
+
 ### Fleet config scan
 
 Some bugs live in a stored setting on a site outside the RC list (yalesites-org/YaleSites-Internal#1735 was on gsa.yale.edu). When the RC adds validation to a setting, a read-only `config:get` across every site would find the sites that would fail it.
@@ -135,12 +193,19 @@ This touches about 299 production sites. **Attended mode only**, with the user's
 
 When the ranked list is used up, make new charters from these, in this order. Weight every value by real use from the portfolio crawl, so common setups come first.
 
-1. **Pairwise combinations over the changed blocks.** Factors: global theme, section color, layout region, and device (phone on WebKit, tablet at 768 in Chrome, desktop at 1280 in Chrome). Take the values from what real sites use: `global_theme` in `sites-index.csv`, and `data-component-theme` plus the width and variation attributes in each site's `raw/sites/<site>.json`. Don't guess values, and drop empty ones (`global_theme` is blank for some sites). Generate the rows with `scripts/pairwise.py` (2-way), then find a real RC page that matches each row. 2-way covers most configuration bugs but not all of them, so also run 3-way, but only for blocks the RC directly changed.
-2. **Content extremes.** Pages where the changed block has empty optional fields, a missing image, one item, the most items on any RC site, the longest title, or a long URL in a teaser (yalesites-org/YaleSites-Internal#1729). Find them with `SELECT`s, not by browsing.
-3. **Date boundaries** for anything that shows dates or events. Month ends, multi-day events, all-day events, recurring events, and the current month's last day (yalesites-org/YaleSites-Internal#1374, yalesites-org/YaleSites-Internal#1379).
-4. **Reusable vs. inline.** The same block type in existing placements of both kinds, found with a `SELECT` (on shared sites, never create one or submit a reusable block's form; see `rc-sites.md`) (yalesites-org/YaleSites-Internal#1381).
-5. **Neighbors.** The changed block directly above and below each other block type it appears next to on real pages, and nested in tabs or accordions where that is possible.
-6. **Phones.** Every changed surface on mobile WebKit (see "Phones" above), on the RC pages with the most items or the longest content. Safari-only bugs are real (yalesites-org/YaleSites-Internal#1730, an EXIF-rotated photo that broke a card in Safari).
-7. **Another site.** A `clean` hypothesis, re-run on an RC site it has not been run on. This is the lowest priority: it never mattered in the hotfix lookback.
+1. **Option effect.** For every block the RC changed, and every block in the impact map's `allowlist_widenings`, on the reserved site: place it (in each newly allowed region too), then set each editor option to each non-default value, one at a time, and save. Render the page logged out after each, and check two oracles:
+   - **The page changed.** Compare the block's rendered HTML and screenshot with the previous value. No visible difference means a dead control: an option editors can pick that does nothing (yalesites-org/YaleSites-Internal#2314). Run it on an uncolored section and on each section color, since a section color can override the option.
+   - **Nothing leaked.** Collect every field label and every option label from the block's form, then search the block's rendered text for each one. Any match is a leak of editor-only text (yalesites-org/YaleSites-Internal#2312).
+   Use the pairwise script for blocks with many options. On shared sites this generator is `blocked: needs saves`.
+2. **Pairwise combinations over the changed blocks.** Factors: global theme, section color, layout region, and device (phone on WebKit, tablet at 768 in Chrome, desktop at 1280 in Chrome). Take the values from what real sites use: `global_theme` in `sites-index.csv`, and `data-component-theme` plus the width and variation attributes in each site's `raw/sites/<site>.json`. Don't guess values, and drop empty ones (`global_theme` is blank for some sites). Generate the rows with `scripts/pairwise.py` (2-way), then find a real RC page that matches each row. 2-way covers most configuration bugs but not all of them, so also run 3-way, but only for blocks the RC directly changed.
+3. **Content extremes.** Pages where the changed block has empty optional fields, a missing image, one item, the most items on any RC site, the longest title, or a long URL in a teaser (yalesites-org/YaleSites-Internal#1729). Find them with `SELECT`s, not by browsing.
+4. **Date boundaries** for anything that shows dates or events. Month ends, multi-day events, all-day events, recurring events, and the current month's last day (yalesites-org/YaleSites-Internal#1374, yalesites-org/YaleSites-Internal#1379).
+5. **Reusable vs. inline.** The same block type in existing placements of both kinds, found with a `SELECT` (on shared sites, never create one or submit a reusable block's form; see `rc-sites.md`) (yalesites-org/YaleSites-Internal#1381).
+6. **Neighbors.** The changed block directly above and below each other block type it appears next to on real pages, and nested in tabs or accordions where that is possible.
+7. **Phones.** Every changed surface on mobile WebKit (see "Phones" above), on the RC pages with the most items or the longest content. Safari-only bugs are real (yalesites-org/YaleSites-Internal#1730, an EXIF-rotated photo that broke a card in Safari).
+8. **Editor sessions.** Act out a real editor on the reserved site, using the archetypes in the `ux-research` skill, at human pace through the normal screens. Two things PR steps never do:
+   - **Realistic content.** Clone existing posts and events, back-date some, future-date others, and leave clones with the dates they came with. Whenever something the editor made does not show up where they expected, check whether the screen explains why. Silent filtering is a finding even when the behavior is intended (yalesites-org/YaleSites-Internal#2311).
+   - **Change your mind.** After building a block, reopen it and try to change every choice made while creating it: wizard steps, display style, content type, layout. A choice that can only be undone by deleting and rebuilding is a finding (yalesites-org/YaleSites-Internal#2309).
+9. **Another site.** A `clean` hypothesis, re-run on an RC site it has not been run on. This is the lowest priority: it never mattered in the hotfix lookback.
 
 A generated charter gets a hypothesis entry of kind `generated` and goes through the same rules: concrete oracle, baseline, re-run, debrief.

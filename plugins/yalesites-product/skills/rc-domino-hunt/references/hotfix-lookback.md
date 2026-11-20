@@ -28,6 +28,27 @@ Where real release bugs came from, and which part of this skill would catch each
 - **Already there before a release:** recurring-event overflow around month ends (yalesites-org/YaleSites-Internal#1379), and reusable Grand Hero failing validation (yalesites-org/YaleSites-Internal#1381). Date boundary and reusable-vs-inline generators.
 - **External:** Campus Groups fatal from a floating migrate_plus (yalesites-org/YaleSites-Internal#1394), Twig 3.30 500s (yalesites-org/YaleSites-Internal#1805), gin_lb accordion white screen (yalesites-org/YaleSites-Internal#1950), and CAS username case from externalauth (yalesites-org/YaleSites-Internal#1775). Vendor diff and log diff.
 
+## Found by RC testers after the hunt
+
+Bugs human testers found in an RC after the hunt had already run on the same build. These measure the hunt's blind spots, not where bugs come from, so each row says why the hunt missed it and which check now covers it.
+
+### v2.33.0 (Nov 2026)
+
+Three rounds (about 300 charters, Nov 3 to 16) on the reserved registrar copy, all on SHA 5383ca0. Testers reported these on Nov 19 from the ONHA and Usability RC sites, on the same SHA.
+
+| Bug | Ticket | Why the hunt missed it | What catches it now |
+|---|---|---|---|
+| Events calendar Category filter empty and grayed out for logged-out visitors | yalesites-org/YaleSites-Internal#2307 | Every logged-out check was cache-busted. A charter saw a stale copy after a Save and worked around it. The same class was found for news listings (yalesites-org/YaleSites-Internal#2282) but not swept to other lists. | Visitor cache standing check, sibling sweep |
+| "Padding Options" and its value printed under a View block | yalesites-org/YaleSites-Internal#2312 | Found on reusable listings only (yalesites-org/YaleSites-Internal#2127), called "likely pre-existing" with no live proof, and backlogged. The inline copy it compared had padding unset. | Option effect generator (leak oracle), sibling sweep, pre-existing needs proof |
+| View block filter form becomes a floating card after another block is removed in Layout Builder | yalesites-org/YaleSites-Internal#2310 | No charter compared untouched blocks after an AJAX add or remove with a reload. | Layout Builder AJAX parity standing check |
+| Text Callout Theme does nothing in a colored section, but the form still offers it | yalesites-org/YaleSites-Internal#2314 | Contrast checks passed, because the fallback keeps it readable. Nothing asked whether the option changed anything. The block is newly allowed in narrower sections. | Option effect generator (dead control oracle), allowlist widenings in the impact map |
+| Multi-select filter has no visible way to close | yalesites-org/YaleSites-Internal#2313 | Chosen keyboard gaps were logged as pre-existing (yalesites-org/YaleSites-Internal#2130). Dismissal was never a check. | Widget pattern standing check |
+| Views block form tabs, switches, and multi-select have no ARIA roles or keyboard support | yalesites-org/YaleSites-Internal#2323, yalesites-org/YaleSites-Internal#2324 | axe ran clean: it cannot tell styled `div`s are meant to be tabs. Authoring widgets were never checked against their patterns. | Widget pattern standing check, widgets in the impact map |
+| Future-dated posts hidden from lists, with no explanation | yalesites-org/YaleSites-Internal#2311 | Intended behavior with a help-text gap. Editor sessions only made content dated today. | Editor sessions generator (realistic content) |
+| No way to change a View block's display style after building it | yalesites-org/YaleSites-Internal#2309 | Product feedback, but a "reopen and change it" step would surface it. | Editor sessions generator (change your mind) |
+
+Out of scope: the Views block form's tab order (yalesites-org/YaleSites-Internal#2308) is a product preference. Human testers keep that.
+
 ## Patterns
 
 1. **The events calendar is our most-hotfixed surface.** Three hotfixes trace back to one feature PR and its follow-ups. Each was a filter or navigation combination the steps skipped.
@@ -36,3 +57,4 @@ Where real release bugs came from, and which part of this skill would catch each
 4. **Contrib and patch bumps in Layout Builder and Views AJAX** (yalesites-org/YaleSites-Internal#1791, yalesites-org/YaleSites-Internal#1950, yalesites-org/YaleSites-Internal#1394). No `composer.lock` means the repo diff cannot see them.
 5. **Silent failures** that show only in logs or cron (yalesites-org/YaleSites-Internal#1824, yalesites-org/YaleSites-Internal#1394).
 6. **Hotfixes skip the RC**, and one hotfix caused the next.
+7. **The hunt's own blind spots (v2.33.0 testers).** Cache-busted visitor checks, no "did this option do anything" oracle, no re-check of untouched blocks after Layout Builder AJAX, axe trusted for widget semantics, and one-off findings never swept for siblings.

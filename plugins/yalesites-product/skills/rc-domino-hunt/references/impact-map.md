@@ -51,12 +51,17 @@ Trace outward, one hop at a time, and record each hop, so the report can say *wh
 | a yalesites-project custom module or config | the block types, forms, routes, views, or field storage it touches. Read the code. |
 | an update hook (`hook_update_N`, `hook_post_update_NAME`, `hook_deploy_NAME`) | the entity types, fields, and config it loads or writes |
 | a block type, view, or content type | the real pages that use it (below) |
+| a Layout Builder allowlist or restriction (which blocks a section or region accepts) | every option of that block, in each newly allowed region. Record it under `allowlist_widenings`, and the option effect generator covers it. A block that moves into a narrower or colored region meets option combinations nobody designed for (yalesites-org/YaleSites-Internal#2314). |
 
 **Wide triggers.** A change to a global token, theme-wide CSS (`base`, `global`, theme or color variables), or a Twig include used by more than about 15 components marks every block as touched. Do not try to trace that fan-out. Flag it as wide, and let Phase 2 sample it with pairwise combinations (see `charters.md`).
 
 **Fan-out cap.** If any single trace reaches more than about 15 block types, stop tracing it and treat it as a wide trigger. Over-prediction is a known failure of this kind of analysis: one tool predicted 10,000+ tests for a single file.
 
 **What the trace cannot see:** dynamic includes (template names built from variables), JS behaviors attached by selector, CSS that matches by attribute, and config that only applies on some sites. Note each one as `untraced` with the reason, and Phase 2 covers it by judgment.
+
+## 4b. Widgets
+
+List every interactive widget the RC adds or changes, on visitor pages **and** on authoring screens (Layout Builder dialogs, block forms, wizards): tab bars, toggles and switches, multi-selects (Chosen), dropdowns and popovers, dialogs, accordions. Find them in the diff: new JS behaviors, new `role` or `aria-` attributes, new Form API `#type` values, and new libraries. Write each to `widgets` with the screen it appears on and the ARIA Authoring Practices pattern it should follow. These feed the widget pattern standing check in `charters.md`.
 
 ## 5. Real pages and blast radius
 
@@ -101,6 +106,8 @@ Every overlap becomes its own hypothesis in Phase 2, ranked high. PRs that each 
   }],
   "wide_triggers": [{"file": "...", "pr": "...", "why": "global token"}],
   "untraced": [{"file": "...", "pr": "...", "why": "dynamic include"}],
-  "overlaps": [{"surface": "block:image", "prs": ["...", "..."]}]
+  "overlaps": [{"surface": "block:image", "prs": ["...", "..."]}],
+  "allowlist_widenings": [{"block": "wrapped_text_callout", "new_regions": ["50/50", "33/33/33"], "pr": "..."}],
+  "widgets": [{"screen": "Views block form (Layout Builder)", "widget": "tab bar", "pattern": "tabs", "pr": "..."}]
 }
 ```

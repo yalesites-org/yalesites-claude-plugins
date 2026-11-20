@@ -51,6 +51,11 @@ These are the gap types that caused real hotfixes. Check every PR for each one:
 | **Data shape** | Steps use simple test data. Real data has many roles per user, multi-day events, long URLs. | Dashboard listing editors once per role: yalesites-org/YaleSites-Internal#1732 |
 | **Logs** | Steps look at the page. The bug is only a PHP warning in the log. | yalesites-org/YaleSites-Internal#1824 |
 | **Scale** | Steps use a small site. Update hooks time out on big ones. | yalesites-org/yalesites-project#1168 |
+| **Visitor cache** | Steps check logged in, or logged out on a fresh page. The bug is a stale copy the edge cache keeps serving after content changes. | Empty Category filter for visitors: yalesites-org/YaleSites-Internal#2307. News lag: yalesites-org/YaleSites-Internal#2282 |
+| **Dead or leaking options** | Steps set one option and look for the expected change. Nobody checks that every value changes something, or that the setting's label stays off the page. | Text Callout Theme does nothing in colored sections: yalesites-org/YaleSites-Internal#2314. "Padding Options" printed for visitors: yalesites-org/YaleSites-Internal#2312 |
+| **Layout Builder re-renders** | Steps check the block being edited. The bug is in another block that the same AJAX response re-draws. | Filter form turns into a floating card after another block is removed: yalesites-org/YaleSites-Internal#2310 |
+| **Widget semantics** | Steps use a mouse. A new widget (tabs, switches, multi-selects) has no roles, keyboard support, or visible way to close, and axe cannot see that. | Views block form tabs and switches, multi-select with no close: yalesites-org/YaleSites-Internal#2313, yalesites-org/YaleSites-Internal#2323, yalesites-org/YaleSites-Internal#2324 |
+| **Editor expectations** | Steps use content dated today, built once. Real editors clone, schedule, back-date, and change their mind. | Future-dated posts hidden with no explanation: yalesites-org/YaleSites-Internal#2311. No way to change display style after building: yalesites-org/YaleSites-Internal#2309 |
 
 ## 4. Standing hypotheses
 
@@ -61,6 +66,10 @@ Add these on every RC, whether or not a PR points at them. Mark them `standing` 
 3. **Section color contrast.** Every block the RC touched, on every section color, checked with axe for contrast.
 4. **Log diff.** New warnings or errors on each RC site compared with live (see `charters.md`).
 5. **Reusable vs. inline.** Every block type the RC touched, placed both ways (yalesites-org/YaleSites-Internal#1381).
+6. **Visitor cache.** Every surface built from other content (listings, filter option lists, calendars, menus, breadcrumbs, counts) shows a change to a logged-out visitor without a cache clear (see "Visitor cache" in `charters.md`). yalesites-org/YaleSites-Internal#2307, yalesites-org/YaleSites-Internal#2282.
+7. **Option effect.** Every option of every block the RC changed or newly allows somewhere changes what visitors see, and never prints its own label or value (see the option effect generator in `charters.md`). yalesites-org/YaleSites-Internal#2312, yalesites-org/YaleSites-Internal#2314.
+8. **Layout Builder AJAX parity.** After adding, removing, moving, or configuring a block, every other block on the page looks the same as after a reload (see `charters.md`). yalesites-org/YaleSites-Internal#2310.
+9. **Widget patterns.** Every new or changed interactive widget, authoring forms included, matches its ARIA Authoring Practices pattern (see `charters.md`).
 
 ## 5. Overlaps and wide triggers
 
