@@ -181,7 +181,7 @@ For every widget in the impact map's `widgets` list (visitor pages and authoring
 | Multi-select or listbox | A name, `aria-expanded` on the trigger, options hidden while closed, `aria-selected` on chosen options, a labeled remove button for each selection, labeled option groups. |
 | Dropdown, popover, or dialog | A **visible** way to close it, plus Escape and click outside. Focus returns to the trigger. While a popover is open, decide whether the rest of the page should still react. |
 
-Compare with live where the widget exists there. A gap that live shares is still reported, marked pre-existing with the live evidence, because a widget the RC newly puts in front of editors raises its weight. Testers found the Views block form's tabs and switches with no roles and the multi-select with no close (yalesites-org/YaleSites-Internal#2313) after the hunt's axe passes came back clean.
+Compare with live where the widget exists there. A gap that live shares is still reported, marked pre-existing with the live evidence, because a widget the RC newly puts in front of editors raises its weight. Testers found the Views block form's tabs and switches with no roles (yalesites-org/YaleSites-Internal#2323), a multi-select screen readers can't use (yalesites-org/YaleSites-Internal#2324), and no way to close it (yalesites-org/YaleSites-Internal#2313) after the hunt's axe passes came back clean.
 
 ### Fleet config scan
 
