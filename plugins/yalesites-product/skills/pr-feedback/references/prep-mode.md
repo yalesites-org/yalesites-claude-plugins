@@ -200,8 +200,14 @@ and save everything, heartbeat after every U-step. Also:
 
 For a unit with nothing to drive (`component-library-twig` Storybook, `atomic`, `tokens`, or a
 failed preflight), the
-packet still gets built in Step P4, from the brief alone, and the plan in `plan.md` is the
-hand-off walkthrough for the review session.
+packet still gets built in Step P4, and the plan in `plan.md` is the hand-off walkthrough for
+the review session. Nothing to drive is not nothing to screenshot: every visual question still
+needs a picture (`review-board.md`, "Every visual question gets a picture"). Open the Storybook
+deploy preview story in Playwright (for `atomic` and `tokens`, the sibling preview) and
+screenshot it, beside the published story on `main` in a `compare` block when the question is
+about a change. If the preview is down, use the published story, the sibling multidev, or the
+PR's own screenshots, and say which in the caption. The packet check fails a visual question
+with no picture.
 
 ## Step P4: Build the packet
 
@@ -235,7 +241,7 @@ Follow `review-board.md` Step R1, with two differences:
 - **Write `units` into `packet.json` for every PR in the unit** (`review-board.md`, "The lead-in:
   `units`"), a unit with nothing to drive included. The reviewer opens the packet days later with
   no brief in front of them, so the lead-in is their only summary of the ticket and the PR.
-- **Run the ELI5 check on `packet.json` before marking the unit ready**
+- **Run the packet check on `packet.json` before marking the unit ready**
   (`python3 <skill-dir>/scripts/review-board/check_packet.py <packetDir>/packet.json`, see
   `review-board.md`, "Writing the questions"). Nobody is there to notice a wall of text, so fix
   what it prints and run it again until it passes.

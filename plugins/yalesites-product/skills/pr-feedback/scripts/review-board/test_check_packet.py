@@ -15,6 +15,7 @@ GOOD_Q = {
     "gist": "The last color swatch is cut off at the edge of the pop-up. This PR did not cause it. Fix it now or later?",
     "ask": "Ticket the clipping, or fix it in this PR?",
     "brief": ["The last swatch is cut off.", "It shows on dev too."],
+    "context": [{"type": "image", "src": "01-swatch.png", "label": "Swatches", "caption": "Gray 100"}],
     "options": [
         {"value": "followup", "label": "Follow-up ticket", "detail": "Approve as-is and open a design ticket."},
         {"value": "fix", "label": "Fix it here", "detail": "Widens a small bug fix."},
@@ -83,6 +84,19 @@ class CheckPacket(unittest.TestCase):
     def test_ask_may_end_in_markdown_or_quotes(self):
         for ask in ("Keep the **new padding?**", 'Keep the label "Read more?"', "Keep it (for now?)"):
             self.assertFalse(any("not a question" in p for p in check_packet(packet(ask=ask))), ask)
+
+    def test_visual_question_needs_a_picture(self):
+        for context in ([], [{"type": "text", "label": "AC", "body": "x"}], [{"type": "video", "src": "a.mp4"}],
+                        [{"type": "image", "src": ""}], [{"type": "compare", "images": []}]):
+            problems = check_packet(packet(context=context))
+            self.assertTrue(any("no image or compare" in p for p in problems), context)
+
+    def test_compare_counts_as_a_picture(self):
+        ctx = [{"type": "compare", "label": "Published vs Preview", "images": [{"src": "a.png"}, {"src": "b.png"}]}]
+        self.assertEqual(check_packet(packet(context=ctx)), [])
+
+    def test_process_question_needs_no_picture(self):
+        self.assertEqual(check_packet(packet(context=[], process=True)), [])
 
 
 class Main(unittest.TestCase):

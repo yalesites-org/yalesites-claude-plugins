@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""The ELI5 check for a review board packet.
+"""The ELI5 and picture check for a review board packet.
 
 The reviewer reads many boards a day, arriving cold each time. Every question has
 to work as one to three plain sentences and one straight question, with the detail
@@ -13,6 +13,11 @@ arguments and 3 when a file cannot be read or is not valid JSON, so a broken pac
 is not mistaken for one that only needs its wording fixed. It checks shape and
 length, not judgment: a packet can pass and still be unclear, so read it once as
 someone who has never seen the PR.
+
+It also fails any question with no `image` or `compare` block, unless the question
+is marked `"process": true` (which release, who owns a follow-up). A board question
+about something a person can see always carries a picture ("Every visual question
+gets a picture" in `references/review-board.md`).
 """
 
 import json
@@ -58,6 +63,16 @@ def sentences(text):
     return len([s for s in re.split(r"(?<=[.?!])\s+", text) if s])
 
 
+def has_picture(q):
+    """True when a question carries at least one screenshot the reviewer can see."""
+    for ctx in q.get("context") or []:
+        if ctx.get("type") == "image" and (ctx.get("src") or "").strip():
+            return True
+        if ctx.get("type") == "compare" and any((i.get("src") or "").strip() for i in ctx.get("images") or []):
+            return True
+    return False
+
+
 def check_question(q, n):
     where = f"question {n} ({q.get('id') or q.get('title') or 'no id'})"
     out = []
@@ -90,6 +105,13 @@ def check_question(q, n):
     for b in brief:
         if words(b) > BRIEF_WORDS:
             out.append(f"{where}: a brief bullet is {words(b)} words, the limit is {BRIEF_WORDS}: {b[:60]!r}")
+    # Every question about something a person can see gets a picture. Only process
+    # questions (which release, who owns a follow-up) opt out, with "process": true.
+    if not q.get("process") and not has_picture(q):
+        out.append(
+            f"{where}: no image or compare block. Screenshot what it is about (for a Storybook"
+            " question, the deploy preview story), or mark a pure process question \"process\": true."
+        )
     real = [o for o in q.get("options") or [] if o.get("value") != "defer"]
     if not 2 <= len(real) <= 4:
         out.append(f"{where}: {len(real)} options besides Decide later; give two to four.")
@@ -145,7 +167,7 @@ def main(argv):
             print(f"{path}: {p}")
         bad += len(problems)
     if not bad:
-        print("ELI5 check passed.")
+        print("Packet check passed.")
     return 1 if bad else 0
 
 
