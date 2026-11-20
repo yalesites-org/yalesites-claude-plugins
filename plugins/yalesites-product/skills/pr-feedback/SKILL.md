@@ -351,6 +351,22 @@ run the browser pass as soon as the cause is fixed: a skipped run is a gap in th
 a different kind of review. Write the hand-off plan for someone reading it on a second monitor
 with the PR open.
 
+**Hand-off never means no pictures.** A hand-off covers the steps a human has to do (an
+editor's view, Layout Builder, a role), not the screenshots. Every board question about
+something a person can see (layout, size, spacing, wording, color, a message, a Storybook
+story) carries at least one `image` or `compare` block, and that holds in prep runs and live
+runs alike. So for `component-library-twig`, and for `atomic` or `tokens` through the sibling
+preview, open the Storybook deploy preview story in Playwright and screenshot it, even when
+the rest of the walkthrough stays hand-off. Where the question compares two states (current
+against this PR, two widths, two variants), screenshot both: the published Storybook story on
+`main` as `Published:` and the deploy preview as `Preview:`, in one `compare` block. When the
+preview is down or the story is missing, screenshot the closest thing that shows the problem
+(the published story, the sibling multidev, the PR's own screenshots) and say so in the
+caption; never leave a visual question bare. Only process questions (which release it ships
+in, who owns a follow-up) are exempt, and they say so with `"process": true` in the packet
+(`references/review-board.md`, "Every visual question gets a picture"). The packet check
+fails any other question with no picture.
+
 ## Step 3b: Get the user's calls and their own feedback
 
 Two parts, and neither is optional.

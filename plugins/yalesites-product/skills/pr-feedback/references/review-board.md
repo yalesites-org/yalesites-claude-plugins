@@ -210,6 +210,20 @@ Context blocks, any number per question, shown in order:
 | `video` | `src`, `caption`, `label`, `moments[]`, optional `poster`, optional `url` | One clip from drive-it ("Clips: when a still is not enough"). Behavior over time: a dialog, focus order, an AJAX rebuild, a flicker |
 | `text` | `label`, `body` (light markdown: `###`, `-` lists, `**bold**`, `` `code` ``, links), `highlight[]`, optional `url` | Ticket acceptance criteria, the PR description, the brief's evidence for the call |
 
+**Every visual question gets a picture.** A question about something a person can see
+(layout, size, spacing, wording, color, a message, a Storybook story) carries at least one
+`image` or `compare` block. A `video` or `text` block alone does not count. This holds on
+every board, prepped or live, and for every repo: a `component-library-twig`, `atomic`, or
+`tokens` question whose walkthrough is hand-off still gets the Storybook deploy preview story
+opened in Playwright and screenshotted, with the published story on `main` beside it in a
+`compare` block when the question is about a change (`SKILL.md` Step 3, "Hand-off never means
+no pictures"). If the preview cannot be reached, use the closest thing that shows the problem
+(the published story, the sibling multidev, the PR's own screenshots) and say where it came
+from in the caption. Only process questions are exempt: which release something ships in, who
+owns a follow-up, whether to ticket it now or later with nothing on screen to judge. Mark those
+`"process": true` on the question. `check_packet.py` fails any question without that flag and
+without a picture, so a board with no pictures never reaches the reviewer.
+
 **Link every screenshot and clip to the live page it shows.** A block-level `url` puts one
 "Open ↗" link on the block; on a `compare` block, give each image its own `url` instead, so each
 side opens its own environment (the same story on the published Storybook and on the deploy
@@ -332,7 +346,8 @@ longer folds under it. Concretely:
 
 Run the check on every packet before the board opens, and fix what it prints. It exits 1 on a
 missing or long gist, code in the gist, an ask that is not one short question, a brief with
-more than four bullets, options with no cost, and a unit with no `ask` (or no `change`, when the
+more than four bullets, options with no cost, a question with no `image` or `compare` block
+that is not marked `"process": true`, and a unit with no `ask` (or no `change`, when the
 unit has a `pr`). A packet with units and no questions passes: a unit whose brief held nothing
 still gets its ruling row. It exits 3 when the file cannot be read or is not valid JSON, which
 means the packet itself is broken, not its wording:
