@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.18.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.17.0...yalesites-product-v0.18.0) (2026-11-20)
+
+
+### Features
+
+* **design-pass:** add a first design pass skill, and ask for block regions in the ticket skill ([#99](https://github.com/yalesites-org/yalesites-claude-plugins/issues/99)) ([61f42fc](https://github.com/yalesites-org/yalesites-claude-plugins/commit/61f42fc8e6aeac427860ec36dd044de5d4e2a43f))
+* **design-pass:** add block picker icon and section color contrast check ([9ae35a3](https://github.com/yalesites-org/yalesites-claude-plugins/commit/9ae35a3cc832ee7522414672597f51ec60fc26c9))
+* **design-pass:** add block picker icon and section color contrast check ([c4eff52](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c4eff52aec48bcdf7ee5a791706d0f7948e791d0))
+* **feature-planning:** add a planning session that ends in a decision record ([#89](https://github.com/yalesites-org/yalesites-claude-plugins/issues/89)) ([1c4b68b](https://github.com/yalesites-org/yalesites-claude-plugins/commit/1c4b68b574afc3a0c9704914bfdc7704a8a31f2e))
+* **page-build:** reuse a saved cas login between builds ([#96](https://github.com/yalesites-org/yalesites-claude-plugins/issues/96)) ([4554ab5](https://github.com/yalesites-org/yalesites-claude-plugins/commit/4554ab53406de055e57f026440990fe402592c4a))
+* **pr-feedback:** add an ELI5 check for review board packets ([#104](https://github.com/yalesites-org/yalesites-claude-plugins/issues/104)) ([cd1d61b](https://github.com/yalesites-org/yalesites-claude-plugins/commit/cd1d61b4c554693537e92702bdb986412f158901))
+* **pr-feedback:** drive yale-ui-cl PRs on their Storybook ([#85](https://github.com/yalesites-org/yalesites-claude-plugins/issues/85)) ([d6f3de4](https://github.com/yalesites-org/yalesites-claude-plugins/commit/d6f3de4e2ad9ac25e736a4399bd361f80574faae))
+* **pr-feedback:** plain-words gist, titles, no auto-advance, optional rulings ([#97](https://github.com/yalesites-org/yalesites-claude-plugins/issues/97)) ([6429552](https://github.com/yalesites-org/yalesites-claude-plugins/commit/6429552f858fa146542e2412a58c5e1420283191))
+* **pr-feedback:** seal guesses and show blind questions on the review board ([260f368](https://github.com/yalesites-org/yalesites-claude-plugins/commit/260f368dbc40b5432cb8790911c3e815bffe1068))
+* **pr-feedback:** seal guesses and show blind questions on the review board ([41dde03](https://github.com/yalesites-org/yalesites-claude-plugins/commit/41dde033a033ebd8e6822b157692b5cc78473498))
+* **pr-feedback:** use review board answers a reviewer already gave in a dashboard ([#105](https://github.com/yalesites-org/yalesites-claude-plugins/issues/105)) ([9a6d1bf](https://github.com/yalesites-org/yalesites-claude-plugins/commit/9a6d1bfbabcc85252e249c08e99d66171f765b04))
+* **rc-domino-hunt:** allow read and write testing on a reserved hunt site ([#91](https://github.com/yalesites-org/yalesites-claude-plugins/issues/91)) ([49ef73f](https://github.com/yalesites-org/yalesites-claude-plugins/commit/49ef73fbcc28916b7c3410a2ad32ec69b8a795c1))
+* **router:** flag developers under their To Do floor and gate new embed providers ([#90](https://github.com/yalesites-org/yalesites-claude-plugins/issues/90)) ([65d4458](https://github.com/yalesites-org/yalesites-claude-plugins/commit/65d44580ee54039a0bc4aebce0678483131ddc7c))
+* **ticket,router:** make visreg site pages wait for the release ([#106](https://github.com/yalesites-org/yalesites-claude-plugins/issues/106)) ([c672aa2](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c672aa27f5692bb50ac47dfd435f4fc16b24646b))
+* **yalesites-page-build:** place approved screenshots on staged drafts ([#94](https://github.com/yalesites-org/yalesites-claude-plugins/issues/94)) ([40d6162](https://github.com/yalesites-org/yalesites-claude-plugins/commit/40d61623fe9720e1c8d9c4c3b6021c1349a19c9b))
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([c76aa14](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c76aa14fd886089b930721351071ee204e33dbc0))
+* **yalesites-pr:** flag missing PR template headings in pr-body check ([af15aae](https://github.com/yalesites-org/yalesites-claude-plugins/commit/af15aaed25a69c1012328fd8b7eb5efab8fad188)), closes [#86](https://github.com/yalesites-org/yalesites-claude-plugins/issues/86)
+* **yalesites-product:** catch tickets left stale when a ticket they depend on closes ([#88](https://github.com/yalesites-org/yalesites-claude-plugins/issues/88)) ([97bdc37](https://github.com/yalesites-org/yalesites-claude-plugins/commit/97bdc375248b17905db3dc0f5d20b2ae59054733))
+
+
+### Bug Fixes
+
+* **design-pass:** point block picker wiring at the profile's config/sync ([a11df3d](https://github.com/yalesites-org/yalesites-claude-plugins/commit/a11df3d48ef7a4c36cc85a8f5ed6a08d4de199c5))
+* **pr-feedback:** group batch questions whose pr is a bare ref string ([#95](https://github.com/yalesites-org/yalesites-claude-plugins/issues/95)) ([210f2b4](https://github.com/yalesites-org/yalesites-claude-plugins/commit/210f2b47d49b5f51b59afe730b0f201ed3f1d9a6))
+* **pr-feedback:** keep "not recommended" intact when hiding our pick ([6ca649f](https://github.com/yalesites-org/yalesites-claude-plugins/commit/6ca649fb3ce0717c3e479c5e4068f07440343342))
+* **pr-feedback:** let a recommended option win over a guess when sealing ([a0764d2](https://github.com/yalesites-org/yalesites-claude-plugins/commit/a0764d2c206509882ea5f36bbdda04c95741345e))
+* **pr-feedback:** merge main into review-board calibration ([a0a2382](https://github.com/yalesites-org/yalesites-claude-plugins/commit/a0a23824cc918efb720619f3767c9e96eade3549))
+* **pr-feedback:** never pre-fill a hidden guess; blind follows the seal ([c626122](https://github.com/yalesites-org/yalesites-claude-plugins/commit/c62612297804f701e6eaff57c6c5a33922d197b6))
+* **pr-feedback:** redraw the reveal after every pick ([5275ddb](https://github.com/yalesites-org/yalesites-claude-plugins/commit/5275ddb8e72003a2e0958612a5b9b0245faba478))
+* **pr-feedback:** seal with the packet-level pr when a question has none ([8a0af4c](https://github.com/yalesites-org/yalesites-claude-plugins/commit/8a0af4c8950583cdaff8d73c6245ded2316848da))
+* **skills:** give one all-scopes gh auth fix instead of plain login ([#103](https://github.com/yalesites-org/yalesites-claude-plugins/issues/103)) ([85c5ac5](https://github.com/yalesites-org/yalesites-claude-plugins/commit/85c5ac5ef6bad8447cf3cd19f4dc161b60359f87))
+
 ## [0.17.0](https://github.com/yalesites-org/yalesites-claude-plugins/compare/yalesites-product-v0.16.0...yalesites-product-v0.17.0) (2026-10-29)
 
 
