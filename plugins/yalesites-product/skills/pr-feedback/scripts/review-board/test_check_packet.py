@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the ELI5 packet check."""
+"""Tests for the review board packet check (ELI5 fields and visual pictures)."""
 
 import contextlib
 import io

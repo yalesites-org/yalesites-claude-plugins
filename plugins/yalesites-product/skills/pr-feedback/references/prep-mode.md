@@ -185,7 +185,10 @@ and save everything, heartbeat after every U-step. Also:
 - **No prompts for anything.** A missing `YALESITES_BUILD_TOKEN`, a failed `npm ci`, or a
   Storybook that does not build fails the unit with that check named
   (`prep_status.py fail ... --reason "no YALESITES_BUILD_TOKEN for npm ci"`). The packet is still
-  built from the brief alone, as for any unit with nothing to drive.
+  built, as for any unit with nothing to drive, and every visual question still needs a picture
+  (`review-board.md`, "Every visual question gets a picture"): with no local Storybook and no
+  deployed preview, screenshot the published story on `main` or use the PR's own screenshots,
+  and say which in the caption.
 - **The Storybook server never outlives the unit.** Stop it and remove the worktree (Step U3)
   before `ready` or `fail`, including when the unit stops early. A heartbeat that exits 1 also
   stops the server and removes this run's worktree: unlike multidev content, nothing there is
