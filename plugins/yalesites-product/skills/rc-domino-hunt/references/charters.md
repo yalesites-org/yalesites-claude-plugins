@@ -177,7 +177,7 @@ For every widget in the impact map's `widgets` list (visitor pages and authoring
 | Pattern | Must have |
 |---|---|
 | Tabs | `tablist`, `tab` with `aria-selected`, `tabpanel` linked by `aria-controls`. Arrow keys move between tabs, one tab stop for the bar. |
-| Switch or toggle | `switch` role (or a checkbox) with `aria-checked`, a name, and Space to toggle. |
+| Switch or toggle | A name and Space to toggle, plus an exposed on/off state: a `switch` or `checkbox` role needs `aria-checked`, while a native `input[type="checkbox"]` uses its HTML `checked` state instead and is not a gap without `aria-checked`. |
 | Multi-select or listbox | A name, `aria-expanded` on the trigger, options hidden while closed, `aria-selected` on chosen options, a labeled remove button for each selection, labeled option groups. |
 | Dropdown, popover, or dialog | A **visible** way to close it, plus Escape and click outside. Focus returns to the trigger. While a popover is open, decide whether the rest of the page should still react. |
 

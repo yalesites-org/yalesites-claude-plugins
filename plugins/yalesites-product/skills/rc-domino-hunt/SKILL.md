@@ -59,6 +59,8 @@ Everything for one RC lives in one folder, so a fresh session can pick up where 
     leftovers.md        anything a human has to clear
 ```
 
+Two files sit beside the release folders and span releases: `ledger.md` (one line per run) and `tester-misses.md` (bugs RC testers found that the hunt missed, waiting for a human to move them into `references/hotfix-lookback.md` by PR). A run never edits files inside the skill itself.
+
 A hypothesis status is `open`, `running`, `confirmed`, `suspicious`, `clean`, or `blocked` (with the reason). Write the status after every charter, not at the end. If a session dies, the next one continues from `hypotheses.json`. Each `running` entry also records `started` (ISO time). At the start of every run, set any `running` entry older than 2 hours back to `open`: its session died.
 
 ## Step 1: Find the RC and preflight
