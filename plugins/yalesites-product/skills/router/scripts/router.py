@@ -494,6 +494,40 @@ def find_unblocked():
     return sorted(out, key=lambda u: max(b["closedAt"] for b in u["blockers"]), reverse=True)
 
 
+# A ticket held until a date: a line like "**Hold until:** 2027-01-04" anywhere in its body
+# (optionally followed by why). Until that date the router leaves it out of status checks, owed
+# items, intake and the Monday agenda, and clears its Stage; it lists it under "On hold" instead.
+# Gates and phase hand-offs are not held. The day the date arrives, it comes back on its own.
+HOLD_UNTIL = re.compile(r"^[\s>*_-]*hold until:?[*_\s]*(\d{4}-\d{2}-\d{2})\b[*_\s]*[,.:;-]*\s*(.*)$", re.I | re.M)
+
+
+def hold_until(body):
+    """(date, why) from a Hold until line, or None. A line inside the agent block is ignored."""
+    m = HOLD_UNTIL.search(AGENT_BLOCK.sub("", body or ""))
+    if not m:
+        return None
+    day = parse_date(m.group(1))
+    return day, m.group(2).strip()
+
+
+def find_on_hold():
+    """url -> {"node", "until", "why"} for open tickets held until a date after today."""
+    fields = "number title url body repository{nameWithOwner} issueType{name} assignees(first:5){nodes{login}}"
+    out = {}
+    for n in search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open "hold until" in:body', fields, include_prs=False):
+        hold = hold_until(n["body"])
+        if hold and hold[0] > TODAY:
+            out[n["url"]] = {"node": n, "until": hold[0], "why": hold[1]}
+    return out
+
+
+def drop_held(on_hold, owed, stuck, intake, no_priority):
+    """The same lists without the tickets on hold."""
+    off = lambda url: url in on_hold
+    return ([o for o in owed if not off(o["node"]["url"])], [x for x in stuck if not off(x["node"]["url"])],
+            [n for n in intake if not off(n["url"])], [n for n in no_priority if not off(n["url"])])
+
+
 def find_intake():
     fields = """number title url createdAt repository{nameWithOwner} author{login} issueType{name}"""
     nodes = search_all(f'repo:{ORG}/{ISSUES_REPO} is:issue is:open label:forming', fields, include_prs=False)
@@ -660,8 +694,9 @@ def lanes_phrase(n):
 
 
 def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases, dry, features=None,
-                lanes_under=(), embeds_held=(), unblocked=None):
+                lanes_under=(), embeds_held=(), unblocked=None, on_hold=None):
     unblocked = unblocked or []
+    on_hold = on_hold or {}
     overdue = [o for o in owed if o["by"] < TODAY]
     no_owner = [o for o in owed if not o["who"]]
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
@@ -784,6 +819,15 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
             lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
         lines += ["", "</details>", ""]
 
+    if on_hold:
+        lines += ["<details>", f"<summary><b>On hold: left out of the lists above and the Monday view until a date "
+                  f"({len(on_hold)})</b></summary>", ""]
+        for h in sorted(on_hold.values(), key=lambda h: (h["until"], h["node"]["number"])):
+            why = f": {quiet(h['why'])}" if h["why"] else ""
+            lines.append(f"- {link(h['node'])} {quiet(h['node']['title'])}, until {h['until']:%b %-d, %Y}{why}")
+        lines += ["", "Held by a `Hold until: YYYY-MM-DD` line in the ticket body. Edit or delete the line to bring it back sooner.",
+                  "", "</details>", ""]
+
     if unblocked:
         lines += ["<details>", f"<summary><b>May be unblocked: the ticket says it is blocked by one that has since closed "
                   f"({len(unblocked)})</b></summary>", ""]
@@ -837,6 +881,12 @@ def main():
     except Exception as e:  # noqa: BLE001
         print(f"router: skipping 'may be unblocked' list: {e}", file=sys.stderr)
         unblocked = []
+    try:
+        on_hold = find_on_hold()  # a failure here only means nothing is held today
+    except Exception as e:  # noqa: BLE001
+        print(f"router: skipping holds: {e}", file=sys.stderr)
+        on_hold = {}
+    owed, stuck, intake, no_priority = drop_held(on_hold, owed, stuck, intake, no_priority)
 
     if a.json:
         item = lambda n: {"ref": ref(n), "url": n["url"], "title": n["title"]}
@@ -864,6 +914,8 @@ def main():
                                                    "priority": it["priority"], "risk": it["risk"], "status": it["status"],
                                                    "milestone": (open_milestone(it["node"]) or {}).get("title")}
                                                   for it, why in l["candidates"]]} for l in lanes_under],
+            "on_hold": [{**item(h["node"]), "until": h["until"].isoformat(), "why": h["why"]}
+                        for h in sorted(on_hold.values(), key=lambda h: h["until"])],
             "embeds_held": [{**item(it["node"]), "number": it["node"]["number"]} for it in embeds_held],
             "unblocked": [{**item(u["node"]), "number": u["node"]["number"],
                            "blockers": [{"number": b["number"], "closed": b["closedAt"][:10],
@@ -896,7 +948,7 @@ def main():
     features = find_features() if TODAY.weekday() == 0 else None
     brief = build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priority, phases,
                         dry=not a.apply, features=features, lanes_under=lanes_under, embeds_held=embeds_held,
-                        unblocked=unblocked)
+                        unblocked=unblocked, on_hold=on_hold)
     if a.brief_file:
         Path(a.brief_file).write_text(brief)
     print(brief)

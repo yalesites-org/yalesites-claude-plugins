@@ -216,6 +216,16 @@ Monday is the dev meeting. Communications work (Issue Type `Communications`) goe
 
 Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the brief and the work dashboard remain the full lists.
 
+### Holding a ticket until a date
+
+To take a ticket off the Monday view and the brief's lists until later (say, next-release work during a release candidate window), add a line to its body:
+
+```
+**Hold until:** 2027-01-04, next-release work, after the 12-01-26 release
+```
+
+Until that date the router leaves the ticket out of status checks, owed decisions and follow-ups, intake and the Monday agenda counts, and clears its Stage. The brief lists it under "On hold" with the date and the reason, so nothing disappears silently. On the date it comes back on its own. Edit or delete the line to bring it back sooner. A hold does not stop a phase hand-off or a gate, and it does not change the ticket's status, assignee or milestone.
+
 ## Brief
 
 The router posts its brief as a comment on the pinned **Router brief** issue in YaleSites-Internal, every weekday morning. It is yalesites-org/YaleSites-Internal#1987.

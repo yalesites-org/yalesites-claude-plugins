@@ -60,6 +60,24 @@ class WorkingDaysTest(unittest.TestCase):
         self.assertEqual(router.add_working_days(fri, 1), mon)
 
 
+class HoldUntilTest(unittest.TestCase):
+    def test_line_forms(self):
+        self.assertEqual(router.hold_until("**Hold until:** 2027-01-04, after the RC")[0], dt.date(2027, 1, 4))
+        self.assertEqual(router.hold_until("Intro\n> Hold until 2027-01-04\nmore")[0], dt.date(2027, 1, 4))
+        self.assertEqual(router.hold_until("**Hold until:** 2027-01-04 after the release")[1], "after the release")
+
+    def test_ignored(self):
+        self.assertIsNone(router.hold_until("We should not hold until 2027-01-04 in prose mid-sentence."))
+        self.assertIsNone(router.hold_until("<!-- yalesites:agent\nHold until: 2027-01-04\n-->"))
+        self.assertIsNone(router.hold_until(None))
+
+    def test_drop_held(self):
+        held = {"u1": {}}
+        owed = [{"node": {"url": "u1"}}, {"node": {"url": "u2"}}]
+        out = router.drop_held(held, owed, [{"node": {"url": "u1"}}], [{"url": "u1"}], [{"url": "u3"}])
+        self.assertEqual(out, ([{"node": {"url": "u2"}}], [], [], [{"url": "u3"}]))
+
+
 class BlockerRefsTest(unittest.TestCase):
     def test_blocker_line_forms(self):
         body = ("> **Blocked by** yalesites-org/YaleSites-Internal#1161, the Views rework.\n"
