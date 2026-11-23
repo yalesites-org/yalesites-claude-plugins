@@ -203,8 +203,8 @@ Monday is the dev meeting. Communications work (Issue Type `Communications`) goe
 
 | # | Section | Where | What we do |
 |---|---|---|---|
-| 1 | Decisions & follow-ups | **Monday** view, Stage `Decision` and `Follow-up` | Decisions that need the room. Each leaves decided or with a new date |
-| 2 | Stuck | **Monday** view, Stage `Stuck` | In progress with no activity. Each leaves with an owner and a date |
+| 1 | Status check | **Monday** view, Stage `Status check` | In progress with no activity. Often it is moving and just needs an update; each leaves with an owner and a date |
+| 2 | Follow-ups & decisions | **Monday** view, Stage `Follow-up` and `Decision` | Follow-ups first, then decisions that need the room. Each leaves done, decided, or with a new date |
 | 3 | Intake | **Monday** view, Stage `Intake` | New `forming` tickets and new tickets with no priority: groom now, park, or decline |
 | 4 | Features | The brief (Mondays) | Release-planning weeks only: feature parents by milestone and progress, and which we take on next |
 | 5 | Gates | **Monday** view, Stage `Gate` | Phases waiting on a gatekeeper's go (`awaiting-go`) |
@@ -212,7 +212,7 @@ Monday is the dev meeting. Communications work (Issue Type `Communications`) goe
 
 ### The Stage field
 
-**Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, minus Communications, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Stuck, Intake wins.
+**Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, minus Communications, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Status check, Intake wins. (Status check was called Stuck until 2026-11-23; the router still reads a board that uses the old name.)
 
 Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the brief and the work dashboard remain the full lists.
 

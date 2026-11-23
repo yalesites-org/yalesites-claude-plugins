@@ -16,7 +16,7 @@ Each run it:
    - **Gated phases wait.** If the phase has a Gate in `routing.md` (today: Development and Docs, both `miketullo95`), the router does not move it. It lists it under "Waiting on a go." The gatekeeper approves by moving it to To Do, or sends it back with a `follow-up`.
 2. **Lists what's owed.** Every open `needs-decision` and `follow-up` (and legacy `question`) across the YaleSites repos, grouped by the person named in its block, oldest due date first.
 3. **Lists intake.** Open `forming` tickets waiting to be groomed, plus tickets filed in the last 30 days by someone who isn't a groomer that still have no Priority.
-4. **Flags what's stuck.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
+4. **Flags what needs a status check.** In progress tickets with no activity for 3+ working days (20+ for Communications; epics are skipped).
 5. **Lists what may be unblocked.** Open tickets whose body says they are blocked by a ticket that has since closed. List only, no writes. See "May be unblocked" in `routing.md`.
 6. **Checks lane floors.** Counts each developer's `To Do` tickets (Communications left out) against their floor in `routing.md` (today: Laura 2, Dave 5). A lane under its floor shows under "Lane floors" with up to 5 groomed, unassigned candidates: in pickup order, or for a lane with Areas (Laura), bugs first, then her areas, then Low priority. New embed providers stay out until `miketullo95` has approved them, and the brief names the ones it left out. A person checks fit and assigns one. The router never assigns a candidate, since picking work for someone takes judgment the rules can't make.
 

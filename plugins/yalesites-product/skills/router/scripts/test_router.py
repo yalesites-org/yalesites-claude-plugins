@@ -147,8 +147,8 @@ class BriefTest(unittest.TestCase):
             brief = router.build_brief([], [], {}, [], owed, stuck, intake, [], {}, dry=True, features=[])
         finally:
             router.TODAY = saved
-        self.assertIn("**Decisions & follow-ups**: 0 decisions", brief)
-        self.assertIn("**Stuck**: 1 stuck", brief)
+        self.assertIn("**Follow-ups & decisions**: 0 overdue follow-ups, 0 decisions", brief)
+        self.assertIn("**Status check**: 1 to check on", brief)
         self.assertIn("**Intake**: 1 to groom", brief)
         # The daily sections still list the comms items.
         self.assertIn("Item 10", brief)

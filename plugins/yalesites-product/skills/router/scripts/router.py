@@ -43,7 +43,10 @@ BOARD_VIEWS = f"https://github.com/orgs/{ORG}/projects/{PROJECT}/views/"
 MONDAY_VIEW = 28
 STAGE_FIELD = "Stage"
 # When an item qualifies for more than one stage, the first one listed wins.
-STAGE_ORDER = ["Gate", "Decision", "Follow-up", "Stuck", "Intake"]
+# "Status check" was called "Stuck" until 2026-11-23. A board that still has the
+# old option name keeps working: sync_stages treats the two as one.
+STAGE_ORDER = ["Gate", "Decision", "Follow-up", "Status check", "Intake"]
+OLD_STAGE_NAMES = {"Stuck": "Status check"}
 # The Monday meeting is dev-focused; these Issue Types go to the weekly comms meeting instead.
 MONDAY_SKIP_TYPES = {"Communications"}
 # Lane floors: candidate tickets listed for a person to approve. The router never assigns them.
@@ -402,7 +405,7 @@ def desired_stages(gated, owed, stuck, intake, no_priority):
     for o in owed:
         put(o["node"]["url"], "Decision" if o["kind"] == "needs-decision" else "Follow-up")
     for x in stuck:
-        put(x["node"]["url"], "Stuck")
+        put(x["node"]["url"], "Status check")
     for n in list(intake) + list(no_priority):
         put(n["url"], "Intake")
     return want
@@ -416,16 +419,16 @@ def sync_stages(want, board):
     field = proj["field"]
     if not field:
         raise RuntimeError(f"no {STAGE_FIELD} field on project {PROJECT}")
-    opts = {o["name"]: o["id"] for o in field["options"]}
+    opts = {OLD_STAGE_NAMES.get(o["name"], o["name"]): o["id"] for o in field["options"]}
     n_set = n_clear = 0
     for url, item in board.items():
         target = want.get(url)
-        if target == item["stage"]:
+        if target == OLD_STAGE_NAMES.get(item["stage"], item["stage"]):
             continue
         base = ["project", "item-edit", "--id", item["id"], "--project-id", proj["id"], "--field-id", field["id"]]
         if target:
             gh(*base, "--single-select-option-id", opts[target]); n_set += 1
-        elif item["stage"] in opts:
+        elif OLD_STAGE_NAMES.get(item["stage"], item["stage"]) in opts:
             gh(*base, "--clear"); n_clear += 1
     return n_set, n_clear
 
@@ -664,7 +667,7 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
     head = (f"**TL;DR:** {len(promos)} phase hand-off{'s' if len(promos) != 1 else ''}, {len(gated)} waiting on a go, "
             f"{sum(o['kind'] == 'needs-decision' for o in owed)} open decisions and "
             f"{sum(o['kind'] == 'follow-up' for o in owed)} follow-ups ({len(overdue)} overdue), "
-            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} stuck"
+            f"{len(intake) + len(no_priority)} in intake, {len(stuck)} for a status check"
             + (f", {lanes_phrase(len(lanes_under))}" if lanes_under else "")
             + (f", {len(unblocked)} may be unblocked." if unblocked else "."))
     lines = [f"## Router brief, {TODAY:%a %b %-d}" + (" (dry run)" if dry else ""), "", head, ""]
@@ -678,8 +681,8 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         decisions = sum(o["kind"] == "needs-decision" for o in d_owed)
         late_follow = sum(o["kind"] == "follow-up" and o["by"] < TODAY for o in d_owed)
         pl = lambda n, w: f"{n} {w}{'' if n == 1 else 's'}"
-        counts = {"Decisions & follow-ups": f"{pl(decisions, 'decision')}, {pl(late_follow, 'overdue follow-up')}",
-                  "Stuck": f"{len(d_stuck)} stuck",
+        counts = {"Status check": f"{len(d_stuck)} to check on",
+                  "Follow-ups & decisions": f"{pl(late_follow, 'overdue follow-up')}, {pl(decisions, 'decision')}",
                   "Intake": f"{len(d_intake)} to groom, {len(d_no_pri)} need a priority",
                   "Features": f"{len(features or [])} in flight, release-planning weeks only",
                   "Gates": f"{len(gated)} waiting on a go",
@@ -690,10 +693,10 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
                   "Nothing needs the room this week. Skip the meeting." if empty else
                   "30 minutes, top to bottom. Skip any empty section. "
                   "Communications items are left out; they go to the weekly comms meeting.", ""]
-        where = {"Decisions & follow-ups": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
-                 "Stuck": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
+        where = {"Status check": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
+                 "Follow-ups & decisions": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Intake": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})",
                  "Features": "below", "Gates": f"[Monday view]({BOARD_VIEWS}{MONDAY_VIEW})", "Lane floors": "below"}
-        for i, name in enumerate(["Decisions & follow-ups", "Stuck", "Intake", "Features", "Gates", "Lane floors"], 1):
+        for i, name in enumerate(["Status check", "Follow-ups & decisions", "Intake", "Features", "Gates", "Lane floors"], 1):
             lines.append(f"{i}. **{name}**: {counts[name]} ({where[name]})")
         lines.append("")
 
@@ -775,7 +778,7 @@ def build_brief(promos, gated, applied, waiting, owed, stuck, intake, no_priorit
         lines.append("")
 
     if stuck:
-        lines += ["<details>", f"<summary><b>Stuck: In progress with no activity for {STALE_WORKING_DAYS}+ working days, 20+ for Communications ({len(stuck)})</b></summary>", ""]
+        lines += ["<details>", f"<summary><b>Status check: In progress with no activity for {STALE_WORKING_DAYS}+ working days, 20+ for Communications ({len(stuck)})</b></summary>", ""]
         for s in sorted(stuck, key=lambda s: -s["idle"]):
             pr = "" if s["has_pr"] else ", no PR"
             lines.append(f"- {link(s['node'])} {quiet(s['node']['title'])}, `{s['who']}`, {s['idle']}d idle{pr}")
