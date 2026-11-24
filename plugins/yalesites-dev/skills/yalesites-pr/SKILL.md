@@ -73,10 +73,10 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - If the same-named yalesites-project branch has no commits, create the multidev-only branch and PR (below). This is not optional and needs no confirmation; say in chat that you did it.
 
      ```bash
-     scripts/ensure-multidev-branch.sh {branch} yalesites-org/{companion-repo}#{N}
+     scripts/ensure-multidev-branch.sh {branch} yalesites-org/{companion-repo}#{N} {yalesites-project-checkout}
      ```
 
-     It prints `existing` or `created <sha>`, and never switches the checkout. Step 6 then opens that PR as a **draft** with the multidev-only title, body and `don't merge` label (in place of `needs review`) (references/pr-template.md, "Multidev-only PR"). `/merge-prs` and `/prove-my-prs` rely on exactly that title suffix and label. A tokens PR also needs a same-named component-library-twig branch that consumes it; if there is none, say so instead of opening an empty yalesites-project PR that tests nothing.
+     The last argument is required and must be a yalesites-project checkout (never the current companion repo). With no local one, clone it into a scratch dir first; the script refuses any other origin. It prints `existing` or `created <sha>`, and never switches the checkout. Step 6 then opens that PR as a **draft** with the multidev-only title, body and `don't merge` label (in place of `needs review`) (references/pr-template.md, "Multidev-only PR"). `/merge-prs` and `/prove-my-prs` rely on exactly that title suffix and label. A tokens PR also needs a same-named component-library-twig branch that consumes it; if there is none, say so instead of opening an empty yalesites-project PR that tests nothing.
 
 4. **ADR check** (always runs, with or without an issue, in the current repo plus every companion repo step 3 found)
 

@@ -2,7 +2,7 @@
 # Make sure yalesites-project has a same-named branch with at least one commit,
 # so a companion PR (atomic, component-library-twig, tokens) gets a multidev.
 #
-#   ensure-multidev-branch.sh <branch> <companion-repo#N> [<yalesites-project checkout>]
+#   ensure-multidev-branch.sh <branch> <companion-repo#N> <yalesites-project checkout>
 #
 # yalesites-project's build (.ci/build/build_frontend) builds the component
 # library and atomic branch that share its PR branch's name, so a companion
@@ -18,9 +18,15 @@
 set -euo pipefail
 
 branch="${1:?usage: $0 <branch> <companion-repo#N> [checkout]}"
-companion="${2:?usage: $0 <branch> <companion-repo#N> [checkout]}"
-repo="${3:-$(git rev-parse --show-toplevel)}"
+companion="${2:?usage: $0 <branch> <companion-repo#N> <yalesites-project checkout>}"
+repo="${3:?usage: $0 <branch> <companion-repo#N> <yalesites-project checkout>}"
 issue="${branch%%-*}"
+
+origin_url=$(git -C "$repo" remote get-url origin)
+case "$origin_url" in
+  *yalesites-org/yalesites-project|*yalesites-org/yalesites-project.git) ;;
+  *) echo "refusing: $repo origin is $origin_url, not yalesites-org/yalesites-project" >&2; exit 1 ;;
+esac
 
 git -C "$repo" fetch -q origin develop
 if git -C "$repo" ls-remote --exit-code --heads origin "$branch" >/dev/null 2>&1; then
