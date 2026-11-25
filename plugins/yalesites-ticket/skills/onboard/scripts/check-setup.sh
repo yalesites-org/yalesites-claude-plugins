@@ -27,7 +27,7 @@ ORG="yalesites-org"
 REPO="yalesites-org/YaleSites-Internal"
 BOARD_NUMBER="6"
 
-# Pinned like the other skills. Source: pr-feedback/references/drive-it.md
+# Pinned like the other skills. Source: yalesites-review plugin, pr-feedback/references/drive-it.md
 # ("Browsers"). Bump the pin there and here together.
 PLAYWRIGHT_CLI="@playwright/cli@0.1.22"
 

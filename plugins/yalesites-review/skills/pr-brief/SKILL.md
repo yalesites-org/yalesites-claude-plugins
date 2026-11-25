@@ -28,9 +28,17 @@ gh pr checks NUMBER --repo yalesites-org/REPO
 ```
 
 - Read the whole diff, not just the file list.
-- Find the linked issue in the PR body (usually `## [#NNNN :: Title](url)`) and read it with
-  `gh issue view NNNN --repo yalesites-org/YaleSites-Internal --json title,body,labels`. No linked
-  issue is itself worth noting under **Your calls**.
+- Find the linked issue in the PR body (usually `## [#NNNN :: Title](url)`) and read it from
+  the issue repo for this PR: `yalesites-org/yale-ui-cl` when the PR is in `yale-ui-cl`,
+  `yalesites-org/YaleSites-Internal` for every other repo. If the link in the PR body names a
+  repo, use that one.
+
+  ```bash
+  ISSUE_REPO=YaleSites-Internal   # yale-ui-cl when REPO is yale-ui-cl
+  gh issue view NNNN --repo "yalesites-org/$ISSUE_REPO" --json title,body,labels
+  ```
+
+  No linked issue is itself worth noting under **Your calls**.
 - **Siblings:** open PRs in the other repos whose title carries the same ticket number. Read
   their diffs too. Acceptance criteria are often split across repos.
 - For `yale-ui-cl`, also read the PR's existing review threads, so the brief does not repeat

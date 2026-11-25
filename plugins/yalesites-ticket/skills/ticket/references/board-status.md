@@ -137,7 +137,7 @@ The board is only as accurate as the transitions we actually perform. Ownership 
 | PR merged → PR's own card to `Done` | PR merges | Board workflow "Pull request merged" | Working. Moves the PR card only, not the linked ticket |
 | Merged to `develop` → ticket to `Done` | PR merges | Workflow `02-pr-status-monitor` | **Built but dormant** (see YaleSites-Internal#1385) |
 | Docs draft approved and staged → ticket to `Done` | Draft built on yalesites.yale.edu | Whoever stages the draft (by hand, or a docs routine if your team runs one) | Working |
-| Release ships → ticket closed | Release merged to `master` | Release close-out: by hand, or the team's release routine (`release-prep` Phase 7) if your team runs one | Working |
+| Release ships → ticket closed | Release merged to `master` | Release close-out: by hand, or a release routine if your team runs one | Working |
 | Status set to `Done` → issue closed | Board change | Workflow `06-close-issue-when-done` | **Dormant** (see the release close-out row above). Must stay that way |
 | Status set to `Done` → issue closed | Board change | Board workflow "Auto-close issue" | **Off by design** since 2026-09-23. Turning it on closes tickets before they ship |
 | Trigger label → board field | Label applied | Workflow `07-label-to-project-fields` | **Not used by any skill.** See "Why there is no label fallback" below |
@@ -172,4 +172,4 @@ When `gh` is missing, unauthenticated, or lacks the `project` scope:
 
 Older versions of this skill applied `status:*` / `priority:*` / `size:*` labels and relied on workflow `07-label-to-project-fields` to copy them onto the board. That never worked for skill-created tickets. The workflow's mappings expect a space after the colon (`priority: medium`), and the repo's labels have none (`priority:medium`). The workflow logged "No label mappings matched" and left both the label and an empty board field behind. On 2026-10-05, about 30 open tickets were carrying these labels with no matching board field.
 
-**Never apply these labels.** A `priority:*`, `size:*`, or `status:*` label on a ticket is a sign the board field was never set. A backlog audit (such as a `backlog-hygiene` routine, if your team runs one) reports them for that reason.
+**Never apply these labels.** A `priority:*`, `size:*`, or `status:*` label on a ticket is a sign the board field was never set. A backlog audit, if your team runs one, reports them for that reason.

@@ -13,9 +13,20 @@ file-and-line notes they never made: the developer reads the whole body as that 
 and follows up with them on notes they cannot defend.
 
 So: the reviewer's own observations and the brief findings inside their dimensions go in the body.
-Findings outside their dimensions stay out of it, having already been named in Step 3b. The
-mechanical ones among them already went to the developer from the automated pass, so they are not
-lost by being left here.
+Findings outside their dimensions stay out of it, having already been named in Step 3b.
+
+**Check whether the brief posted anything before dropping a mechanical finding.** Read the
+brief's **Written by** and **Audit outcome** lines (`brief-format.md`):
+
+- **The producer posted its findings** (an automated pass whose Audit outcome says it handed
+  findings to the developer): the out-of-lane mechanical findings already reached the developer,
+  so they are not lost by being left out here.
+- **The producer posted nothing** (Written by `pr-brief`, an Audit outcome of "local brief only,
+  nothing posted", or no Audit outcome at all): nobody has told the developer. Put the
+  out-of-lane mechanical findings in the body under their own label, **Also flagged by the
+  automated pass (outside my review)**, with `file:line` for each, so the developer gets them
+  without reading them as the reviewer's own notes. If the reviewer would rather not carry them,
+  offer instead to post them as a separate plain comment. Never drop them silently.
 
 If that empties the body completely, say so. An approval with no feedback is a normal outcome and
 Step 6 already handles a feedback-free approval.

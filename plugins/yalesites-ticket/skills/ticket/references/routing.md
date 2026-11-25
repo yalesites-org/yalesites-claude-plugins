@@ -74,7 +74,7 @@ When someone who is not a groomer runs the `ticket` skill:
 | A feature request or enhancement (new or changed functionality) | An **intake stub**: what was asked, who asked, where it came from, why it matters | Title `Feature Request: ...`, Issue Type `Feature`, `forming`, Status `Backlog`. No Priority, Risk, milestone, assignee, or `claude` |
 | A bug, or comms, docs, or training work | A full ticket, as today | Everything except Priority, which a groomer sets |
 
-**`forming` is the intake label.** It means "filed, not yet groomed." Every open `forming` ticket shows in the router brief's Intake section and in the dashboard's Intake queue. Grooming removes it.
+**`forming` is the intake label.** It means "filed, not yet groomed." Every open `forming` ticket shows in the router brief's Intake section, if your team runs the router. Grooming removes it.
 
 Tickets with no Priority filed in the last 30 days by someone who isn't a groomer also show under Intake as "Needs a priority."
 
@@ -174,7 +174,7 @@ The label is the switch. The router treats a block with no label as closed.
 
 ## Approving or sending back a gated phase
 
-- **Approve:** move the phase child to `To Do` (on the board, or with the dashboard's Approve button, which also assigns the default owner if nobody is assigned and comments on the parent). The router never sees it as waiting again.
+- **Approve:** move the phase child to `To Do` on the board, and assign the default owner if nobody is assigned. The router never sees it as waiting again.
 - **Send back:** post a `## Follow-up needed` block on the gated child naming who owes the fix (usually the owner of the phase before it), and add `follow-up`. The child stays in `Backlog`, drops out of "Waiting on a go," and shows under that person in the brief. When they finish and remove the label, it comes back to the gate.
 
 A gated child with an open `needs-decision` is held the same way until the decision is made.
@@ -216,7 +216,7 @@ Monday is the dev meeting. Communications work (Issue Type `Communications`) goe
 
 **Stage** is a single-select field on the YaleSites Board that only the router sets. Every run, it gives each board item the stage it is in today and clears it once the item moves on. The **Monday** view shows `has:stage` items, minus Communications, grouped by Stage. When an item is in more than one stage, the first of Gate, Decision, Follow-up, Status check, Intake wins. (Status check was called Stuck until 2026-11-23; the router still reads a board that uses the old name.)
 
-Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the brief and the work dashboard remain the full lists.
+Don't set Stage by hand: the next run overwrites it. Change the label, status, or block that put the item there instead. Items outside the board (PRs in the code repos) never get a Stage, so the router brief remains the full list.
 
 ### Holding a ticket until a date
 

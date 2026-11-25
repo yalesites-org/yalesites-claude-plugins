@@ -219,7 +219,11 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    No output (exit 1) is the pass. A published body containing `<N>` is a broken link in
    front of every reviewer.
 
-8. **Check whether the issue needs to catch up** (only if an issue number was found). If the `ticket-sync` skill (yalesites-review plugin) is installed, load it with the issue number and the PR body from Step 6, and post nothing without approval. If it isn't installed, skip this step.
+8. **Check whether the issue needs to catch up** (only if an issue number was found). If the `ticket-sync` skill (yalesites-review plugin) isn't installed, skip this step. If it is, fetch the issue body first, since Step 2 only pulled the title:
+   ```bash
+   gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json body -q .body
+   ```
+   Then load `ticket-sync` with the issue number, that body, and the PR body from Step 6, and post nothing without approval.
 
 9. **Move the issue to "In review"** (only if an issue number was found)
    Once the PR(s) exist, the solution is ready for review, so set the issue's status to **In review** on the YaleSites Board (GitHub Projects v2, org `yalesites-org`, project number 6) — but only if it is not already there.

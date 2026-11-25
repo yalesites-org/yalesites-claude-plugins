@@ -169,7 +169,7 @@ class ReviewBoardServerTest(ServerTestBase):
 
 
 class DocsBoardServerTest(ServerTestBase):
-    """The same server, started the way yalesites-docs-board starts it."""
+    """The same server, started with a custom board dir, route, output file, and app name."""
     handler_kwargs = {"board_dir": DOCS_BOARD_DIR, "route": "/api/decisions", "out": "decisions.json", "app": "docs-board"}
 
     def test_health_names_the_docs_board(self):

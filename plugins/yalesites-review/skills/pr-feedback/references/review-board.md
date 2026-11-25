@@ -450,6 +450,8 @@ to `configurations` in the project's `.claude/launch.json` (create the file with
 }
 ```
 
+Add `"--no-calibration"` to the end of `runtimeArgs` when `calibration` is `false` in `config.md`.
+
 Start it with `preview_start`, then go to the packet with `preview_eval`
 (`location.href = "http://localhost:<port>/?packet=<id>"`). `--exact-port` matters here: the pane
 opens the port in the config, so the server must fail loudly rather than move to another one. A
@@ -463,7 +465,7 @@ or only added an entry, because Step R4 undoes exactly that.
 open it in the default browser:
 
 ```bash
-python3 <skill-dir>/scripts/review-board/server.py --packets <scratchpad>/review-board/packets --port <port>
+python3 <skill-dir>/scripts/review-board/server.py --packets <scratchpad>/review-board/packets --port <port> [--no-calibration]
 ```
 
 It prints `REVIEW_BOARD_URL http://localhost:<port>`, and moves to the next free port if that

@@ -87,7 +87,7 @@ Say what each one is, in one line:
 - Firefox is Firefox.
 - WebKit is the engine behind Safari.
 
-Install the helper once for the whole computer, so it works from any folder and any session. The version is pinned the same way as in `pr-feedback/references/drive-it.md` ("Browsers"), which is the place to bump it. Ask once: "OK to install the browser helper and three browsers for Claude to use? Together they are a few hundred megabytes, so it takes a few minutes. They go in your own folder and need no password." Then run:
+Install the helper once for the whole computer, so it works from any folder and any session. The version is pinned the same way as in the `yalesites-review` plugin's `pr-feedback/references/drive-it.md` ("Browsers"), which is the place to bump it. Ask once: "OK to install the browser helper and three browsers for Claude to use? Together they are a few hundred megabytes, so it takes a few minutes. They go in your own folder and need no password." Then run:
 
 ```bash
 npm install -g @playwright/cli@0.1.22
