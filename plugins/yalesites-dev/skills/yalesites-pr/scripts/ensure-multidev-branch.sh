@@ -17,7 +17,7 @@
 # change made) or `created <sha>` (empty commit pushed).
 set -euo pipefail
 
-branch="${1:?usage: $0 <branch> <companion-repo#N> [checkout]}"
+branch="${1:?usage: $0 <branch> <companion-repo#N> <yalesites-project checkout>}"
 companion="${2:?usage: $0 <branch> <companion-repo#N> <yalesites-project checkout>}"
 repo="${3:?usage: $0 <branch> <companion-repo#N> <yalesites-project checkout>}"
 issue="${branch%%-*}"
