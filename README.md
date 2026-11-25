@@ -4,40 +4,65 @@ A Claude Code plugin marketplace for the Yale ITS Digital Experiences team.
 
 > **Important:** Review a plugin before installing. The YaleSites core team
 > reviews all plugins in `/plugins/`. Plugins can include MCP servers, skills,
-> and other executable components — only install plugins you trust.
+> and other executable components. Only install plugins you trust.
 
-## Available Plugins
+## Which plugins do I install?
 
-| Plugin | Description | Install command |
+Pick the row that sounds like you. Each plugin you install adds its skill descriptions to
+every Claude session, so install only what you use.
+
+| You are... | Install | You get |
 |---|---|---|
-| [yalesites](plugins/yalesites/) | Deep expertise on the YaleSites Drupal platform, plus the yalesites-portfolio skill: measured block adoption, config trends, exemplar sites and page patterns from a crawl of the live portfolio | `/plugin install yalesites@yalesites-claude-plugins` |
-| [yalesites-product](plugins/yalesites-product/) | Release prep, ticket grooming, UX research, and source-site migration assessment for the product team | `/plugin install yalesites-product@yalesites-claude-plugins` |
-| [yalesites-dev](plugins/yalesites-dev/) | Git, PR, and GitHub-issue workflow skills for developers | `/plugin install yalesites-dev@yalesites-claude-plugins` |
-| [yalesites-security](plugins/yalesites-security/) | Security tooling — dependency supply-chain auditing (live OSV + GitHub malware advisories) | `/plugin install yalesites-security@yalesites-claude-plugins` |
+| **Reporting bugs and requests** | `yalesites`, `yalesites-ticket` | Well-formed tickets, screenshots on tickets, guided setup |
+| **A developer** | `yalesites`, `yalesites-dev` (add `yalesites-security` for dependency audits) | Commits, PRs, issue lookups, Drupal conventions, PHPUnit |
+| **A reviewer** | `yalesites`, `yalesites-ticket`, `yalesites-review` | PR review on the multidev or Storybook, reviewer scoping, keeping tickets in sync |
+| **On the migration project** | `yalesites`, `yalesites-migration` | Read-only migration assessment of a source site |
+| **Testing Beacon** | `yalesites-beacon` (add `yalesites` for platform context) | Question sets, tiered test banks, A/B comparison reviews |
 
-New to Claude Code and the terminal? Install `yalesites-product`, then run `/yalesites-product:onboard` and Claude walks you through setup. A plain-language guide is in [plugins/yalesites-product/skills/onboard/README.md](plugins/yalesites-product/skills/onboard/README.md).
+New to Claude Code and the terminal? Install `yalesites-ticket`, then run `/yalesites-ticket:onboard`
+and Claude walks you through setup. A plain-language guide is in
+[plugins/yalesites-ticket/skills/onboard/README.md](plugins/yalesites-ticket/skills/onboard/README.md).
 
-## Installation
+### Install commands
 
-### 1. Register this marketplace (once per machine)
-
-Open Claude Code and run:
+Register this marketplace once per machine, then install the plugins for your role. For someone
+who reports bugs:
 
 ```
 /plugin marketplace add yalesites-org/yalesites-claude-plugins
-```
-
-### 2. Browse available plugins
-
-```
-/plugin discover
-```
-
-### 3. Install a plugin
-
-```
 /plugin install yalesites@yalesites-claude-plugins
+/plugin install yalesites-ticket@yalesites-claude-plugins
 ```
+
+For other roles, swap in `yalesites-dev`, `yalesites-review`, `yalesites-migration`,
+`yalesites-beacon`, or `yalesites-security` as your row says. `/plugin discover` lists everything.
+After installing, run `/reload-plugins` or start a new session.
+
+### What each plugin assumes
+
+| Plugin | Skills | Assumes |
+|---|---|---|
+| [yalesites](plugins/yalesites/) | `yalesites`, `yalesites-portfolio` | Nothing. Core platform knowledge for everyone. |
+| [yalesites-ticket](plugins/yalesites-ticket/) | `ticket`, `github-screenshots`, `ux-research`, `onboard` | Nothing. Works better with `yalesites`. |
+| [yalesites-review](plugins/yalesites-review/) | `pr-feedback`, `pr-brief`, `reviewer-profile`, `ticket-sync` | `yalesites-ticket` |
+| [yalesites-dev](plugins/yalesites-dev/) | `yalesites-pr`, `commit-conventional`, `cross-repo`, `issue-lookup`, `issue-plan`, `pr-description`, `drupal-conventions`, `phpunit-drupal` | Nothing. `yalesites-pr` also runs `ticket-sync` if `yalesites-review` is installed. |
+| [yalesites-migration](plugins/yalesites-migration/) | `migration-assessment` | Works better with `yalesites`. |
+| [yalesites-beacon](plugins/yalesites-beacon/) | `beacon-question-set`, `beacon-test-bank`, `beacon-comparison-review` | Nothing. |
+| [yalesites-security](plugins/yalesites-security/) | `supply-chain-audit` | Nothing. |
+
+### Coming from `yalesites-product`
+
+`yalesites-product` was split up and removed from this marketplace. Uninstall it, then install the
+plugins for your role:
+
+```
+/plugin uninstall yalesites-product@yalesites-claude-plugins
+```
+
+Skill names did not change, but the plugin prefix did. For example, `/yalesites-product:ticket` is
+now `/yalesites-ticket:ticket`, and `/yalesites-product:pr-feedback` is now
+`/yalesites-review:pr-feedback`. Release prep, the router, backlog hygiene, the RC domino hunt,
+feature planning, and the docs and design-pass skills are no longer team plugins.
 
 ## Structure
 
@@ -67,13 +92,13 @@ bash scripts/sync-standards.sh
 
 ## Posting screenshots
 
-`gh` can't upload images to GitHub, so `yalesites-product` has a `github-screenshots` skill.
+`gh` can't upload images to GitHub, so `yalesites-ticket` has a `github-screenshots` skill.
 It commits the image to the `screenshots` branch of `yalesites-org/YaleSites-Internal` and prints
 an `<img>` tag for the comment.
 
 The image only shows for people with access to YaleSites-Internal (every org member). That makes
 it work on YaleSites-Internal tickets, but not in public repos, including this one, so the script
-refuses public targets. Details are in `plugins/yalesites-product/skills/github-screenshots/SKILL.md`.
+refuses public targets. Details are in `plugins/yalesites-ticket/skills/github-screenshots/SKILL.md`.
 
 ## Contributing
 

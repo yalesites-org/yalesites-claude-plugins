@@ -19,7 +19,9 @@ CHECK=0
 # Each target is the skill directory that hosts the shared files for its plugin.
 TARGETS=(
   "plugins/yalesites-dev/skills/yalesites-pr"
-  "plugins/yalesites-product/skills/ticket"
+  "plugins/yalesites-ticket/skills/ticket"
+  "plugins/yalesites-review/skills/pr-feedback"
+  "plugins/yalesites-beacon/skills/beacon-comparison-review"
   "plugins/yalesites-security/skills/supply-chain-audit"
 )
 

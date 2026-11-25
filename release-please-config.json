@@ -17,8 +17,11 @@
   ],
   "packages": {
     "plugins/yalesites": { "package-name": "yalesites" },
+    "plugins/yalesites-ticket": { "package-name": "yalesites-ticket" },
+    "plugins/yalesites-review": { "package-name": "yalesites-review" },
     "plugins/yalesites-dev": { "package-name": "yalesites-dev" },
-    "plugins/yalesites-product": { "package-name": "yalesites-product" },
+    "plugins/yalesites-migration": { "package-name": "yalesites-migration" },
+    "plugins/yalesites-beacon": { "package-name": "yalesites-beacon" },
     "plugins/yalesites-security": { "package-name": "yalesites-security" }
   }
 }

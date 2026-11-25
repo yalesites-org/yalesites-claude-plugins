@@ -219,14 +219,11 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    No output (exit 1) is the pass. A published body containing `<N>` is a broken link in
    front of every reviewer.
 
-8. **Check whether the issue needs to catch up** (only if an issue number was found, and the `yalesites-product` plugin's `ticket-sync` skill is available)
-   Load the `ticket-sync` skill and hand it the issue number and the PR body/bodies just created in Step 6 as the "what actually happened" input, to compare against the issue's Description and Acceptance Criteria. Fetch the full body first, since Step 2 only pulled the title:
+8. **Check whether the issue needs to catch up** (only if an issue number was found). If the `ticket-sync` skill (yalesites-review plugin) isn't installed, skip this step. If it is, fetch the issue body first, since Step 2 only pulled the title:
    ```bash
    gh issue view {NNN} --repo yalesites-org/YaleSites-Internal --json body -q .body
    ```
-   This catches cases where implementation drifted from the original ask during development — common on longer-running tickets — before the issue moves forward looking finished but describing something slightly different from what shipped.
-
-   Non-blocking and silent if nothing has drifted. If something has, `ticket-sync` decides comment vs. edit and drafts the text for your approval — use `gh issue edit` for a scope/acceptance-criteria change or `gh issue comment` for context only. If the `ticket-sync` skill isn't available in this session, skip this step rather than attempting the comparison ad hoc.
+   Then load `ticket-sync` with the issue number, that body, and the PR body from Step 6, and post nothing without approval.
 
 9. **Move the issue to "In review"** (only if an issue number was found)
    Once the PR(s) exist, the solution is ready for review, so set the issue's status to **In review** on the YaleSites Board (GitHub Projects v2, org `yalesites-org`, project number 6) — but only if it is not already there.
@@ -246,4 +243,4 @@ Creates pull requests following YaleSites conventions. See references/pr-templat
    - If it is already "In review", make no change.
    - `gh` needs the **`project` scope** for this write; `read:project` can read the board but not write to it. If the write fails, don't retry or troubleshoot the user's `gh` setup mid-task — report that the status wasn't moved and carry on. The PR itself is the important artifact.
 
-   Full board reference (all Status options and their meanings, Priority/Risk, reading current values, and which skill owns which transition) lives in the `ticket` skill's `references/board-status.md`, in the `yalesites-product` plugin. The command above is self-sufficient without it.
+   Full board reference (all Status options and their meanings, Priority/Risk, reading current values, and which skill owns which transition) lives in the `ticket` skill's `references/board-status.md`, in the `yalesites-ticket` plugin. The command above is self-sufficient without it.

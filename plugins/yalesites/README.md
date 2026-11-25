@@ -53,7 +53,8 @@ The skill loads deeper reference material on demand:
 
 ## Related plugins
 
-- `yalesites-product` — release prep, ticket grooming, and UX research workflows for the product team
+- `yalesites-ticket`: report bugs and requests, groom tickets, and UX research context
+- `yalesites-review`: PR review and keeping tickets in sync with the work
 
 ## Maintainer
 

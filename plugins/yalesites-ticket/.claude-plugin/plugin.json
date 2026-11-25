@@ -1,0 +1,17 @@
+{
+  "name": "yalesites-ticket",
+  "version": "0.1.0",
+  "description": "Report YaleSites bugs and requests as well-formed GitHub issues, and groom or scope tickets, features, and epics. Includes guided first-time setup (onboard), screenshots on YaleSites-Internal tickets, and UX research context. Works on its own.",
+  "author": {
+    "name": "Yale ITS Digital Experiences",
+    "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
+  },
+  "keywords": [
+    "yalesites",
+    "ticket",
+    "github",
+    "issues",
+    "onboarding",
+    "ux-research"
+  ]
+}
