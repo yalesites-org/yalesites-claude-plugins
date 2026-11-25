@@ -1,0 +1,14 @@
+{
+  "name": "yalesites-migration",
+  "version": "0.1.0",
+  "description": "Read-only migration assessment of a source site (Drupal 7 included) against the YaleSites content model: content type and component mapping, what will not carry over, effort, and mechanism options.",
+  "author": {
+    "name": "Yale ITS Digital Experiences",
+    "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
+  },
+  "keywords": [
+    "yalesites",
+    "migration",
+    "drupal"
+  ]
+}

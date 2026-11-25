@@ -1,0 +1,15 @@
+{
+  "name": "yalesites-review",
+  "version": "0.1.0",
+  "description": "PR review for YaleSites: walk through what to test, run it on the multidev or Storybook, and post the review. Also scopes reviews to what each reviewer rules on and keeps tickets in sync with how the work turned out. Assumes yalesites-ticket is installed.",
+  "author": {
+    "name": "Yale ITS Digital Experiences",
+    "url": "https://github.com/yalesites-org/yalesites-claude-plugins"
+  },
+  "keywords": [
+    "yalesites",
+    "pull-request",
+    "review",
+    "qa"
+  ]
+}
